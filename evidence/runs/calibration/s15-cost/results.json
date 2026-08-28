@@ -1,0 +1,483 @@
+{
+  "tool": "calibrate",
+  "started_at": "2026-08-28T16:21:02Z",
+  "finished_at": "2026-08-28T16:21:40Z",
+  "config": {
+    "root": "/Users/mikelady/dev/twitter_port_matrix",
+    "manifest": "/tmp/equiv-manifest.json",
+    "registry": "impls/registry.json",
+    "corpus": "generated/conformance.jsonl",
+    "impls": [
+      "go",
+      "rust"
+    ],
+    "rungs": [
+      "R0",
+      "R1",
+      "R2"
+    ],
+    "r1_traces": 5,
+    "r1_steps": 100,
+    "r1_seed": 1,
+    "r2_rounds": 3,
+    "r2_setup": 40,
+    "r2_seed": 1,
+    "probe_mode": "any",
+    "probe_traces": 4,
+    "probe_steps": 120,
+    "floor_samples": 3,
+    "rung_timeout": "20m0s"
+  },
+  "launch_floors": {
+    "go": {
+      "impl": "go",
+      "samples": 3,
+      "launch_ms": 548.9499999999999,
+      "build_ms": 313.51966666666664,
+      "min_ms": 522.812,
+      "max_ms": 588.873
+    },
+    "rust": {
+      "impl": "rust",
+      "samples": 3,
+      "launch_ms": 236.279,
+      "build_ms": 57.714,
+      "min_ms": 206.996,
+      "max_ms": 294.741
+    }
+  },
+  "setups": [
+    {
+      "mutant": "go/increment-rewritten",
+      "tree_hash": "sha256:d8333feeee0ed30ce359544ce3439d5f9bd926ed6d06f21df85d353daa68008c",
+      "apply_ms": 240.084,
+      "warm_build_ms": 341.629,
+      "copy_mode": "clone"
+    },
+    {
+      "mutant": "rust/increment-rewritten",
+      "tree_hash": "sha256:b648c147319dddebdcb7f8b3dde98790bef9e9bbdbdac55fad8e288307aa7c9f",
+      "apply_ms": 327.983,
+      "warm_build_ms": 3102.931,
+      "copy_mode": "clone"
+    }
+  ],
+  "cells": [
+    {
+      "mutant": "go/increment-rewritten",
+      "impl": "go",
+      "id": "increment-rewritten",
+      "family": "equivalence-control",
+      "tree_hash": "sha256:d8333feeee0ed30ce359544ce3439d5f9bd926ed6d06f21df85d353daa68008c",
+      "rung": "R0",
+      "outcome": "equivalent",
+      "wall_ms": 823.486,
+      "launches": 1,
+      "tool_ms": 274.53600000000006,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "go@increment-rewritten",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-4126508707/tree",
+        "tree_hash": "sha256:d8333feeee0ed30ce359544ce3439d5f9bd926ed6d06f21df85d353daa68008c",
+        "source_hash": "sha256:a7f4f4defd9b66ab82100496646f7b38a1dc4d2fbdf4c77433d90f6051e06659",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "no probe input tells the mutant apart from the original, including its own declared witness; not counted against any rung"
+    },
+    {
+      "mutant": "go/increment-rewritten",
+      "impl": "go",
+      "id": "increment-rewritten",
+      "family": "equivalence-control",
+      "tree_hash": "sha256:d8333feeee0ed30ce359544ce3439d5f9bd926ed6d06f21df85d353daa68008c",
+      "rung": "R1",
+      "outcome": "equivalent",
+      "wall_ms": 2637.486,
+      "launches": 5,
+      "tool_ms": -107.26399999999978,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 500 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "go@increment-rewritten",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-4126508707/tree",
+        "tree_hash": "sha256:d8333feeee0ed30ce359544ce3439d5f9bd926ed6d06f21df85d353daa68008c",
+        "source_hash": "sha256:a7f4f4defd9b66ab82100496646f7b38a1dc4d2fbdf4c77433d90f6051e06659",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "no probe input tells the mutant apart from the original, including its own declared witness; not counted against any rung"
+    },
+    {
+      "mutant": "go/increment-rewritten",
+      "impl": "go",
+      "id": "increment-rewritten",
+      "family": "equivalence-control",
+      "tree_hash": "sha256:d8333feeee0ed30ce359544ce3439d5f9bd926ed6d06f21df85d353daa68008c",
+      "rung": "R2",
+      "outcome": "equivalent",
+      "wall_ms": 13837.548,
+      "launches": 27,
+      "tool_ms": -984.1019999999975,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "go@increment-rewritten",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-4126508707/tree",
+        "tree_hash": "sha256:d8333feeee0ed30ce359544ce3439d5f9bd926ed6d06f21df85d353daa68008c",
+        "source_hash": "sha256:a7f4f4defd9b66ab82100496646f7b38a1dc4d2fbdf4c77433d90f6051e06659",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "no probe input tells the mutant apart from the original, including its own declared witness; not counted against any rung"
+    },
+    {
+      "mutant": "rust/increment-rewritten",
+      "impl": "rust",
+      "id": "increment-rewritten",
+      "family": "equivalence-control",
+      "tree_hash": "sha256:b648c147319dddebdcb7f8b3dde98790bef9e9bbdbdac55fad8e288307aa7c9f",
+      "rung": "R0",
+      "outcome": "equivalent",
+      "wall_ms": 231.701,
+      "launches": 1,
+      "tool_ms": -4.578000000000003,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "rust@increment-rewritten",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-1467825153/tree",
+        "tree_hash": "sha256:b648c147319dddebdcb7f8b3dde98790bef9e9bbdbdac55fad8e288307aa7c9f",
+        "source_hash": "sha256:64bb227e12c9c1bdf9899e1d11ff0b61156360e5397aab435de4e6c00635734e",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "no probe input tells the mutant apart from the original, including its own declared witness; not counted against any rung"
+    },
+    {
+      "mutant": "rust/increment-rewritten",
+      "impl": "rust",
+      "id": "increment-rewritten",
+      "family": "equivalence-control",
+      "tree_hash": "sha256:b648c147319dddebdcb7f8b3dde98790bef9e9bbdbdac55fad8e288307aa7c9f",
+      "rung": "R1",
+      "outcome": "equivalent",
+      "wall_ms": 1133.801,
+      "launches": 5,
+      "tool_ms": -47.59400000000005,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 500 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "rust@increment-rewritten",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-1467825153/tree",
+        "tree_hash": "sha256:b648c147319dddebdcb7f8b3dde98790bef9e9bbdbdac55fad8e288307aa7c9f",
+        "source_hash": "sha256:64bb227e12c9c1bdf9899e1d11ff0b61156360e5397aab435de4e6c00635734e",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "no probe input tells the mutant apart from the original, including its own declared witness; not counted against any rung"
+    },
+    {
+      "mutant": "rust/increment-rewritten",
+      "impl": "rust",
+      "id": "increment-rewritten",
+      "family": "equivalence-control",
+      "tree_hash": "sha256:b648c147319dddebdcb7f8b3dde98790bef9e9bbdbdac55fad8e288307aa7c9f",
+      "rung": "R2",
+      "outcome": "equivalent",
+      "wall_ms": 5975.845,
+      "launches": 27,
+      "tool_ms": -403.68799999999965,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "rust@increment-rewritten",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-1467825153/tree",
+        "tree_hash": "sha256:b648c147319dddebdcb7f8b3dde98790bef9e9bbdbdac55fad8e288307aa7c9f",
+        "source_hash": "sha256:64bb227e12c9c1bdf9899e1d11ff0b61156360e5397aab435de4e6c00635734e",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "no probe input tells the mutant apart from the original, including its own declared witness; not counted against any rung"
+    }
+  ],
+  "probes": [
+    {
+      "mutant": "go/increment-rewritten",
+      "tree_hash": "sha256:d8333feeee0ed30ce359544ce3439d5f9bd926ed6d06f21df85d353daa68008c",
+      "live": false,
+      "reached_by": null,
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 1688.007
+    },
+    {
+      "mutant": "rust/increment-rewritten",
+      "tree_hash": "sha256:b648c147319dddebdcb7f8b3dde98790bef9e9bbdbdac55fad8e288307aa7c9f",
+      "live": false,
+      "reached_by": null,
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 4160.977
+    }
+  ],
+  "summary": [
+    {
+      "rung": "R0",
+      "label": "corpus",
+      "inputs": "corpus",
+      "live": 0,
+      "killed": 0,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 2,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 1055.187,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 527.5935,
+      "tool_ms_mean_clean": 134.97900000000004,
+      "tool_samples": 2,
+      "launches_per_clean_run": 1
+    },
+    {
+      "rung": "R1",
+      "label": "diff-fuzz",
+      "inputs": "tracegen",
+      "live": 0,
+      "killed": 0,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 2,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 3771.287,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 1885.6435,
+      "tool_ms_mean_clean": -77.42899999999992,
+      "tool_samples": 2,
+      "launches_per_clean_run": 5
+    },
+    {
+      "rung": "R2",
+      "label": "property",
+      "inputs": "tracegen",
+      "live": 0,
+      "killed": 0,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 2,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 19813.393,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 9906.6965,
+      "tool_ms_mean_clean": -693.8949999999986,
+      "tool_samples": 2,
+      "launches_per_clean_run": 27
+    },
+    {
+      "rung": "R0",
+      "label": "corpus",
+      "inputs": "corpus",
+      "impl": "go",
+      "live": 0,
+      "killed": 0,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 1,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 823.486,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 823.486,
+      "tool_ms_mean_clean": 274.53600000000006,
+      "tool_samples": 1,
+      "launches_per_clean_run": 1
+    },
+    {
+      "rung": "R1",
+      "label": "diff-fuzz",
+      "inputs": "tracegen",
+      "impl": "go",
+      "live": 0,
+      "killed": 0,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 1,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 2637.486,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 2637.486,
+      "tool_ms_mean_clean": -107.26399999999978,
+      "tool_samples": 1,
+      "launches_per_clean_run": 5
+    },
+    {
+      "rung": "R2",
+      "label": "property",
+      "inputs": "tracegen",
+      "impl": "go",
+      "live": 0,
+      "killed": 0,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 1,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 13837.548,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 13837.548,
+      "tool_ms_mean_clean": -984.1019999999975,
+      "tool_samples": 1,
+      "launches_per_clean_run": 27
+    },
+    {
+      "rung": "R0",
+      "label": "corpus",
+      "inputs": "corpus",
+      "impl": "rust",
+      "live": 0,
+      "killed": 0,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 1,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 231.701,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 231.701,
+      "tool_ms_mean_clean": -4.578000000000003,
+      "tool_samples": 1,
+      "launches_per_clean_run": 1
+    },
+    {
+      "rung": "R1",
+      "label": "diff-fuzz",
+      "inputs": "tracegen",
+      "impl": "rust",
+      "live": 0,
+      "killed": 0,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 1,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 1133.801,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 1133.801,
+      "tool_ms_mean_clean": -47.59400000000005,
+      "tool_samples": 1,
+      "launches_per_clean_run": 5
+    },
+    {
+      "rung": "R2",
+      "label": "property",
+      "inputs": "tracegen",
+      "impl": "rust",
+      "live": 0,
+      "killed": 0,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 1,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 5975.845,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 5975.845,
+      "tool_ms_mean_clean": -403.68799999999965,
+      "tool_samples": 1,
+      "launches_per_clean_run": 27
+    }
+  ],
+  "warnings": [
+    "R0: 2 mutant(s) changed no observable behaviour and were excluded from the denominator. They should be given a witness or dropped from the catalogue -- left in, they make every rung look weaker.",
+    "R1: 2 mutant(s) changed no observable behaviour and were excluded from the denominator. They should be given a witness or dropped from the catalogue -- left in, they make every rung look weaker.",
+    "R2: 2 mutant(s) changed no observable behaviour and were excluded from the denominator. They should be given a witness or dropped from the catalogue -- left in, they make every rung look weaker.",
+    "R1 on go: the process floor (5 launches x measured floor) accounts for the whole clean wall time -- the corrected figure is -0.1s, at or below zero. This rung's seconds on this corner are process startup, not rung work, so comparing its wall time against another corner's compares the two languages' launch costs. Compare launch counts instead.",
+    "R2 on go: the process floor (27 launches x measured floor) accounts for the whole clean wall time -- the corrected figure is -1.0s, at or below zero. This rung's seconds on this corner are process startup, not rung work, so comparing its wall time against another corner's compares the two languages' launch costs. Compare launch counts instead.",
+    "R0 on rust: the process floor (1 launches x measured floor) accounts for the whole clean wall time -- the corrected figure is -0.0s, at or below zero. This rung's seconds on this corner are process startup, not rung work, so comparing its wall time against another corner's compares the two languages' launch costs. Compare launch counts instead.",
+    "R1 on rust: the process floor (5 launches x measured floor) accounts for the whole clean wall time -- the corrected figure is -0.0s, at or below zero. This rung's seconds on this corner are process startup, not rung work, so comparing its wall time against another corner's compares the two languages' launch costs. Compare launch counts instead.",
+    "R2 on rust: the process floor (27 launches x measured floor) accounts for the whole clean wall time -- the corrected figure is -0.4s, at or below zero. This rung's seconds on this corner are process startup, not rung work, so comparing its wall time against another corner's compares the two languages' launch costs. Compare launch counts instead."
+  ]
+}

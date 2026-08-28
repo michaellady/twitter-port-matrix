@@ -162,7 +162,7 @@ func main() {
 		die("%v", err)
 	}
 
-	man, err := mutants.Load(filepath.Join(absRoot, cfg.Manifest))
+	man, err := mutants.Load(underRoot(absRoot, cfg.Manifest))
 	if err != nil {
 		die("loading manifest: %v", err)
 	}
@@ -240,10 +240,13 @@ func main() {
 	}
 
 	for _, m := range sel {
-		cells, probe := calibrateOne(cfg, tools, m, selected, jr, *keepTrees)
+		cells, probe, setup := calibrateOne(cfg, tools, m, selected, jr, *keepTrees)
 		run.Cells = append(run.Cells, cells...)
 		if probe != nil {
 			run.Probes = append(run.Probes, *probe)
+		}
+		if setup != nil {
+			run.Setups = append(run.Setups, *setup)
 		}
 	}
 
@@ -280,6 +283,21 @@ func main() {
 func die(format string, a ...any) {
 	fmt.Fprintf(os.Stderr, "calibrate: "+format+"\n", a...)
 	os.Exit(1)
+}
+
+// underRoot resolves a configured path against the repository root, leaving an
+// already-absolute path alone.
+//
+// Rung subprocesses run with the root as their working directory, so a relative
+// path means the same thing to them and to this process -- but only if this
+// process joins it rather than resolving it against its own cwd. An absolute
+// path has to survive untouched, because pointing -manifest or -corpus at a
+// scratch file outside the repository is how a narrowed rung gets calibrated.
+func underRoot(root, p string) string {
+	if filepath.IsAbs(p) {
+		return p
+	}
+	return filepath.Join(root, p)
 }
 
 func splitList(s string) []string {

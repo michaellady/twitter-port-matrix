@@ -1,0 +1,95 @@
+CALIBRATION -- per-rung mutation kill table
+==============================================================================
+corners   go, rust
+rungs     R0, R1
+R1        8 traces x 100 steps, seed 1
+R2        6 rounds x 40 setup requests, seed 1
+probe     any (4 traces x 120 steps, plus the corpus and each mutant's witness)
+window    2026-08-28T16:40:09Z .. 2026-08-28T16:41:57Z
+
+==============================================================================
+KILL TABLE
+==============================================================================
+rung             live  killed  survived  unreached  equiv   kill%   kill%     wall
+                                                            reach    live         
+R0 corpus           8       8         0          0      0    100%    100%       4s
+R1 diff-fuzz        8       8         0          0      0    100%    100%      84s
+
+  live       mutants that change observable behaviour. Equivalent ones are excluded
+             from every denominator: no rung can kill them, so counting them would
+             understate every rung for a reason that is not about the rung.
+  survived   the rung's own inputs DO elicit the difference and it passed anyway.
+             A gap in the rung.
+  unreached  live, but nothing in this rung's input source elicits the difference.
+             A gap in the inputs. F009 is the worked example.
+  kill%reach killed / (killed + survived) -- the rung's oracle.
+  kill%live  killed / every live mutant -- the rung as configured, inputs included.
+
+==============================================================================
+BY CORNER
+==============================================================================
+corner   rung             live  killed  survived  unreached  equiv     wall
+go       R0 corpus           4       4         0          0      0       3s
+go       R1 diff-fuzz        4       4         0          0      0      59s
+rust     R0 corpus           4       4         0          0      0       1s
+rust     R1 diff-fuzz        4       4         0          0      0      25s
+
+==============================================================================
+COST -- and which cost it is
+==============================================================================
+Every rung relaunches the implementation: R0 once for the whole corpus, R1 once
+per trace, R2 once per property-round. A launch is a warm build check plus a
+process start plus a health wait, and that price differs by language. So raw
+seconds mix what the RUNG costs with what the LANGUAGE costs. Both are below.
+
+  corner   floor/launch of which build  samples           spread
+  go             555 ms         342 ms        3      543-563 ms
+  rust           234 ms          57 ms        3      203-294 ms
+
+  corner   rung            launches wall killed  wall clean  tool clean
+  go       R0 corpus              -       0.6s          -          -
+  go       R1 diff-fuzz           -      14.7s          -          -
+  rust     R0 corpus              -       0.3s          -          -
+  rust     R1 diff-fuzz           -       6.3s          -          -
+
+  wall killed  mean wall for a mutant this rung caught. NOT comparable with the
+               clean column, and not reliably smaller either. R1 stops at its
+               first mismatch -- then shrinks, and every shrink attempt is
+               another server launch, so at low trace counts a kill can cost
+               several times a clean pass. The launch count of a kill depends
+               on the defect, so it is not corrected and no tool figure is
+               derived from it.
+  wall clean   mean wall for a full pass -- the worst case, and what a sweep of
+               a correct implementation actually costs.
+  tool clean   wall clean minus launches x measured floor. The rung's own cost
+               with process startup removed. Reported only where the launch
+               count is known from the configuration -- never inferred.
+  *            the correction came out at or below zero. Not an error and not
+               hidden: it means this rung's own work costs no more than the
+               servers it launches, so at this configuration the rung IS process
+               startup. Compare rungs by their launch counts, not their seconds.
+  Mutant setup (materialise + warm the build cache) is charged to no rung; see
+  the setups block in results.json.
+
+==============================================================================
+PER MUTANT
+==============================================================================
+mutant                             R0          R1         
+go/id-burned-on-reject             kill        kill       
+go/self-follow-guard-dropped       kill        kill       
+go/cursor-inclusive                kill        kill       
+go/repeated-query-param-accepted   kill        kill       
+rust/id-burned-on-reject           kill        kill       
+rust/self-follow-guard-dropped     kill        kill       
+rust/cursor-inclusive              kill        kill       
+rust/repeated-query-param-accepted kill        kill       
+
+==============================================================================
+READ WITH CARE
+==============================================================================
+ 1. R0 killed EVERYTHING (8/8). Worth reading as a statement about the
+    catalogue as much as the rung: a mutant set this rung finds trivial cannot
+    distinguish it from a stronger one.
+ 2. R1 killed EVERYTHING (8/8). Worth reading as a statement about the
+    catalogue as much as the rung: a mutant set this rung finds trivial cannot
+    distinguish it from a stronger one.

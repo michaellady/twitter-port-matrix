@@ -1,0 +1,138 @@
+CALIBRATION -- per-rung mutation kill table
+==============================================================================
+corners   go, rust
+rungs     R0, R1, R2
+R1        5 traces x 100 steps, seed 1
+R2        3 rounds x 40 setup requests, seed 1
+probe     any (4 traces x 120 steps, plus the corpus and each mutant's witness)
+window    2026-08-28T16:21:02Z .. 2026-08-28T16:21:40Z
+
+==============================================================================
+KILL TABLE
+==============================================================================
+rung             live  killed  survived  unreached  equiv   kill%   kill%     wall
+                                                            reach    live         
+R0 corpus           0       0         0          0      2      0%      0%       1s
+R1 diff-fuzz        0       0         0          0      2      0%      0%       4s
+R2 property         0       0         0          0      2      0%      0%      20s
+
+  live       mutants that change observable behaviour. Equivalent ones are excluded
+             from every denominator: no rung can kill them, so counting them would
+             understate every rung for a reason that is not about the rung.
+  survived   the rung's own inputs DO elicit the difference and it passed anyway.
+             A gap in the rung.
+  unreached  live, but nothing in this rung's input source elicits the difference.
+             A gap in the inputs. F009 is the worked example.
+  kill%reach killed / (killed + survived) -- the rung's oracle.
+  kill%live  killed / every live mutant -- the rung as configured, inputs included.
+
+==============================================================================
+BY CORNER
+==============================================================================
+corner   rung             live  killed  survived  unreached  equiv     wall
+go       R0 corpus           0       0         0          0      1       1s
+go       R1 diff-fuzz        0       0         0          0      1       3s
+go       R2 property         0       0         0          0      1      14s
+rust     R0 corpus           0       0         0          0      1       0s
+rust     R1 diff-fuzz        0       0         0          0      1       1s
+rust     R2 property         0       0         0          0      1       6s
+
+==============================================================================
+COST -- and which cost it is
+==============================================================================
+Every rung relaunches the implementation: R0 once for the whole corpus, R1 once
+per trace, R2 once per property-round. A launch is a warm build check plus a
+process start plus a health wait, and that price differs by language. So raw
+seconds mix what the RUNG costs with what the LANGUAGE costs. Both are below.
+
+  corner   floor/launch of which build  samples           spread
+  go             549 ms         314 ms        3      523-589 ms
+  rust           236 ms          58 ms        3      207-295 ms
+
+  corner   rung            launches wall killed  wall clean  tool clean
+  go       R0 corpus              1          -       0.8s       0.3s
+  go       R1 diff-fuzz           5          -       2.6s    -0.1s *
+  go       R2 property           27          -      13.8s    -1.0s *
+  rust     R0 corpus              1          -       0.2s    -0.0s *
+  rust     R1 diff-fuzz           5          -       1.1s    -0.0s *
+  rust     R2 property           27          -       6.0s    -0.4s *
+
+  wall killed  mean wall for a mutant this rung caught. NOT comparable with the
+               clean column, and not reliably smaller either. R1 stops at its
+               first mismatch -- then shrinks, and every shrink attempt is
+               another server launch, so at low trace counts a kill can cost
+               several times a clean pass. The launch count of a kill depends
+               on the defect, so it is not corrected and no tool figure is
+               derived from it.
+  wall clean   mean wall for a full pass -- the worst case, and what a sweep of
+               a correct implementation actually costs.
+  tool clean   wall clean minus launches x measured floor. The rung's own cost
+               with process startup removed. Reported only where the launch
+               count is known from the configuration -- never inferred.
+  *            the correction came out at or below zero. Not an error and not
+               hidden: it means this rung's own work costs no more than the
+               servers it launches, so at this configuration the rung IS process
+               startup. Compare rungs by their launch counts, not their seconds.
+  Mutant setup (materialise + warm the build cache) is charged to no rung; see
+  the setups block in results.json.
+
+==============================================================================
+PER MUTANT
+==============================================================================
+mutant                             R0          R1          R2         
+go/increment-rewritten             equivalent  equivalent  equivalent 
+rust/increment-rewritten           equivalent  equivalent  equivalent 
+
+==============================================================================
+REACHABILITY -- why each survivor survived
+==============================================================================
+  go/increment-rewritten         EQUIVALENT
+      corpus     no difference in 56 requests
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+  rust/increment-rewritten       EQUIVALENT
+      corpus     no difference in 56 requests
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+
+==============================================================================
+READ WITH CARE
+==============================================================================
+ 1. R0: 2 mutant(s) changed no observable behaviour and were excluded from the
+    denominator. They should be given a witness or dropped from the catalogue
+    -- left in, they make every rung look weaker.
+ 2. R1: 2 mutant(s) changed no observable behaviour and were excluded from the
+    denominator. They should be given a witness or dropped from the catalogue
+    -- left in, they make every rung look weaker.
+ 3. R2: 2 mutant(s) changed no observable behaviour and were excluded from the
+    denominator. They should be given a witness or dropped from the catalogue
+    -- left in, they make every rung look weaker.
+ 4. R1 on go: the process floor (5 launches x measured floor) accounts for the
+    whole clean wall time -- the corrected figure is -0.1s, at or below zero.
+    This rung's seconds on this corner are process startup, not rung work, so
+    comparing its wall time against another corner's compares the two
+    languages' launch costs. Compare launch counts instead.
+ 5. R2 on go: the process floor (27 launches x measured floor) accounts for
+    the whole clean wall time -- the corrected figure is -1.0s, at or below
+    zero. This rung's seconds on this corner are process startup, not rung
+    work, so comparing its wall time against another corner's compares the two
+    languages' launch costs. Compare launch counts instead.
+ 6. R0 on rust: the process floor (1 launches x measured floor) accounts for
+    the whole clean wall time -- the corrected figure is -0.0s, at or below
+    zero. This rung's seconds on this corner are process startup, not rung
+    work, so comparing its wall time against another corner's compares the two
+    languages' launch costs. Compare launch counts instead.
+ 7. R1 on rust: the process floor (5 launches x measured floor) accounts for
+    the whole clean wall time -- the corrected figure is -0.0s, at or below
+    zero. This rung's seconds on this corner are process startup, not rung
+    work, so comparing its wall time against another corner's compares the two
+    languages' launch costs. Compare launch counts instead.
+ 8. R2 on rust: the process floor (27 launches x measured floor) accounts for
+    the whole clean wall time -- the corrected figure is -0.4s, at or below
+    zero. This rung's seconds on this corner are process startup, not rung
+    work, so comparing its wall time against another corner's compares the two
+    languages' launch costs. Compare launch counts instead.

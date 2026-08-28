@@ -1,0 +1,548 @@
+{
+  "tool": "calibrate",
+  "started_at": "2026-08-28T16:40:09Z",
+  "finished_at": "2026-08-28T16:41:57Z",
+  "config": {
+    "root": "/Users/mikelady/dev/twitter_port_matrix",
+    "manifest": "tools/cmd/mutate/mutants.json",
+    "registry": "impls/registry.json",
+    "corpus": "generated/conformance.jsonl",
+    "impls": [
+      "go",
+      "rust"
+    ],
+    "ids": [
+      "id-burned-on-reject",
+      "cursor-inclusive",
+      "self-follow-guard-dropped",
+      "repeated-query-param-accepted"
+    ],
+    "rungs": [
+      "R0",
+      "R1"
+    ],
+    "r1_traces": 8,
+    "r1_steps": 100,
+    "r1_seed": 1,
+    "r2_rounds": 6,
+    "r2_setup": 40,
+    "r2_seed": 1,
+    "probe_mode": "any",
+    "probe_traces": 4,
+    "probe_steps": 120,
+    "floor_samples": 3,
+    "rung_timeout": "20m0s"
+  },
+  "launch_floors": {
+    "go": {
+      "impl": "go",
+      "samples": 3,
+      "launch_ms": 554.833,
+      "build_ms": 342.13166666666666,
+      "min_ms": 543.127,
+      "max_ms": 563.066
+    },
+    "rust": {
+      "impl": "rust",
+      "samples": 3,
+      "launch_ms": 234.138,
+      "build_ms": 56.742,
+      "min_ms": 203.241,
+      "max_ms": 293.693
+    }
+  },
+  "setups": [
+    {
+      "mutant": "go/id-burned-on-reject",
+      "tree_hash": "sha256:303cbd0adedf9b65424b22f0f286a7e7e9707ab589122365018bc7936d3e393f",
+      "apply_ms": 248.959,
+      "warm_build_ms": 331.365,
+      "copy_mode": "clone"
+    },
+    {
+      "mutant": "go/self-follow-guard-dropped",
+      "tree_hash": "sha256:c29319e8c1c793ea98a942ddb6cc8e91604b06f45b4505f468df7f508a97ae7b",
+      "apply_ms": 20.937,
+      "warm_build_ms": 338.563,
+      "copy_mode": "clone"
+    },
+    {
+      "mutant": "go/cursor-inclusive",
+      "tree_hash": "sha256:801427490abd584b34ab6f54acfdff72fb6697287c0facc8fba02e2d555c7848",
+      "apply_ms": 25.076,
+      "warm_build_ms": 356.974,
+      "copy_mode": "clone"
+    },
+    {
+      "mutant": "go/repeated-query-param-accepted",
+      "tree_hash": "sha256:286d41361b2e6645590be4f0e0d0fc691e3108c5558402e03a025d19bb5181b2",
+      "apply_ms": 23.506,
+      "warm_build_ms": 351.52,
+      "copy_mode": "clone"
+    },
+    {
+      "mutant": "rust/id-burned-on-reject",
+      "tree_hash": "sha256:091f1b08aecdece3b9175e4fd8258d13100c979f445a1c890733e632fc031d46",
+      "apply_ms": 331.808,
+      "warm_build_ms": 3586.717,
+      "copy_mode": "clone"
+    },
+    {
+      "mutant": "rust/self-follow-guard-dropped",
+      "tree_hash": "sha256:9e496e619707342359dad394519e312682ad0d81eff030d2a69a128bf9c19107",
+      "apply_ms": 327.446,
+      "warm_build_ms": 3085.897,
+      "copy_mode": "clone"
+    },
+    {
+      "mutant": "rust/cursor-inclusive",
+      "tree_hash": "sha256:667956b37945cb8a44584fb9ecfa306b59128bd4046f8be38a1a689f6794955e",
+      "apply_ms": 354.829,
+      "warm_build_ms": 3158.454,
+      "copy_mode": "clone"
+    },
+    {
+      "mutant": "rust/repeated-query-param-accepted",
+      "tree_hash": "sha256:0e0c3206d96b657c61aecd729eaea39e416cbfe6c7fba652c16a130a746f1fa1",
+      "apply_ms": 348.039,
+      "warm_build_ms": 3080.992,
+      "copy_mode": "clone"
+    }
+  ],
+  "cells": [
+    {
+      "mutant": "go/id-burned-on-reject",
+      "impl": "go",
+      "id": "id-burned-on-reject",
+      "family": "id-alloc",
+      "tree_hash": "sha256:303cbd0adedf9b65424b22f0f286a7e7e9707ab589122365018bc7936d3e393f",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 829.031,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@id-burned-on-reject",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-969593319/tree",
+        "tree_hash": "sha256:303cbd0adedf9b65424b22f0f286a7e7e9707ab589122365018bc7936d3e393f",
+        "source_hash": "sha256:24ddd48b45ca2820428a8c79a6f7ddb918b2194014eddd049652f3c7df9da6c1",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/id-burned-on-reject",
+      "impl": "go",
+      "id": "id-burned-on-reject",
+      "family": "id-alloc",
+      "tree_hash": "sha256:303cbd0adedf9b65424b22f0f286a7e7e9707ab589122365018bc7936d3e393f",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 20261.635,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@id-burned-on-reject",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-969593319/tree",
+        "tree_hash": "sha256:303cbd0adedf9b65424b22f0f286a7e7e9707ab589122365018bc7936d3e393f",
+        "source_hash": "sha256:24ddd48b45ca2820428a8c79a6f7ddb918b2194014eddd049652f3c7df9da6c1",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/self-follow-guard-dropped",
+      "impl": "go",
+      "id": "self-follow-guard-dropped",
+      "family": "precedence",
+      "tree_hash": "sha256:c29319e8c1c793ea98a942ddb6cc8e91604b06f45b4505f468df7f508a97ae7b",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 538.154,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@self-follow-guard-dropped",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-2415212815/tree",
+        "tree_hash": "sha256:c29319e8c1c793ea98a942ddb6cc8e91604b06f45b4505f468df7f508a97ae7b",
+        "source_hash": "sha256:3a572cd9b509bb590d4bd875e89c4288412fb3b95d9fd7746fd9902b3fa73aa6",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/self-follow-guard-dropped",
+      "impl": "go",
+      "id": "self-follow-guard-dropped",
+      "family": "precedence",
+      "tree_hash": "sha256:c29319e8c1c793ea98a942ddb6cc8e91604b06f45b4505f468df7f508a97ae7b",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 14002.66,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@self-follow-guard-dropped",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-2415212815/tree",
+        "tree_hash": "sha256:c29319e8c1c793ea98a942ddb6cc8e91604b06f45b4505f468df7f508a97ae7b",
+        "source_hash": "sha256:3a572cd9b509bb590d4bd875e89c4288412fb3b95d9fd7746fd9902b3fa73aa6",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/cursor-inclusive",
+      "impl": "go",
+      "id": "cursor-inclusive",
+      "family": "pagination",
+      "tree_hash": "sha256:801427490abd584b34ab6f54acfdff72fb6697287c0facc8fba02e2d555c7848",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 590.059,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@cursor-inclusive",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-1067396668/tree",
+        "tree_hash": "sha256:801427490abd584b34ab6f54acfdff72fb6697287c0facc8fba02e2d555c7848",
+        "source_hash": "sha256:3a572cd9b509bb590d4bd875e89c4288412fb3b95d9fd7746fd9902b3fa73aa6",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/cursor-inclusive",
+      "impl": "go",
+      "id": "cursor-inclusive",
+      "family": "pagination",
+      "tree_hash": "sha256:801427490abd584b34ab6f54acfdff72fb6697287c0facc8fba02e2d555c7848",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 19372.968,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@cursor-inclusive",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-1067396668/tree",
+        "tree_hash": "sha256:801427490abd584b34ab6f54acfdff72fb6697287c0facc8fba02e2d555c7848",
+        "source_hash": "sha256:3a572cd9b509bb590d4bd875e89c4288412fb3b95d9fd7746fd9902b3fa73aa6",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/repeated-query-param-accepted",
+      "impl": "go",
+      "id": "repeated-query-param-accepted",
+      "family": "parsing",
+      "tree_hash": "sha256:286d41361b2e6645590be4f0e0d0fc691e3108c5558402e03a025d19bb5181b2",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 593.111,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@repeated-query-param-accepted",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-3265964095/tree",
+        "tree_hash": "sha256:286d41361b2e6645590be4f0e0d0fc691e3108c5558402e03a025d19bb5181b2",
+        "source_hash": "sha256:3a572cd9b509bb590d4bd875e89c4288412fb3b95d9fd7746fd9902b3fa73aa6",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/repeated-query-param-accepted",
+      "impl": "go",
+      "id": "repeated-query-param-accepted",
+      "family": "parsing",
+      "tree_hash": "sha256:286d41361b2e6645590be4f0e0d0fc691e3108c5558402e03a025d19bb5181b2",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 5307.772,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@repeated-query-param-accepted",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-3265964095/tree",
+        "tree_hash": "sha256:286d41361b2e6645590be4f0e0d0fc691e3108c5558402e03a025d19bb5181b2",
+        "source_hash": "sha256:3a572cd9b509bb590d4bd875e89c4288412fb3b95d9fd7746fd9902b3fa73aa6",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/id-burned-on-reject",
+      "impl": "rust",
+      "id": "id-burned-on-reject",
+      "family": "id-alloc",
+      "tree_hash": "sha256:091f1b08aecdece3b9175e4fd8258d13100c979f445a1c890733e632fc031d46",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 331.218,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "rust@id-burned-on-reject",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-557273733/tree",
+        "tree_hash": "sha256:091f1b08aecdece3b9175e4fd8258d13100c979f445a1c890733e632fc031d46",
+        "source_hash": "sha256:64bb227e12c9c1bdf9899e1d11ff0b61156360e5397aab435de4e6c00635734e",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/id-burned-on-reject",
+      "impl": "rust",
+      "id": "id-burned-on-reject",
+      "family": "id-alloc",
+      "tree_hash": "sha256:091f1b08aecdece3b9175e4fd8258d13100c979f445a1c890733e632fc031d46",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 8524.915,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "rust@id-burned-on-reject",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-557273733/tree",
+        "tree_hash": "sha256:091f1b08aecdece3b9175e4fd8258d13100c979f445a1c890733e632fc031d46",
+        "source_hash": "sha256:64bb227e12c9c1bdf9899e1d11ff0b61156360e5397aab435de4e6c00635734e",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/self-follow-guard-dropped",
+      "impl": "rust",
+      "id": "self-follow-guard-dropped",
+      "family": "precedence",
+      "tree_hash": "sha256:9e496e619707342359dad394519e312682ad0d81eff030d2a69a128bf9c19107",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 331.135,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "rust@self-follow-guard-dropped",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-4088436587/tree",
+        "tree_hash": "sha256:9e496e619707342359dad394519e312682ad0d81eff030d2a69a128bf9c19107",
+        "source_hash": "sha256:64bb227e12c9c1bdf9899e1d11ff0b61156360e5397aab435de4e6c00635734e",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/self-follow-guard-dropped",
+      "impl": "rust",
+      "id": "self-follow-guard-dropped",
+      "family": "precedence",
+      "tree_hash": "sha256:9e496e619707342359dad394519e312682ad0d81eff030d2a69a128bf9c19107",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 6049.384,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "rust@self-follow-guard-dropped",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-4088436587/tree",
+        "tree_hash": "sha256:9e496e619707342359dad394519e312682ad0d81eff030d2a69a128bf9c19107",
+        "source_hash": "sha256:64bb227e12c9c1bdf9899e1d11ff0b61156360e5397aab435de4e6c00635734e",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/cursor-inclusive",
+      "impl": "rust",
+      "id": "cursor-inclusive",
+      "family": "pagination",
+      "tree_hash": "sha256:667956b37945cb8a44584fb9ecfa306b59128bd4046f8be38a1a689f6794955e",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 337.184,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "rust@cursor-inclusive",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-3854330970/tree",
+        "tree_hash": "sha256:667956b37945cb8a44584fb9ecfa306b59128bd4046f8be38a1a689f6794955e",
+        "source_hash": "sha256:64bb227e12c9c1bdf9899e1d11ff0b61156360e5397aab435de4e6c00635734e",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/cursor-inclusive",
+      "impl": "rust",
+      "id": "cursor-inclusive",
+      "family": "pagination",
+      "tree_hash": "sha256:667956b37945cb8a44584fb9ecfa306b59128bd4046f8be38a1a689f6794955e",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 8004.171,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "rust@cursor-inclusive",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-3854330970/tree",
+        "tree_hash": "sha256:667956b37945cb8a44584fb9ecfa306b59128bd4046f8be38a1a689f6794955e",
+        "source_hash": "sha256:64bb227e12c9c1bdf9899e1d11ff0b61156360e5397aab435de4e6c00635734e",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/repeated-query-param-accepted",
+      "impl": "rust",
+      "id": "repeated-query-param-accepted",
+      "family": "parsing",
+      "tree_hash": "sha256:0e0c3206d96b657c61aecd729eaea39e416cbfe6c7fba652c16a130a746f1fa1",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 342.354,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "rust@repeated-query-param-accepted",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-3483932688/tree",
+        "tree_hash": "sha256:0e0c3206d96b657c61aecd729eaea39e416cbfe6c7fba652c16a130a746f1fa1",
+        "source_hash": "sha256:64bb227e12c9c1bdf9899e1d11ff0b61156360e5397aab435de4e6c00635734e",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/repeated-query-param-accepted",
+      "impl": "rust",
+      "id": "repeated-query-param-accepted",
+      "family": "parsing",
+      "tree_hash": "sha256:0e0c3206d96b657c61aecd729eaea39e416cbfe6c7fba652c16a130a746f1fa1",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 2658.2,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "rust@repeated-query-param-accepted",
+        "dir": "/var/folders/tq/q9gr32t565l6cx9q54p88wjm0000gn/T/calibrate-mutant-3483932688/tree",
+        "tree_hash": "sha256:0e0c3206d96b657c61aecd729eaea39e416cbfe6c7fba652c16a130a746f1fa1",
+        "source_hash": "sha256:64bb227e12c9c1bdf9899e1d11ff0b61156360e5397aab435de4e6c00635734e",
+        "baseline_dir": "/Users/mikelady/dev/twitter_port_matrix/impls/rust",
+        "checks_passed": 5
+      }
+    }
+  ],
+  "summary": [
+    {
+      "rung": "R0",
+      "label": "corpus",
+      "inputs": "corpus",
+      "live": 8,
+      "killed": 8,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 1,
+      "wall_ms_total": 3892.2459999999996,
+      "wall_ms_mean_killed": 486.53074999999995,
+      "wall_ms_mean_clean": 0,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    },
+    {
+      "rung": "R1",
+      "label": "diff-fuzz",
+      "inputs": "tracegen",
+      "live": 8,
+      "killed": 8,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 1,
+      "wall_ms_total": 84181.705,
+      "wall_ms_mean_killed": 10522.713125,
+      "wall_ms_mean_clean": 0,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    },
+    {
+      "rung": "R0",
+      "label": "corpus",
+      "inputs": "corpus",
+      "impl": "go",
+      "live": 4,
+      "killed": 4,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 1,
+      "wall_ms_total": 2550.355,
+      "wall_ms_mean_killed": 637.58875,
+      "wall_ms_mean_clean": 0,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    },
+    {
+      "rung": "R1",
+      "label": "diff-fuzz",
+      "inputs": "tracegen",
+      "impl": "go",
+      "live": 4,
+      "killed": 4,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 1,
+      "wall_ms_total": 58945.034999999996,
+      "wall_ms_mean_killed": 14736.258749999999,
+      "wall_ms_mean_clean": 0,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    },
+    {
+      "rung": "R0",
+      "label": "corpus",
+      "inputs": "corpus",
+      "impl": "rust",
+      "live": 4,
+      "killed": 4,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 1,
+      "wall_ms_total": 1341.891,
+      "wall_ms_mean_killed": 335.47275,
+      "wall_ms_mean_clean": 0,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    },
+    {
+      "rung": "R1",
+      "label": "diff-fuzz",
+      "inputs": "tracegen",
+      "impl": "rust",
+      "live": 4,
+      "killed": 4,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 1,
+      "wall_ms_total": 25236.670000000002,
+      "wall_ms_mean_killed": 6309.1675000000005,
+      "wall_ms_mean_clean": 0,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    }
+  ],
+  "warnings": [
+    "R0 killed EVERYTHING (8/8). Worth reading as a statement about the catalogue as much as the rung: a mutant set this rung finds trivial cannot distinguish it from a stronger one.",
+    "R1 killed EVERYTHING (8/8). Worth reading as a statement about the catalogue as much as the rung: a mutant set this rung finds trivial cannot distinguish it from a stronger one."
+  ]
+}
