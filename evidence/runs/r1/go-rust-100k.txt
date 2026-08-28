@@ -1,0 +1,8 @@
+diffrun: R1 differential vs S_obs
+        impls=go,rust traces=200 steps=500 seed=1..200 (100000 requests each)
+========================================================================
+  go     100000 requests, no mismatch  (133.3s)
+  rust   100000 requests, no mismatch  (51.9s)
+
+========================================================================
+R1 PASSED: 100000 requests per implementation, zero unexplained mismatches

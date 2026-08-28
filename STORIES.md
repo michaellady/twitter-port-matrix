@@ -24,16 +24,19 @@ Status: `[ ]` queued · `[~]` in progress · `[x]` done
       *Gate:* seeded and reproducible; covers every request shape including
       malformed ones; shrinks a failing trace to a minimal one.
 
-- [~] **S-08** `diffrun` — replay one trace against N impls, diff responses (**R1**)
+- [x] **S-08** `diffrun` — replay one trace against N impls, diff responses (**R1**)
       *Gate:* 100k traces, zero unexplained mismatches, both corners.
       *Canary:* an injected defect must be caught and the trace shrunk.
 
-- [ ] **S-09** Property + metamorphic suite (**R2**)
+- [x] **S-09** Property + metamorphic suite (**R2**)
       *Gate:* follow/unfollow idempotence, pagination partitions the visible
       set with no fabrication or loss, timeline monotonic under insertion,
       encode∘decode identity on the wire format.
 
 - [ ] **S-10** `specgen` — render `S_obs` into per-language verifier contracts
+      *Reordered after S-11/S-12:* the proof modules already carry hand-written
+      contracts. Retargeting them first shows what shape the generator has to
+      emit; generalising before that would be guesswork.
       *Gate:* all renderings generated from one source; a `specgen` mutant
       must break at least one implementation's proof.
 
