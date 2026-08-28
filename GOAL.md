@@ -137,7 +137,7 @@ right instrument. Deferred by choice, not overlooked.
 ## STATE
 
 **Phase:** 1
-**Next step:** 1e — tracegen + diffrun (R1)
+**Next step:** see `STORIES.md` — the ordered backlog. Currently S-06.
 **Last updated:** 2026-08-28
 
 **Gates currently green:**

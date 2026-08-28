@@ -1,0 +1,83 @@
+# Story queue
+
+Ordered backlog. Work top to bottom; no timers, no waiting. A story is done
+when its gate passes and the gate has been shown capable of failing.
+
+Status: `[ ]` queued · `[~]` in progress · `[x]` done
+
+---
+
+## Phase 1 — Go ↔ Rust rig
+
+- [x] **S-01** Vendor Go impl as its own module
+- [x] **S-02** `replay` harness + R0 baseline
+- [x] **S-03** Retarget Go to `S_obs` — R0 54/54, canary verified
+- [x] **S-04** Vendor Rust impl; generalise harness launch config
+- [x] **S-05** Retarget Rust to `S_obs` — R0 54/54, canary verified
+
+- [ ] **S-06** `replay --canary` as a first-class mode
+      *Gate:* `matrixctl` asserts R0 can fail, without a manual inject-and-revert.
+      Currently the canary is run by hand, which means the gate's own
+      falsifiability is not itself gated.
+
+- [ ] **S-07** `tracegen` — randomized op sequences from the `S_obs` alphabet
+      *Gate:* seeded and reproducible; covers every request shape including
+      malformed ones; shrinks a failing trace to a minimal one.
+
+- [ ] **S-08** `diffrun` — replay one trace against N impls, diff responses (**R1**)
+      *Gate:* 100k traces, zero unexplained mismatches, both corners.
+      *Canary:* an injected defect must be caught and the trace shrunk.
+
+- [ ] **S-09** Property + metamorphic suite (**R2**)
+      *Gate:* follow/unfollow idempotence, pagination partitions the visible
+      set with no fabrication or loss, timeline monotonic under insertion,
+      encode∘decode identity on the wire format.
+
+- [ ] **S-10** `specgen` — render `S_obs` into per-language verifier contracts
+      *Gate:* all renderings generated from one source; a `specgen` mutant
+      must break at least one implementation's proof.
+
+- [ ] **S-11** Retarget the Verus proof module (**R4**, Rust)
+      *Gate:* `cargo verus verify` green. The proofs still reference the old
+      `HashMap<String, HashSet<String>>` / `by_author` shapes.
+      *Expect:* several `external_body` shims become verifiable now the
+      containers are flat — `proof_follow_set`, `proof_home_timeline`,
+      `proof_append_tweet`, `proof_follow_insert`, `proof_follow_remove` —
+      mirroring the six Go trusted shims deleted in S-03.
+
+- [ ] **S-12** Retarget the Gobra sidecars (**R4**, Go)
+      *Gate:* Gobra green per package. Needs the full image digest resolved;
+      `docker/pins.json` currently truncates it to `sha256:2ef080cc`.
+
+- [ ] **S-13** Refinement obligations against `S_obs` (**R5**)
+      *Gate:* `abs_L` defined per language; init, response and step
+      commutation discharged. This is the rung the whole repository exists
+      to reach.
+
+- [ ] **S-14** `mutate` — semantic mutant injection, held out from the port author
+      *Gate:* mutant families cover id allocation, self-follow guard, sort
+      tiebreak, idempotence, orphan-author accept, clock regression,
+      pagination fabrication.
+
+- [ ] **S-15** `calibrate` — per-rung kill table, both port directions
+      **This is the deliverable.** Fan-out story: run as a workflow.
+
+## Phase 2 — Java corner
+- [ ] **S-16** Toolchain: Maven/Gradle on host; OpenJML + JBMC digest-pinned
+- [ ] **S-17** Java implementation + JSONL adapter (`java-oracle/` pattern)
+- [ ] **S-18** Java ↔ Rust and Java ↔ Go ports
+
+## Phase 3 — Kotlin corner
+- [ ] **S-19** Toolchain: `kotlinc` on host; JBMC over bytecode
+- [ ] **S-20** Kotlin implementation; document the R5 ceiling failure plainly
+
+## Phase 4 — fill the matrix
+- [ ] **S-21** All 12 ports. Fan-out story: run as a workflow.
+- [ ] **S-22** Full calibration report
+- [ ] **S-23** Transfer write-up back to the WebSocket port
+
+## Standing, not phase-bound
+- [ ] **S-24** Adversarial refutation of F001–F006
+      All six rest on a single reading — mine. F001 claims a shipped
+      conformance suite has no signal behind a field, which deserves
+      independent refutation before it is relayed to the WebSocket project.
