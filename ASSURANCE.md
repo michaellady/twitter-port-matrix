@@ -48,7 +48,7 @@ argued away.
 | Corner | R0-R3 | R4 | R5-core | R5-wire | Ceiling |
 |---|---|---|---|---|---|
 | Go | yes | Gobra, 133 verified | **partial** | no | **R5-core, partial** |
-| Rust | yes | Verus, **on twins** | **no** | no | **R4, on hand-written copies** |
+| Rust | yes | Verus, **1 property** | **no** | no | **R4, one property (F4)** |
 | Java | yes | not attempted | unknown | no | **R3** |
 | Kotlin | yes | JBMC, bounded | no | no | **R3 + bounded (measured)** |
 
@@ -79,6 +79,27 @@ until that state is lifted out of the lock. That is a refactor, not an
 annotation: make the verified core a pure value type and move the lock into the
 trusted shim — the shape `S_obs` itself has. **Until then every port with Rust
 at either end is capped below R5.**
+
+### Why Rust's R4 is one property, not 23
+
+Audited obligation by obligation (`evidence/findings/F016`). Verus counts
+**units of work, not obligations**: 11 of the 23 carry no `ensures` clause at
+all. Of the remainder, exactly **one** — `domain::Follow::new`, F4 — is
+functional, non-vacuous, about shipped code, reachable from the API, and free
+of project-local assumed axioms. Eleven have real content but are conditional
+on 15 *assumed* `external_body` postconditions over 11 uninterpreted symbols,
+and four of their twins have drifted from production.
+
+**One of those drifted twins is false of the shipped code.**
+`service::create_user_ensures` verifies `handle@.len() > 0 && !contains ==>
+result is Ok`, which fails for `"Alice"` — an input already in the corpus at
+step 5, on a corner passing 56/56.
+
+`crates/ids` contributes zero obligations while F8 depends on it: adding
+`false` to `next_id_ensures` still gives `0 verified, 0 errors`.
+
+No vacuity was found — all 43 clauses were refuted by negation canary, so
+F013's Kotlin mode does not replicate here.
 
 ### Why Rust's R4 is weaker than its count
 
