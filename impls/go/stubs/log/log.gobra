@@ -1,0 +1,46 @@
+package log
+
+// Trusted minimal stub of stdlib `log` for Gobra verification.
+// Used by clock.SetNow's backwards-motion warning (Stream 2 Phase 0):
+// `log.Printf` emits a warning when an admin snapshot tries to set the
+// clock backwards (F7 forbids it). Gobra needs a declaration of the
+// symbol to type-check the import.
+//
+// ----------------------------------------------------------------------
+// Stream 3 Phase 6 retirement investigation (2026-05-03)
+// ----------------------------------------------------------------------
+// Investigated whether Gobra's bundled stdlib (inside the docker image
+// `ghcr.io/viperproject/gobra@sha256:2ef080ccd284945829501996e6d63ed2f1c94b7cf6a30d2b934272fb8a6df2c6`,
+// pinned in .github/workflows/verify.yml) ships a usable `log` spec we
+// could import in lieu of this shim.
+//
+// Findings: NO. The bundled stubs inside `gobra.jar` are limited to:
+//   builtin/builtin.gobra
+//   stubs/bytes/bytes.gobra
+//   stubs/encoding/binary/binary.gobra
+//   stubs/errors/wrap.gobra
+//   stubs/fmt/fmt.gobra            <- placeholder only ("no members supported")
+//   stubs/net/{ip,iprawsock,net,udpsock}.gobra
+//   stubs/strconv/{atoi,itoa}.gobra
+//   stubs/strings/strings.gobra
+//   stubs/sync/{mutex,waitgroup}.gobra
+//   stubs/time/{sleep,time,zoneinfo}.gobra
+// There is no `stubs/log/*.gobra`, and even fmt is just a package-stub
+// with no exported members (so Printf/Println would not be visible from
+// any "import this and inherit specs" path even by analogy). Verified by
+// extracting gobra.jar and listing entries: `unzip -l gobra.jar | grep .gobra`.
+//
+// Decision: KEEP this shim. It is the minimal possible TCB cost — two
+// `// @ trusted` declarations of side-effect-free I/O wrappers that the
+// verifier never reasons about beyond their type signature. There is no
+// safer upstream artifact to substitute. Re-evaluate if/when Gobra adds
+// a bundled `log` stub or when the project decides to drop the warning
+// log line from clock.SetNow entirely.
+
+// @ trusted
+// @ decreases _
+func Printf(format string, v ...interface{})
+
+// @ trusted
+// @ decreases _
+func Println(v ...interface{})

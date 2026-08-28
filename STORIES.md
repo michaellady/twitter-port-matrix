@@ -7,6 +7,24 @@ Status: `[ ]` queued · `[~]` in progress · `[x]` done
 
 ---
 
+## Parallel lanes
+
+Three agents run concurrently, in separate directories so they cannot collide.
+The split is not arbitrary — it preserves the separation this repository exists
+to measure:
+
+| Agent | Story | Writes | Role |
+|---|---|---|---|
+| `gobra-r4` | S-12 | `impls/go/`, `docker/pins.json` | proves an existing implementation |
+| `mutate-tool` | S-14 | `tools/cmd/mutate/` | builds the judge — may touch NO implementation |
+| `java-corner` | S-16/17 | `impls/java/` | builds a subject — may touch NO tool |
+
+No agent both writes an implementation and writes something that judges one.
+That is the correlated-failure defect the calibration is designed to quantify,
+and reproducing it inside the rig would invalidate the measurement.
+
+---
+
 ## Phase 1 — Go ↔ Rust rig
 
 - [x] **S-01** Vendor Go impl as its own module
@@ -49,7 +67,7 @@ Status: `[ ]` queued · `[~]` in progress · `[x]` done
       `proof_append_tweet`, `proof_follow_insert`, `proof_follow_remove` —
       mirroring the six Go trusted shims deleted in S-03.
 
-- [ ] **S-12** Retarget the Gobra sidecars (**R4**, Go)
+- [~] **S-12** Retarget the Gobra sidecars (**R4**, Go) — *agent: gobra-r4*
       *Gate:* Gobra green per package. Needs the full image digest resolved;
       `docker/pins.json` currently truncates it to `sha256:2ef080cc`.
 
@@ -58,7 +76,8 @@ Status: `[ ]` queued · `[~]` in progress · `[x]` done
       commutation discharged. This is the rung the whole repository exists
       to reach.
 
-- [ ] **S-14** `mutate` — semantic mutant injection, held out from the port author
+- [~] **S-14** `mutate` — semantic mutant injection, held out from the port author
+      *agent: mutate-tool*
       *Gate:* mutant families cover id allocation, self-follow guard, sort
       tiebreak, idempotence, orphan-author accept, clock regression,
       pagination fabrication.
@@ -67,8 +86,8 @@ Status: `[ ]` queued · `[~]` in progress · `[x]` done
       **This is the deliverable.** Fan-out story: run as a workflow.
 
 ## Phase 2 — Java corner
-- [ ] **S-16** Toolchain: Maven/Gradle on host; OpenJML + JBMC digest-pinned
-- [ ] **S-17** Java implementation + JSONL adapter (`java-oracle/` pattern)
+- [~] **S-16** Toolchain: Maven/Gradle on host; OpenJML + JBMC digest-pinned — *agent: java-corner*
+- [~] **S-17** Java implementation + JSONL adapter (`java-oracle/` pattern) — *agent: java-corner*
 - [ ] **S-18** Java ↔ Rust and Java ↔ Go ports
 
 ## Phase 3 — Kotlin corner

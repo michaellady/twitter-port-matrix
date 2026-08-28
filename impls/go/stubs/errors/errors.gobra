@@ -1,0 +1,13 @@
+// Trusted minimal stub of stdlib `errors` for Gobra verification.
+// Real `errors.New` always returns a non-nil error value. Body uses
+// `assume false` so Gobra accepts it as terminating without analyzing
+// the unreachable return.
+
+package errors
+
+// @ ensures err != nil
+// @ decreases
+func New(text string) (err error) {
+	// @ assume false
+	return nil
+}

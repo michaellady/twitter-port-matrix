@@ -1,0 +1,26 @@
+package sync
+
+// Trusted minimal stubs for sync.Mutex and sync.RWMutex. Gobra ships a
+// sync.Mutex spec internally but our -I /work/stubs override masks it, so
+// we re-declare both here.
+type Mutex struct{}
+
+// @ trusted
+func (m *Mutex) Lock()
+
+// @ trusted
+func (m *Mutex) Unlock()
+
+type RWMutex struct{}
+
+// @ trusted
+func (m *RWMutex) Lock()
+
+// @ trusted
+func (m *RWMutex) Unlock()
+
+// @ trusted
+func (m *RWMutex) RLock()
+
+// @ trusted
+func (m *RWMutex) RUnlock()

@@ -1,0 +1,4 @@
+package sort
+
+// @ trusted
+func Slice(slice interface{}, less func(i, j int) bool)
