@@ -77,8 +77,8 @@ and reproducing it inside the rig would invalidate the measurement.
       commutation discharged. This is the rung the whole repository exists
       to reach.
 
-- [~] **S-14** `mutate` — semantic mutant injection, held out from the port author
-      *agent: mutate-tool*
+- [x] **S-14** `mutate` — 36 mutants (18 defects x 2 corners), data-driven
+      catalogue. R0 sweep: 18/18 killed on Go. See F009.
       *Gate:* mutant families cover id allocation, self-follow guard, sort
       tiebreak, idempotence, orphan-author accept, clock regression,
       pagination fabrication.

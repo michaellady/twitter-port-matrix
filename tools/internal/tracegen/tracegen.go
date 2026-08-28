@@ -88,6 +88,16 @@ func (g *gen) step() Request {
 }
 
 func (g *gen) createUser() Request {
+	// One in four registrations re-uses an existing handle. Without this the
+	// generator only ever emits fresh handles, so it never produces the
+	// rejected-registration-then-successful-registration pair that exposes an
+	// implementation burning an id on rejection. The catalogue's
+	// id-burned-on-reject mutant was unreachable at any volume until this
+	// existed -- an input gap, not a rung weakness. See F009.
+	if len(g.handles) > 0 && g.r.Intn(4) == 0 {
+		h := g.handles[g.r.Intn(len(g.handles))]
+		return Request{Method: "POST", Path: "/users", Body: `{"handle":"` + h + `"}`}
+	}
 	h := fmt.Sprintf("u%d", g.next)
 	g.next++
 	g.handles = append(g.handles, h)

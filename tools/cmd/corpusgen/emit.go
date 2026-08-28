@@ -74,6 +74,13 @@ func scenarios() []scenario {
 	add("reject_missing_handle_field", post("/users", `{}`), "D7")
 	add("reject_unknown_field", post("/users", `{"handle":"dave","x":1}`), "D7")
 	add("reject_trailing_content", post("/users", `{"handle":"dave"} {}`), "D7")
+	// The id after a run of rejections. Without this the corpus never
+	// registers another user once it has rejected one, so an implementation
+	// that burns an id on a rejected registration is INVISIBLE to R0 -- the
+	// exact defect the R0 baseline exhibited as {"handle":"Alice","id":5}.
+	// The mutation catalogue's id-burned-on-reject survived 54/54 until this
+	// step existed. See evidence/findings/F009.
+	add("id_not_burned_by_rejections", post("/users", u("dave")), "D2")
 
 	// -- follow semantics --------------------------------------------------
 	add("reject_self_follow_known", post("/follow", e("alice", "alice")), "F4", "D4")

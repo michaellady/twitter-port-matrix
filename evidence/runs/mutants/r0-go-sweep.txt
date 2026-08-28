@@ -1,0 +1,22 @@
+R0 kill sweep -- go corner, corpus 55 steps
+======================================================================
+  kill  created-at-frozen                  R0 result: 42/55
+  kill  tick-advances-by-two               R0 result: 38/55
+  kill  tick-goes-backwards                R0 result: 38/55
+  kill  orphan-author-accepted             R0 result: 51/55
+  kill  id-burned-on-reject                R0 result: 54/55
+  kill  id-first-is-two                    R0 result: 38/55
+  kill  follow-toggles                     R0 result: 52/55
+  kill  unfollow-rejects-missing-edge      R0 result: 53/55
+  kill  timeline-scan-reversed             R0 result: 50/55
+  kill  timeline-tiebreak-by-id-asc        R0 result: 51/55
+  kill  cursor-inclusive                   R0 result: 54/55
+  kill  limit-off-by-one                   R0 result: 54/55
+  kill  next-cursor-always-emitted         R0 result: 48/55
+  kill  next-cursor-is-first-id            R0 result: 54/55
+  kill  repeated-query-param-accepted      R0 result: 54/55
+  kill  unknown-json-fields-accepted       R0 result: 53/55
+  kill  follow-precedence-flipped          R0 result: 54/55
+  kill  self-follow-guard-dropped          R0 result: 54/55
+======================================================================
+R0 kill rate: 18 killed / 18 mutants

@@ -1,0 +1,752 @@
+{
+  "note": "The semantic mutant catalogue. Every mutant is an anchored source edit that changes BEHAVIOUR, not syntax -- each family is drawn from a defect this project has actually seen (the R0 baseline, findings F001-F006, or a decision in spec/s_obs/DECISIONS.md). Ids name the DEFECT and are shared across corners, so `go/cursor-inclusive` and `rust/cursor-inclusive` are the same defect injected two ways and the kill table can compare them. Anchors are written as arrays of source lines so they can be read against the file they target; `mutate verify` asserts every one of them still matches exactly one site.",
+
+  "families": {
+    "id-alloc": "id allocation: the first id issued, and whether a rejected request consumes one (D2)",
+    "precedence": "which error a request gets: the self-follow guard (F4) and existence-before-semantics (D4, finding F003)",
+    "ordering": "timeline order: the direction the append log is scanned and the (created_at, id) tiebreak (F2, D9)",
+    "idempotence": "follow and unfollow idempotence (F3)",
+    "existence": "referenced-entity checks: orphan authors and orphan follow edges (F6, F9)",
+    "clock": "logical clock behaviour: regression, step size, and whether created_at advances at all (F7, D3, finding F001)",
+    "pagination": "cursor and limit arithmetic: fabricated next_cursor, duplication across pages, off-by-one on limit (D10)",
+    "parsing": "request strictness: unknown JSON fields and repeated query parameters (D7, finding F006)"
+  },
+
+  "mutants": [
+    {
+      "id": "id-first-is-two",
+      "impl": "go",
+      "family": "id-alloc",
+      "description": "the id generator starts at 2, so every user and tweet id is off by one",
+      "edits": [
+        {
+          "file": "internal/ids/ids.go",
+          "anchor": ["\tg = &Generator{next: 1}"],
+          "replacement": ["\tg = &Generator{next: 2}"]
+        }
+      ]
+    },
+    {
+      "id": "id-burned-on-reject",
+      "impl": "go",
+      "family": "id-alloc",
+      "description": "an id is allocated before the duplicate-handle check, so a rejected registration burns one -- the exact defect visible in the R0 baseline as handle \"Alice\" arriving with id 5 after four rejections",
+      "witness": [
+        {"method": "POST", "path": "/users", "body": "{\"handle\":\"alice\"}"},
+        {"method": "POST", "path": "/users", "body": "{\"handle\":\"alice\"}"},
+        {"method": "POST", "path": "/users", "body": "{\"handle\":\"bob\"}"}
+      ],
+      "edits": [
+        {
+          "file": "internal/service/service.go",
+          "anchor": [
+            "\tif s.st.HasUser(handle) {",
+            "\t\t// @ fold s.LockP()",
+            "\t\treturn dom.User{}, store.ErrHandleTaken",
+            "\t}",
+            "\tu = dom.User{ID: s.idsUsr.Next(), Handle: handle}"
+          ],
+          "replacement": [
+            "\tu = dom.User{ID: s.idsUsr.Next(), Handle: handle}",
+            "\tif s.st.HasUser(handle) {",
+            "\t\t// @ fold s.LockP()",
+            "\t\treturn dom.User{}, store.ErrHandleTaken",
+            "\t}"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "self-follow-guard-dropped",
+      "impl": "go",
+      "family": "precedence",
+      "description": "NewFollow accepts a self-edge, dropping F4 entirely: follow(alice, alice) succeeds with 204 and alice appears twice in her own timeline sources",
+      "edits": [
+        {
+          "file": "internal/dom/dom.go",
+          "anchor": [
+            "\tif from == to {",
+            "\t\treturn Follow{}, ErrSelfFollow",
+            "\t}",
+            "\treturn Follow{From: from, To: to}, nil"
+          ],
+          "replacement": ["\treturn Follow{From: from, To: to}, nil"]
+        }
+      ]
+    },
+    {
+      "id": "follow-precedence-flipped",
+      "impl": "go",
+      "family": "precedence",
+      "description": "the self-follow check runs before the existence check, so follow(eve, eve) with eve unknown answers self_follow_forbidden instead of unknown_user -- finding F003, which twitter.tla permits and S_obs D4 forbids",
+      "edits": [
+        {
+          "file": "internal/service/service.go",
+          "anchor": [
+            "\t// @ unfold s.LockP()",
+            "\tif !s.st.HasUser(from) || !s.st.HasUser(to) {",
+            "\t\t// @ fold s.LockP()",
+            "\t\treturn store.ErrUnknownUser",
+            "\t}",
+            "\t// @ fold s.LockP()",
+            "\tf, derr := dom.NewFollow(from, to)",
+            "\tif derr != nil {",
+            "\t\treturn derr",
+            "\t}"
+          ],
+          "replacement": [
+            "\tf, derr := dom.NewFollow(from, to)",
+            "\tif derr != nil {",
+            "\t\treturn derr",
+            "\t}",
+            "\t// @ unfold s.LockP()",
+            "\tif !s.st.HasUser(from) || !s.st.HasUser(to) {",
+            "\t\t// @ fold s.LockP()",
+            "\t\treturn store.ErrUnknownUser",
+            "\t}",
+            "\t// @ fold s.LockP()"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "timeline-scan-reversed",
+      "impl": "go",
+      "family": "ordering",
+      "description": "the append log is scanned oldest-first, so the timeline comes back in ascending (created_at, id) -- F2 inverted",
+      "edits": [
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": ["\tfor i := len(s.tweets) - 1; i >= 0; i-- {"],
+          "replacement": ["\tfor i := 0; i < len(s.tweets); i++ {"]
+        }
+      ]
+    },
+    {
+      "id": "timeline-tiebreak-by-id-asc",
+      "impl": "go",
+      "family": "ordering",
+      "description": "a sort is reintroduced over the page that orders equal timestamps by ASCENDING id, so the order is right except where two tweets share a created_at -- the case D9's monotonicity lemma exists to settle, and the case a corpus without ties cannot see",
+      "edits": [
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": [
+            "\t// @ fold acc(s.LockP())",
+            "\ts.mu.RUnlock()",
+            "\treturn buf[:n], more"
+          ],
+          "replacement": [
+            "\t// @ fold acc(s.LockP())",
+            "\ts.mu.RUnlock()",
+            "\tpage := buf[:n]",
+            "\tsort.SliceStable(page, func(i, j int) bool {",
+            "\t\tif page[i].CreatedAt != page[j].CreatedAt {",
+            "\t\t\treturn page[i].CreatedAt > page[j].CreatedAt",
+            "\t\t}",
+            "\t\treturn page[i].ID < page[j].ID",
+            "\t})",
+            "\treturn page, more"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "follow-toggles",
+      "impl": "go",
+      "family": "idempotence",
+      "description": "PutFollow toggles the edge instead of setting it, so following twice unfollows -- F3 broken in the direction a single-request corpus never exercises",
+      "edits": [
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": [
+            "\ts.follows[f] = true",
+            "\t// @ fold acc(s.LockP())",
+            "\ts.mu.Unlock()",
+            "\treturn nil",
+            "}"
+          ],
+          "replacement": [
+            "\tif s.follows[f] {",
+            "\t\tdelete(s.follows, f)",
+            "\t} else {",
+            "\t\ts.follows[f] = true",
+            "\t}",
+            "\t// @ fold acc(s.LockP())",
+            "\ts.mu.Unlock()",
+            "\treturn nil",
+            "}"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unfollow-rejects-missing-edge",
+      "impl": "go",
+      "family": "idempotence",
+      "description": "unfollowing an edge that is not there answers unknown_user instead of 204, so DELETE stops being idempotent and D5's legal self-unfollow no-op becomes an error",
+      "edits": [
+        {
+          "file": "internal/service/service.go",
+          "anchor": [
+            "\ts.st.DeleteFollow(from, to)",
+            "\t// @ fold s.LockP()",
+            "\treturn nil",
+            "}"
+          ],
+          "replacement": [
+            "\tif !s.st.Follows(from, to) {",
+            "\t\t// @ fold s.LockP()",
+            "\t\treturn store.ErrUnknownUser",
+            "\t}",
+            "\ts.st.DeleteFollow(from, to)",
+            "\t// @ fold s.LockP()",
+            "\treturn nil",
+            "}"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "orphan-author-accepted",
+      "impl": "go",
+      "family": "existence",
+      "description": "both author-existence checks are removed (service and store), so a tweet can be posted by a handle that was never registered -- F6 gone, and the tweet is then invisible to every timeline because nobody can follow a non-user",
+      "edits": [
+        {
+          "file": "internal/service/service.go",
+          "anchor": [
+            "\t// @ unfold s.LockP()",
+            "\tif !s.st.HasUser(author) {",
+            "\t\t// @ fold s.LockP()",
+            "\t\treturn dom.Tweet{}, store.ErrUnknownUser",
+            "\t}",
+            "\tt = dom.Tweet{"
+          ],
+          "replacement": [
+            "\t// @ unfold s.LockP()",
+            "\tt = dom.Tweet{"
+          ]
+        },
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": [
+            "\tif _, ok := s.users[t.Author]; !ok {",
+            "\t\t// @ fold acc(s.LockP())",
+            "\t\ts.mu.Unlock()",
+            "\t\treturn ErrUnknownUser",
+            "\t}",
+            "\t// ENFORCE the monotonicity lemma's premises rather than assuming them."
+          ],
+          "replacement": ["\t// ENFORCE the monotonicity lemma's premises rather than assuming them."]
+        }
+      ]
+    },
+    {
+      "id": "created-at-frozen",
+      "impl": "go",
+      "family": "clock",
+      "description": "every tweet is stamped created_at 0 regardless of the clock, which is precisely the field finding F001 showed had no falsifiable check behind it before POST /tick existed",
+      "edits": [
+        {
+          "file": "internal/service/service.go",
+          "anchor": ["\t\tCreatedAt: nowLogical(s.clk),"],
+          "replacement": ["\t\tCreatedAt: 0,"]
+        }
+      ]
+    },
+    {
+      "id": "tick-advances-by-two",
+      "impl": "go",
+      "family": "clock",
+      "description": "Tick advances the clock by 2, so one request no longer maps onto one TLA+ Tick step (D3)",
+      "edits": [
+        {
+          "file": "internal/clock/clock.go",
+          "anchor": ["\tl.now++"],
+          "replacement": ["\tl.now += 2"]
+        }
+      ]
+    },
+    {
+      "id": "tick-goes-backwards",
+      "impl": "go",
+      "family": "clock",
+      "description": "Tick decrements, so the logical clock regresses -- F7 violated at the source, and the store's monotonic-append guard then turns the next tweet into an internal_error",
+      "edits": [
+        {
+          "file": "internal/clock/clock.go",
+          "anchor": ["\tl.now++"],
+          "replacement": ["\tl.now--"]
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-always-emitted",
+      "impl": "go",
+      "family": "pagination",
+      "description": "next_cursor is emitted even when nothing remains below the page, so null stops meaning \"nothing remains\" and a client paginates forever (D10)",
+      "edits": [
+        {
+          "file": "internal/httpshim/shim.go",
+          "anchor": ["\tif more && len(tw) > 0 {"],
+          "replacement": [
+            "\t_ = more // next_cursor no longer depends on whether anything remains",
+            "\tif len(tw) > 0 {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-is-first-id",
+      "impl": "go",
+      "family": "pagination",
+      "description": "next_cursor is the NEWEST id on the page rather than the oldest, so the following page re-serves the whole page -- pagination fabricates duplicates instead of partitioning",
+      "edits": [
+        {
+          "file": "internal/httpshim/shim.go",
+          "anchor": ["\t\tlast := tw[len(tw)-1].ID"],
+          "replacement": ["\t\tlast := tw[0].ID"]
+        }
+      ]
+    },
+    {
+      "id": "cursor-inclusive",
+      "impl": "go",
+      "family": "pagination",
+      "description": "the cursor becomes inclusive, so the tweet the cursor names is served again on the next page -- one duplicate per page boundary, invisible unless a trace actually paginates",
+      "edits": [
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": ["\t\tif cursor > 0 && t.ID >= cursor {"],
+          "replacement": ["\t\tif cursor > 0 && t.ID > cursor {"]
+        }
+      ]
+    },
+    {
+      "id": "limit-off-by-one",
+      "impl": "go",
+      "family": "pagination",
+      "description": "a page carries limit+1 tweets, breaking both D10 and the store contract's `ensures len(out) <= limit`; only observable when a page actually fills. The page buffer is widened in the same mutant so the defect is an off-by-one and not an index panic -- a crash is a different defect class and every rung catches it",
+      "edits": [
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": ["\tbuf := make([]dom.Tweet, limit)"],
+          "replacement": ["\tbuf := make([]dom.Tweet, limit+1)"]
+        },
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": [
+            "\t\tif n == limit {",
+            "\t\t\tmore = true"
+          ],
+          "replacement": [
+            "\t\tif n == limit+1 {",
+            "\t\t\tmore = true"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unknown-json-fields-accepted",
+      "impl": "go",
+      "family": "parsing",
+      "description": "the strict decoder stops rejecting unknown JSON fields, so {\"handle\":\"a\",\"x\":1} is accepted -- D7's lenient-parsing divergence, which accounted for ten of the 54 R0 baseline failures",
+      "edits": [
+        {
+          "file": "internal/httpshim/shim.go",
+          "anchor": [
+            "\tdec := json.NewDecoder(r.Body)",
+            "\tdec.DisallowUnknownFields()"
+          ],
+          "replacement": ["\tdec := json.NewDecoder(r.Body)"]
+        }
+      ]
+    },
+    {
+      "id": "repeated-query-param-accepted",
+      "impl": "go",
+      "family": "parsing",
+      "description": "a repeated query parameter is accepted and the first value silently wins, so ?user=bob&user=alice returns bob's timeline -- exactly the cross-implementation divergence recorded in finding F006",
+      "edits": [
+        {
+          "file": "internal/httpshim/shim.go",
+          "anchor": [
+            "\t\tif len(v) != 1 {",
+            "\t\t\twriteErr(w, http.StatusBadRequest, \"malformed_request\")",
+            "\t\t\treturn",
+            "\t\t}"
+          ],
+          "replacement": ["\t\t_ = v // repeated parameters no longer rejected"]
+        }
+      ]
+    },
+
+    {
+      "id": "id-first-is-two",
+      "impl": "rust",
+      "family": "id-alloc",
+      "description": "the id generator starts at 2, so every user and tweet id is off by one",
+      "edits": [
+        {
+          "file": "crates/ids/src/lib.rs",
+          "anchor": [
+            "    pub fn new() -> Self {",
+            "        Self { inner: LockState::new(0) }",
+            "    }"
+          ],
+          "replacement": [
+            "    pub fn new() -> Self {",
+            "        Self { inner: LockState::new(1) }",
+            "    }"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "id-burned-on-reject",
+      "impl": "rust",
+      "family": "id-alloc",
+      "description": "an id is allocated before the duplicate-handle check, so a rejected registration burns one",
+      "witness": [
+        {"method": "POST", "path": "/users", "body": "{\"handle\":\"alice\"}"},
+        {"method": "POST", "path": "/users", "body": "{\"handle\":\"alice\"}"},
+        {"method": "POST", "path": "/users", "body": "{\"handle\":\"bob\"}"}
+      ],
+      "edits": [
+        {
+          "file": "crates/service/src/lib.rs",
+          "anchor": [
+            "        if self.st.has_user(handle) {",
+            "            return Err(ServiceError::HandleTaken);",
+            "        }",
+            "        let u = User { id: self.user_ids.next_id(), handle: handle.to_string() };"
+          ],
+          "replacement": [
+            "        let u = User { id: self.user_ids.next_id(), handle: handle.to_string() };",
+            "        if self.st.has_user(handle) {",
+            "            return Err(ServiceError::HandleTaken);",
+            "        }"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "self-follow-guard-dropped",
+      "impl": "rust",
+      "family": "precedence",
+      "description": "Follow::new accepts a self-edge, dropping F4 -- and the Verus `ensures from@ == to@ ==> result is Err` sitting directly above the body is left in place, so R4 has something to catch",
+      "edits": [
+        {
+          "file": "crates/domain/src/lib.rs",
+          "anchor": [
+            "            if from == to {",
+            "                return Err(DomainError::SelfFollow);",
+            "            }",
+            "            Ok(Follow { from, to })"
+          ],
+          "replacement": ["            Ok(Follow { from, to })"]
+        }
+      ]
+    },
+    {
+      "id": "follow-precedence-flipped",
+      "impl": "rust",
+      "family": "precedence",
+      "description": "the self-follow check runs before the existence check, so follow(eve, eve) with eve unknown answers self_follow_forbidden instead of unknown_user (finding F003, S_obs D4)",
+      "edits": [
+        {
+          "file": "crates/service/src/lib.rs",
+          "anchor": [
+            "        if !self.st.has_user(from) || !self.st.has_user(to) {",
+            "            return Err(ServiceError::UnknownUser);",
+            "        }",
+            "        let f = Follow::new(from.to_string(), to.to_string())?;"
+          ],
+          "replacement": [
+            "        let f = Follow::new(from.to_string(), to.to_string())?;",
+            "        if !self.st.has_user(from) || !self.st.has_user(to) {",
+            "            return Err(ServiceError::UnknownUser);",
+            "        }"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "timeline-scan-reversed",
+      "impl": "rust",
+      "family": "ordering",
+      "description": "the append log is scanned oldest-first, so the timeline comes back in ascending (created_at, id) -- F2 inverted",
+      "edits": [
+        {
+          "file": "crates/store/src/lib.rs",
+          "anchor": [
+            "        for t in g.tweets.iter().rev() {",
+            "            if cursor > 0 && t.id >= cursor {"
+          ],
+          "replacement": [
+            "        for t in g.tweets.iter() {",
+            "            if cursor > 0 && t.id >= cursor {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "timeline-tiebreak-by-id-asc",
+      "impl": "rust",
+      "family": "ordering",
+      "description": "a sort is reintroduced over the page that orders equal timestamps by ASCENDING id, so the order is right except where two tweets share a created_at",
+      "edits": [
+        {
+          "file": "crates/store/src/lib.rs",
+          "anchor": [
+            "        (out, more)",
+            "    }"
+          ],
+          "replacement": [
+            "        out.sort_by(|a, b| b.created_at.cmp(&a.created_at).then(a.id.cmp(&b.id)));",
+            "        (out, more)",
+            "    }"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "follow-toggles",
+      "impl": "rust",
+      "family": "idempotence",
+      "description": "put_follow toggles the edge instead of inserting it, so following twice unfollows -- F3 broken",
+      "edits": [
+        {
+          "file": "crates/store/src/lib.rs",
+          "anchor": [
+            "        g.follows.insert((f.from, f.to));",
+            "        Ok(())"
+          ],
+          "replacement": [
+            "        let e = (f.from, f.to);",
+            "        if !g.follows.remove(&e) {",
+            "            g.follows.insert(e);",
+            "        }",
+            "        Ok(())"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unfollow-rejects-missing-edge",
+      "impl": "rust",
+      "family": "idempotence",
+      "description": "unfollowing an edge that is not there answers unknown_user instead of 204, so DELETE stops being idempotent (F3, D5)",
+      "edits": [
+        {
+          "file": "crates/service/src/lib.rs",
+          "anchor": [
+            "        self.st.delete_follow(from, to);",
+            "        Ok(())"
+          ],
+          "replacement": [
+            "        if !self.st.follows(from, to) {",
+            "            return Err(ServiceError::UnknownUser);",
+            "        }",
+            "        self.st.delete_follow(from, to);",
+            "        Ok(())"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "orphan-author-accepted",
+      "impl": "rust",
+      "family": "existence",
+      "description": "both author-existence checks are removed (service and store), so a tweet can be posted by a handle that was never registered -- F6 gone",
+      "edits": [
+        {
+          "file": "crates/service/src/lib.rs",
+          "anchor": [
+            "        if !self.st.has_user(author) {",
+            "            return Err(ServiceError::UnknownUser);",
+            "        }",
+            "        let t = Tweet {"
+          ],
+          "replacement": ["        let t = Tweet {"]
+        },
+        {
+          "file": "crates/store/src/lib.rs",
+          "anchor": [
+            "        if !g.users.contains_key(&t.author) {",
+            "            return Err(StoreError::UnknownUser);",
+            "        }",
+            "        // ENFORCE the monotonicity lemma's premises rather than assuming"
+          ],
+          "replacement": ["        // ENFORCE the monotonicity lemma's premises rather than assuming"]
+        }
+      ]
+    },
+    {
+      "id": "created-at-frozen",
+      "impl": "rust",
+      "family": "clock",
+      "description": "every tweet is stamped created_at 0 regardless of the clock -- the field finding F001 showed had no falsifiable check behind it",
+      "edits": [
+        {
+          "file": "crates/service/src/lib.rs",
+          "anchor": ["            created_at: self.clk.now(),"],
+          "replacement": ["            created_at: 0,"]
+        }
+      ]
+    },
+    {
+      "id": "tick-advances-by-two",
+      "impl": "rust",
+      "family": "clock",
+      "description": "tick advances the clock by 2, so one request no longer maps onto one TLA+ Tick step (D3)",
+      "edits": [
+        {
+          "file": "crates/clock/src/lib.rs",
+          "anchor": [
+            "    pub(crate) fn lock_increment(&self) {",
+            "        let mut g = self.inner.lock().expect(\"clock mutex poisoned\");",
+            "        *g += 1;",
+            "    }"
+          ],
+          "replacement": [
+            "    pub(crate) fn lock_increment(&self) {",
+            "        let mut g = self.inner.lock().expect(\"clock mutex poisoned\");",
+            "        *g += 2;",
+            "    }"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tick-goes-backwards",
+      "impl": "rust",
+      "family": "clock",
+      "description": "tick decrements, so the logical clock regresses -- F7 violated at the source, and the store's monotonic-append guard then turns the next tweet into an internal_error",
+      "edits": [
+        {
+          "file": "crates/clock/src/lib.rs",
+          "anchor": [
+            "    pub(crate) fn lock_increment(&self) {",
+            "        let mut g = self.inner.lock().expect(\"clock mutex poisoned\");",
+            "        *g += 1;",
+            "    }"
+          ],
+          "replacement": [
+            "    pub(crate) fn lock_increment(&self) {",
+            "        let mut g = self.inner.lock().expect(\"clock mutex poisoned\");",
+            "        *g -= 1;",
+            "    }"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-always-emitted",
+      "impl": "rust",
+      "family": "pagination",
+      "description": "next_cursor is emitted even when nothing remains below the page, so null stops meaning \"nothing remains\" (D10)",
+      "edits": [
+        {
+          "file": "crates/server/src/handlers.rs",
+          "anchor": ["    let next_cursor = if more { tw.last().map(|t| t.id) } else { None };"],
+          "replacement": ["    let next_cursor = tw.last().map(|t| t.id);"]
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-is-first-id",
+      "impl": "rust",
+      "family": "pagination",
+      "description": "next_cursor is the NEWEST id on the page rather than the oldest, so the following page re-serves the whole page",
+      "edits": [
+        {
+          "file": "crates/server/src/handlers.rs",
+          "anchor": ["    let next_cursor = if more { tw.last().map(|t| t.id) } else { None };"],
+          "replacement": ["    let next_cursor = if more { tw.first().map(|t| t.id) } else { None };"]
+        }
+      ]
+    },
+    {
+      "id": "cursor-inclusive",
+      "impl": "rust",
+      "family": "pagination",
+      "description": "the cursor becomes inclusive, so the tweet the cursor names is served again on the next page -- one duplicate per page boundary",
+      "edits": [
+        {
+          "file": "crates/store/src/lib.rs",
+          "anchor": ["            if cursor > 0 && t.id >= cursor {"],
+          "replacement": ["            if cursor > 0 && t.id > cursor {"]
+        }
+      ]
+    },
+    {
+      "id": "limit-off-by-one",
+      "impl": "rust",
+      "family": "pagination",
+      "description": "a page carries limit+1 tweets, breaking D10; only observable when a page actually fills",
+      "edits": [
+        {
+          "file": "crates/store/src/lib.rs",
+          "anchor": [
+            "            if out.len() == limit {",
+            "                more = true;"
+          ],
+          "replacement": [
+            "            if out.len() == limit + 1 {",
+            "                more = true;"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unknown-json-fields-accepted",
+      "impl": "rust",
+      "family": "parsing",
+      "description": "serde stops rejecting unknown JSON fields on all three request bodies, so {\"handle\":\"a\",\"x\":1} is accepted (D7)",
+      "edits": [
+        {
+          "file": "crates/server/src/handlers.rs",
+          "anchor": [
+            "#[serde(deny_unknown_fields)]",
+            "struct CreateUserReq {"
+          ],
+          "replacement": ["struct CreateUserReq {"]
+        },
+        {
+          "file": "crates/server/src/handlers.rs",
+          "anchor": [
+            "#[serde(deny_unknown_fields)]",
+            "struct FollowReq {"
+          ],
+          "replacement": ["struct FollowReq {"]
+        },
+        {
+          "file": "crates/server/src/handlers.rs",
+          "anchor": [
+            "#[serde(deny_unknown_fields)]",
+            "struct TweetReq {"
+          ],
+          "replacement": ["struct TweetReq {"]
+        }
+      ]
+    },
+    {
+      "id": "repeated-query-param-accepted",
+      "impl": "rust",
+      "family": "parsing",
+      "description": "a repeated query parameter is accepted and the last value silently wins, so ?user=bob&user=alice returns alice's timeline -- the mirror of the Go divergence recorded in finding F006",
+      "edits": [
+        {
+          "file": "crates/server/src/handlers.rs",
+          "anchor": [
+            "        if slot.is_some() {",
+            "            return malformed(); // repeated parameter",
+            "        }"
+          ],
+          "replacement": ["        // repeated parameters no longer rejected"]
+        }
+      ]
+    }
+  ]
+}
