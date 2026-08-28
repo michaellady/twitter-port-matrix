@@ -7,14 +7,14 @@ import (
 )
 
 type implSpec struct {
-	Dir        string   `json:"dir"`
-	Language   string   `json:"language"`
-	Build      []string `json:"build"`
-	Run        []string `json:"run"`
-	AddrEnv    string   `json:"addr_env"`
-	HealthPath string   `json:"health_path"`
-	Verifier   string   `json:"verifier"`
-	Status     string   `json:"status"`
+	Dir        string            `json:"dir"`
+	Language   string            `json:"language"`
+	Build      []string          `json:"build"`
+	Run        []string          `json:"run"`
+	Env        map[string]string `json:"env"`
+	HealthPath string            `json:"health_path"`
+	Verifier   string            `json:"verifier"`
+	Status     string            `json:"status"`
 }
 
 type registry struct {

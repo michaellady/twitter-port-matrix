@@ -136,7 +136,7 @@ right instrument. Deferred by choice, not overlooked.
 ## STATE
 
 **Phase:** 1
-**Next step:** 1d — vendor and retarget the Rust implementation
+**Next step:** 1d(ii) — retarget the Rust implementation (vendored; R0 baseline 15/54)
 **Last updated:** 2026-08-28
 
 **Gates currently green:**
@@ -156,6 +156,16 @@ the F003 defect fails exactly one step and reverting restores green.
 - F005: enforcing the log invariant in PutTweet is what makes F2 genuinely
   derived. Carry the same enforcement into the Rust corner in 1d — the lemma
   has the same two premises there.
+- F006: Go and Rust diverge from S_obs on EXACTLY the same 39 steps, and on
+  30 of those they agree with each other. A Go<->Rust differential is blind to
+  77% of the gap. Two substantive cross-impl divergences did show up:
+  `POST /users {}` gives empty_handle vs invalid_json, and
+  `GET /timeline?user=bob&user=alice` gives Go a 200 with five tweets where
+  Rust returns 400. Neither contradicts twitter.tla.
+- Rust retarget mirrors the Go one: flat containers + append log in `store`,
+  ValidHandle/ValidText in `domain`, validation order + D4 + no id burn in
+  `service`, strict JSON + canonical bytes + tick route + cursor + catch-all
+  in `server`. Carry the F005 monotonic-append enforcement across.
 - WATCH OUT in 1d: three `str.replace` patches on service.go silently no-oped
   because their anchors missed Gobra `// @ unfold` comment lines, and R0 still
   climbed to 44/54 on shim changes alone. Assert on EVERY source patch.

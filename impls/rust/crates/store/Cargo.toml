@@ -1,0 +1,19 @@
+[package]
+name = "store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+domain = { workspace = true }
+vstd = { workspace = true }
+
+[lints]
+workspace = true
+
+[package.metadata.verus]
+verify = true

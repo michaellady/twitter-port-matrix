@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -68,7 +69,18 @@ func start(name string, spec implSpec) (*harness, error) {
 	argv := subst(spec.Run, repl)
 	cmd := exec.Command(argv[0], argv[1:]...)
 	cmd.Dir = spec.Dir
-	cmd.Env = append(os.Environ(), fmt.Sprintf("%s=127.0.0.1:%d", spec.AddrEnv, port))
+	// Implementations differ in how they take a listen address: the Go server
+	// reads ADDR="host:port", the Rust server reads PORT="port". The registry
+	// declares the shape per implementation rather than the harness assuming
+	// one, so adding the Java and Kotlin corners needs no harness change.
+	portRepl := map[string]string{
+		"port": strconv.Itoa(port),
+		"addr": fmt.Sprintf("127.0.0.1:%d", port),
+	}
+	cmd.Env = os.Environ()
+	for k, v := range spec.Env {
+		cmd.Env = append(cmd.Env, k+"="+subst([]string{v}, portRepl)[0])
+	}
 
 	logf, err := os.Create(filepath.Join(tmp, "server.log"))
 	if err != nil {

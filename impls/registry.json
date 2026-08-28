@@ -4,12 +4,42 @@
     "go": {
       "dir": "impls/go",
       "language": "Go",
-      "build": ["go", "build", "-o", "{bin}", "./cmd/server"],
-      "run": ["{bin}"],
-      "addr_env": "ADDR",
+      "build": [
+        "go",
+        "build",
+        "-o",
+        "{bin}",
+        "./cmd/server"
+      ],
+      "run": [
+        "{bin}"
+      ],
       "health_path": "/healthz",
       "verifier": "Gobra",
-      "status": "retargeted to the S_obs contract; R0 54/54 byte-exact, canary verified"
+      "status": "retargeted to the S_obs contract; R0 54/54 byte-exact, canary verified",
+      "env": {
+        "ADDR": "{addr}"
+      }
+    },
+    "rust": {
+      "dir": "impls/rust",
+      "language": "Rust",
+      "build": [
+        "cargo",
+        "build",
+        "--release",
+        "-p",
+        "server"
+      ],
+      "run": [
+        "./target/release/server"
+      ],
+      "env": {
+        "PORT": "{port}"
+      },
+      "health_path": "/healthz",
+      "verifier": "Verus",
+      "status": "vendored, NOT yet retargeted to the S_obs contract"
     }
   }
 }
