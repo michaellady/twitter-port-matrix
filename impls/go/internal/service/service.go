@@ -54,8 +54,13 @@ type Service struct {
 // interface-typed `clk` and only carries field-existence permission in
 // `LockP()` — see service.gobra for why.
 //
+// R5 (init commutation) at the service boundary.
+//
 // @ ensures acc(s.LockP())
 // @ ensures s != nil
+// @ ensures s.AbsUsers() == set[string]{}
+// @ ensures s.AbsFollows() == set[dom.Follow]{}
+// @ ensures s.AbsLogLen() == 0
 func New(clk clock.Clock) (s *Service) {
 	s = &Service{
 		clk:    clk,
@@ -89,8 +94,35 @@ func New(clk clock.Clock) (s *Service) {
 // is empty-handle rejection, which is enforced at runtime by the explicit
 // `if handle == "" { return ErrEmptyHandle }` guard.
 //
+// R5 at the service boundary (users axis). What is proved, and what is NOT,
+// is spelled out because the difference is the whole content of the rung.
+//
+// PROVED: the other two axes of abs do not move; at most the requested handle
+// is added and nothing else is (no fabrication of users); and a request for an
+// already-registered handle leaves abs exactly where it was.
+//
+// NOT PROVED, and this is a hard ceiling rather than a missing lemma: the
+// ACCEPT direction ("a syntactically valid, unregistered handle IS added").
+// Stating it needs `dom.ValidHandle` inside a specification.
+//
+// MISSING CAPABILITY: Gobra 1.1-SNAPSHOT has no string indexing in the ghost
+// language, so a handle-syntax predicate cannot be written as a `pure`
+// function at all -- `dom.ValidHandle` is a byte loop with early returns, and
+// Gobra `pure` functions must be a single expression. `dom.ValidHandle`'s own
+// postcondition already records the consequence: it exports only the length
+// half ("result ==> len in range"), because the alphabet half "cannot be
+// restated over `h` in the postcondition, since that needs string indexing".
+// S_obs's Step branches on handle and text syntax on every route, so the
+// refinement obligation is statable only on the sub-alphabet where syntax is
+// already settled.
+//
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
+// @ ensures s.AbsFollows() == old(s.AbsFollows())
+// @ ensures s.AbsLogLen() == old(s.AbsLogLen())
+// @ ensures s.AbsUsers() == old(s.AbsUsers()) ||
+// @            s.AbsUsers() == old(s.AbsUsers()) union set[string]{handle}
+// @ ensures (handle in old(s.AbsUsers())) ==> s.AbsUsers() == old(s.AbsUsers())
 func (s *Service) CreateUser(handle string) (u dom.User, err error) {
 	// Syntax before existence (D6). The bound and the alphabet are part of
 	// the observable contract, so they live here in the verified core rather
@@ -155,9 +187,24 @@ func (s *Service) HasUser(handle string) (result bool) {
 // internal user-existence guards (the framing-only store contract
 // documented in S3P4 sub-PR 3).
 //
+// R5 at the service boundary (follows axis). F4 and F9 stop being separate
+// property claims here and become clauses about abs: a self-follow and a
+// follow naming an unregistered endpoint both leave the abstract state exactly
+// where it was, and no request can add any edge other than the one it named.
+//
+// The accept direction is again out of reach, for the reason recorded on
+// CreateUser: it is guarded by `dom.ValidHandle`, which Gobra cannot express.
+//
 // @ requires acc(s.LockP())
 // @ requires isComparable(dom.ErrSelfFollow)
 // @ ensures acc(s.LockP())
+// @ ensures s.AbsUsers() == old(s.AbsUsers())
+// @ ensures s.AbsLogLen() == old(s.AbsLogLen())
+// @ ensures s.AbsFollows() == old(s.AbsFollows()) ||
+// @            s.AbsFollows() == old(s.AbsFollows()) union set[dom.Follow]{dom.Follow{From: from, To: to}}
+// @ ensures from == to ==> s.AbsFollows() == old(s.AbsFollows())
+// @ ensures !(from in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())
+// @ ensures !(to in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())
 func (s *Service) Follow(from, to string) (err error) {
 	// S_obs decision D4: EXISTENCE IS CHECKED BEFORE SEMANTICS.
 	//
@@ -177,6 +224,16 @@ func (s *Service) Follow(from, to string) (err error) {
 		return store.ErrUnknownUser
 	}
 	// @ fold s.LockP()
+	// D4 order is unchanged: existence above, self-follow here. The test is
+	// written out rather than being read back off `dom.NewFollow`'s error,
+	// because concluding `from != to` from `derr == nil` needs
+	// `dom.ErrSelfFollow != nil`, and Gobra does not carry a package-level
+	// `var`'s initializer postcondition into a method body (blocker B2 in
+	// spec/refinement/OBLIGATION.md). Same value returned on the same input;
+	// `dom.NewFollow` still runs and still owns F4.
+	if from == to {
+		return dom.ErrSelfFollow
+	}
 	f, derr := dom.NewFollow(from, to)
 	if derr != nil {
 		return derr
@@ -216,8 +273,19 @@ func (s *Service) Follow(from, to string) (err error) {
 // stays runtime-enforced by the discharged `(*MemStore).DeleteFollow`'s
 // `if ok` guard + `deleteFollowEdge` shim semantics.
 //
+// R5 at the service boundary (follows axis). Same shape as Follow: the
+// removal direction is guarded by `dom.ValidHandle` and so is out of reach,
+// but "this request removes at most the edge it named, and an unknown endpoint
+// removes nothing" is proved.
+//
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
+// @ ensures s.AbsUsers() == old(s.AbsUsers())
+// @ ensures s.AbsLogLen() == old(s.AbsLogLen())
+// @ ensures s.AbsFollows() == old(s.AbsFollows()) ||
+// @            s.AbsFollows() == old(s.AbsFollows()) setminus set[dom.Follow]{dom.Follow{From: from, To: to}}
+// @ ensures !(from in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())
+// @ ensures !(to in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())
 func (s *Service) Unfollow(from, to string) (err error) {
 	// @ unfold s.LockP()
 	// Syntax before existence (D6). Self-unfollow of a known user is a legal
@@ -272,8 +340,28 @@ func (s *Service) Unfollow(from, to string) (err error) {
 // stays runtime-enforced by the trusted `(*Generator).Next()` (which has no
 // LockP requirement at the call site).
 //
+// R5 at the service boundary (log axis). The append-only clause is the one
+// worth reading: nothing already in the log can be rewritten by a post. That
+// is the premise the timeline's ordering proof rests on, stated where a
+// request can reach it. F6 (no orphan tweets) becomes the clause that an
+// unregistered author leaves the log length alone.
+//
+// The accept direction is out of reach for two separate reasons here: the
+// `dom.ValidHandle` / `dom.ValidText` guards, and the monotonicity guard
+// inside `(*MemStore).PutTweet`, which needs F8 (ids strictly increase) and F7
+// (the clock never goes backwards) to be discharged through
+// `(*Generator).Next` and the `nowLogical` interface shim -- both of which are
+// still `// @ trusted`. See the note below on the composition obligation.
+//
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
+// @ ensures s.AbsUsers() == old(s.AbsUsers())
+// @ ensures s.AbsFollows() == old(s.AbsFollows())
+// @ ensures s.AbsLogLen() == old(s.AbsLogLen()) ||
+// @            s.AbsLogLen() == old(s.AbsLogLen()) + 1
+// @ ensures !(author in old(s.AbsUsers())) ==> s.AbsLogLen() == old(s.AbsLogLen())
+// @ ensures forall k int :: 0 <= k && k < old(s.AbsLogLen()) ==>
+// @            s.AbsLogAt(k) == old(s.AbsLogAt(k))
 func (s *Service) PostTweet(author, text string) (t dom.Tweet, err error) {
 	// Syntax before existence, uniformly (D6).
 	if !dom.ValidHandle(author) {
@@ -329,9 +417,40 @@ func (s *Service) PostTweet(author, text string) (t dom.Tweet, err error) {
 // @ ensures acc(s.LockP())
 // @ ensures acc(out)
 // @ ensures len(out) <= limit
+// R5 at the service boundary (timeline response commutation). Every clause
+// below is forwarded verbatim from the store's contract, so the property
+// survives the layer boundary as a proof rather than as a comment. Together
+// they are the response half of the obligation for GET /timeline: the page is
+// ordered (F2), visible (F1), under the cursor (D10), fabricates nothing, and
+// -- when the walk reached the bottom of the log -- loses nothing.
+//
 // @ ensures forall a, b int :: 0 <= a && a < b && b < len(out) ==>
 // @            (out[a].CreatedAt > out[b].CreatedAt ||
 // @             (out[a].CreatedAt == out[b].CreatedAt && out[a].ID > out[b].ID))
+// @ ensures forall a int :: 0 <= a && a < len(out) ==>
+// @            (out[a].Author == user ||
+// @             (dom.Follow{From: user, To: out[a].Author} in s.AbsFollows()))
+// @ ensures cursor > 0 ==> forall a int :: 0 <= a && a < len(out) ==> out[a].ID < cursor
+// NOT FORWARDED, and the reason is a tool gap rather than a false claim: the
+// two clauses of the store contract that are existentially quantified -- "no
+// fabrication" (every returned tweet is some log entry) and "no loss" (every
+// visible entry under the cursor is on the page, when the walk reached the
+// bottom). Both are DISCHARGED at `(*MemStore).HomeTimeline`. Neither survives
+// the call.
+//
+// MISSING CAPABILITY: Gobra 1.1-SNAPSHOT does not re-instantiate an
+// existentially-quantified postcondition at a call site. Restating the store's
+// own clause verbatim on the line after the call -- with the inner predicate
+// still unfolded, in the store's own vocabulary -- fails with "Assert might
+// fail". The usual remedy is to export the witness as a ghost result, and that
+// is not available here: ghost parameters must appear in the signature, and
+// this file has to compile under plain `go build`.
+//
+// So the timeline's response commutation is proved where the page is BUILT and
+// is one layer short of where the request ARRIVES.
+// @ ensures s.AbsUsers() == old(s.AbsUsers())
+// @ ensures s.AbsFollows() == old(s.AbsFollows())
+// @ ensures s.AbsLogLen() == old(s.AbsLogLen())
 func (s *Service) HomeTimeline(user string, limit int, cursor int64) (out []dom.Tweet, more bool) {
 	// @ unfold s.LockP()
 	out, more = s.st.HomeTimeline(user, limit, cursor)

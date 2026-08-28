@@ -45,15 +45,27 @@
 // specification is owed. The proof is the backwards walk over a log the
 // invariant already orders. `sortTimeline` is gone and does not come back.
 //
-// # F1 is still NOT proved
+// # F1 IS NOW PROVED (S-13)
 //
-// Stated plainly rather than left to inference. `HomeTimeline` filters by
-// `t.Author == user || s.follows[{user, t.Author}]`, and that visibility test
-// is NOT reflected in the postcondition. Expressing it needs the returned
-// elements to be related back to their source positions in `s.tweets` — a
-// ghost sequence of log indices threaded through the loop — which is a larger
-// change than retargeting this file. F1 remains enforced at runtime by the
-// filter and end-to-end by R0/R1/R2. What changed at R4 is F2 only.
+// The previous text here read "F1 is still NOT proved", and gave the reason:
+// "expressing it needs the returned elements to be related back to their
+// source positions in `s.tweets` — a ghost sequence of log indices threaded
+// through the loop — which is a larger change than retargeting this file."
+//
+// The diagnosis was right and the size estimate was wrong. The ghost sequence
+// is `src`, declared in `HomeTimeline` and extended by one line inside the
+// loop, and it buys three postconditions rather than one:
+//
+//	F1   every returned tweet is authored by `user` or by someone `user`
+//	     follows -- and the visibility test does not even need `src`, only a
+//	     loop invariant over `buf`;
+//	no fabrication  every returned tweet is some entry of the log;
+//	no loss         when the walk reached the bottom of the log, every visible
+//	                entry under the cursor is on the page.
+//
+// The last two are what turn a one-sided containment into a response
+// commutation. All three are canaried: dropping one visible tweet from the
+// page, or deleting the visibility filter, each fails a named invariant.
 //
 // # Which trusted shims came back, and why
 //
@@ -80,6 +92,8 @@
 
 package store
 
+import "github.com/michaellady/twitter-port-matrix-impl-go/internal/dom"
+
 // LockP is the lock invariant for *MemStore: permission to the fields the
 // `mu` mutex protects, PLUS the append-log ordering invariant that F2 is
 // derived from. `mu` is a value-typed `sync.RWMutex` and `stubs/sync` declares
@@ -95,5 +109,98 @@ pred (s *MemStore) LockP() {
 	acc(&s.follows) && acc(s.follows) &&
 	acc(&s.tweets) && acc(s.tweets) &&
 	(forall i, j int :: 0 <= i && i < j && j < len(s.tweets) ==>
-		s.tweets[i].ID < s.tweets[j].ID && s.tweets[i].CreatedAt <= s.tweets[j].CreatedAt)
+		s.tweets[i].ID < s.tweets[j].ID && s.tweets[i].CreatedAt <= s.tweets[j].CreatedAt) &&
+	// R5 (follows axis). Needed so `domain(s.follows)` IS the edge set rather
+	// than merely a superset of it. Go maps a missing key to the zero value,
+	// so without this a key present-but-false would make `Follows()` answer
+	// false for an edge that `AbsFollows()` says is present -- the response
+	// and state halves of the obligation would disagree. Nothing in the
+	// package ever stores false; this invariant is what makes that a checked
+	// fact instead of a reading of the code.
+	(forall f dom.Follow :: f in domain(s.follows) ==> s.follows[f])
+}
+
+// =============================================================================
+// R5 — the abstraction function.
+// =============================================================================
+//
+// R4 says "this implementation satisfies property number N". R5 says something
+// strictly stronger: there is a function abs from implementation states to
+// S_obs states, and every operation commutes with it. That is what licenses
+// "A and B are observationally equivalent", because both sides land on the
+// same S_obs state after the same request sequence.
+//
+// abs is written here as a family of PURE GHOST PROJECTIONS, one per axis of
+// the S_obs state, rather than as a single function returning a record: Gobra
+// has no ghost struct literal that can be built inside a `pure` function
+// without also owning the fields, and splitting by axis costs nothing because
+// the obligation is stated per axis anyway.
+//
+// Each projection is CONCRETE, not uninterpreted. `AbsUsers()` really is
+// `domain(s.users)`. That is the difference between stating the obligation and
+// assuming it: an uninterpreted abs with axiomatised commutation clauses would
+// verify trivially and prove nothing.
+
+// AbsUsers is the users axis of abs: the set of registered handles.
+// S_obs counterpart: the key set of `State.userByHandle`.
+//
+ghost
+requires acc(s.LockP(), _)
+decreases
+pure func (s *MemStore) AbsUsers() (res set[string]) {
+	return unfolding acc(s.LockP(), _) in domain(s.users)
+}
+
+// AbsFollows is the follows axis of abs: the set of directed edges.
+// S_obs counterpart: the key set of `State.follows`.
+ghost
+requires acc(s.LockP(), _)
+decreases
+pure func (s *MemStore) AbsFollows() (res set[dom.Follow]) {
+	return unfolding acc(s.LockP(), _) in domain(s.follows)
+}
+
+// AbsLogLen and AbsLogAt are the tweet-log axis of abs.
+// S_obs counterpart: `State.tweets`, an append-ordered slice.
+//
+// The axis is exposed as a length plus an indexed projection rather than as a
+// single `seq[dom.Tweet]` because Gobra 1.1-SNAPSHOT has no slice-to-sequence
+// conversion in the ghost language -- there is no `toSeq(s.tweets)`. The
+// pointwise form states exactly the same relation and costs one extra
+// quantifier at each use site.
+ghost
+requires acc(s.LockP(), _)
+decreases
+pure func (s *MemStore) AbsLogLen() (res int) {
+	return unfolding acc(s.LockP(), _) in len(s.tweets)
+}
+
+ghost
+requires acc(s.LockP(), _)
+requires 0 <= i && i < s.AbsLogLen()
+decreases
+pure func (s *MemStore) AbsLogAt(i int) (res dom.Tweet) {
+	return unfolding acc(s.LockP(), _) in s.tweets[i]
+}
+
+// AbsAcceptsTweet is the accept predicate of the log axis, written against
+// abs alone. It is S_obs's stepPostTweet author check, CONJOINED with the
+// monotonicity guard PutTweet adds on top of S_obs.
+//
+// Keying the state commutation on this predicate rather than on `err == nil`
+// is not a convenience. `err` is an interface value produced by a package
+// level sentinel, and Gobra cannot prove those sentinels are non-nil (see the
+// note on PutUser), so an `err`-keyed accept clause would be discharged for
+// the wrong reason on the reject branches. Keying on abs and the request is
+// also the literal shape of the R5 obligation:
+//
+//	abs(step_L(s, r)) = step_S(abs(s), r)
+ghost
+requires acc(s.LockP(), _)
+decreases
+pure func (s *MemStore) AbsAcceptsTweet(t dom.Tweet) (res bool) {
+	return (t.Author in s.AbsUsers()) &&
+		(s.AbsLogLen() == 0 ||
+			(t.ID > s.AbsLogAt(s.AbsLogLen()-1).ID &&
+				t.CreatedAt >= s.AbsLogAt(s.AbsLogLen()-1).CreatedAt))
 }

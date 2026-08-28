@@ -752,7 +752,7 @@ mod tests {
     #[test]
     fn create_user_rejects_empty() {
         let s = Service::new();
-        assert_eq!(s.create_user("").unwrap_err(), ServiceError::EmptyHandle);
+        assert_eq!(s.create_user("").unwrap_err(), ServiceError::InvalidHandle);
     }
 
     #[test]
@@ -770,7 +770,7 @@ mod tests {
     fn create_user_duplicate() {
         let s = Service::new();
         s.create_user("alice").unwrap();
-        assert_eq!(s.create_user("alice").unwrap_err(), ServiceError::DuplicateUser);
+        assert_eq!(s.create_user("alice").unwrap_err(), ServiceError::HandleTaken);
     }
 
     #[test]
@@ -829,7 +829,7 @@ mod tests {
     fn post_tweet_rejects_empty_text() {
         let s = Service::new();
         s.create_user("alice").unwrap();
-        assert_eq!(s.post_tweet("alice", "").unwrap_err(), ServiceError::EmptyText);
+        assert_eq!(s.post_tweet("alice", "").unwrap_err(), ServiceError::InvalidText);
     }
 
     #[test]
@@ -864,7 +864,7 @@ mod tests {
         s.post_tweet("bob", "first").unwrap();        // id=1
         s.post_tweet("bob", "second").unwrap();       // id=2 same ts
         s.post_tweet("carol", "invisible").unwrap();  // id=3
-        let tl = s.home_timeline("alice", 0);
+        let (tl, _more) = s.home_timeline("alice", 50, 0);
         let ids: Vec<i64> = tl.iter().map(|t| t.id).collect();
         // F2 (id desc on tie), F1 (no carol)
         assert_eq!(ids, vec![2, 1]);
@@ -896,11 +896,13 @@ mod tests {
 
     #[test]
     fn service_error_display() {
-        assert_eq!(ServiceError::EmptyHandle.to_string(), "empty_handle");
-        assert_eq!(ServiceError::EmptyText.to_string(), "empty_text");
+        // The S_obs error vocabulary (S-05). These strings are the wire
+        // codes; an implementation that invents another fails R0.
+        assert_eq!(ServiceError::InvalidHandle.to_string(), "invalid_handle");
+        assert_eq!(ServiceError::InvalidText.to_string(), "invalid_text");
         assert_eq!(ServiceError::SelfFollow.to_string(), "self_follow_forbidden");
         assert_eq!(ServiceError::UnknownUser.to_string(), "unknown_user");
-        assert_eq!(ServiceError::DuplicateUser.to_string(), "duplicate_user");
+        assert_eq!(ServiceError::HandleTaken.to_string(), "handle_taken");
     }
 
     #[test]
@@ -913,8 +915,8 @@ mod tests {
     fn from_store_error() {
         let e: ServiceError = StoreError::UnknownUser.into();
         assert_eq!(e, ServiceError::UnknownUser);
-        let e: ServiceError = StoreError::DuplicateUser.into();
-        assert_eq!(e, ServiceError::DuplicateUser);
+        let e: ServiceError = StoreError::HandleTaken.into();
+        assert_eq!(e, ServiceError::HandleTaken);
     }
 
     #[test]
@@ -925,12 +927,12 @@ mod tests {
     #[test]
     fn home_timeline_unknown_user_returns_empty() {
         let s = Service::new();
-        assert!(s.home_timeline("ghost", 0).is_empty());
+        assert!(s.home_timeline("ghost", 50, 0).0.is_empty());
     }
 
     #[test]
     fn service_error_std_error() {
-        let e = ServiceError::EmptyText;
+        let e = ServiceError::InvalidText;
         let _: &dyn std::error::Error = &e;
     }
 

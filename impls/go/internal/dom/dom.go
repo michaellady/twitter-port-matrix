@@ -75,7 +75,7 @@ type Follow struct {
 //
 // @ requires isComparable(ErrSelfFollow)
 // @ ensures from == to ==> (err == ErrSelfFollow && f == Follow{})
-// @ ensures from != to ==> (err == nil && f.From == from && f.To == to)
+// @ ensures from != to ==> (err == nil && f == Follow{From: from, To: to})
 // @ decreases
 func NewFollow(from, to string) (f Follow, err error) {
 	if from == to {

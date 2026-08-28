@@ -72,3 +72,109 @@ from the guard rather than assumed alongside it.
 Both canaries were injected, observed red, and reverted; the store package was
 confirmed byte-identical to its pre-canary state and re-verified green (0
 errors) afterwards.
+
+------------------------------------------------------------------------------
+CANARY C -- F1 visibility is load-bearing (S-13)
+------------------------------------------------------------------------------
+
+In internal/store/memstore.go, on (*MemStore).HomeTimeline, delete the
+visibility filter:
+
+    if t.Author != user && !s.follows[dom.Follow{From: user, To: t.Author}] {
+        continue
+    }
+->
+    if false {
+        continue
+    }
+
+Expected, and observed on image sha256:2ef080cc:
+
+    Loop invariant might not be preserved.
+    Assertion forall a int :: 0 <= a && a < n ==>
+        (buf[a].Author == user ||
+        s.follows[dom.Follow{From: user, To: buf[a].Author}]) might not hold.
+
+------------------------------------------------------------------------------
+CANARY D -- the timeline loses nothing (S-13)
+------------------------------------------------------------------------------
+
+This is the one F2 alone cannot catch. Drop a single visible tweet from the
+page; the result is still correctly ordered, still visible, and still contains
+only real tweets. Only the completeness invariant notices.
+
+In (*MemStore).HomeTimeline, immediately before `buf[n] = t`:
+
+    if t.ID == 7 { // drop one visible tweet
+        continue
+    }
+
+Expected, and observed:
+
+    Loop invariant might not be preserved.
+    Assertion forall k int :: i < k && k < len(s.tweets) && ... ==>
+        (exists a int :: 0 <= a && a < n && src[a] == k) might not hold.
+
+------------------------------------------------------------------------------
+CANARY E -- PutTweet accepts exactly what S_obs accepts (S-13)
+------------------------------------------------------------------------------
+
+Reject an append that S_obs accepts. In (*MemStore).PutTweet, before the
+`appendTweet` call:
+
+    if t.ID == 7 {
+        // @ fold acc(s.LockP())
+        s.mu.Unlock()
+        return ErrNonMonotonic
+    }
+
+Expected, and observed:
+
+    Postcondition might not hold.
+    Assertion old(s.AbsAcceptsTweet(t)) ==> err == nil might not hold.
+
+------------------------------------------------------------------------------
+CANARY F -- F8 on the real generator (S-13)
+------------------------------------------------------------------------------
+
+In internal/ids/ids.go, in (*Generator).Next, stop advancing:
+
+    g.next++   ->   g.next += 0
+
+Expected, and observed:
+
+    Postcondition might not hold.
+    Assertion unfolding acc(g.LockP()) in g.next == result + 1 might not hold.
+
+------------------------------------------------------------------------------
+CANARY G -- the service adds no edge nobody asked for (S-13)
+------------------------------------------------------------------------------
+
+In internal/service/service.go, in (*Service).Follow, after the PutFollow call:
+
+    _ = s.st.PutFollow(dom.Follow{From: to, To: from})
+
+Expected, and observed:
+
+    Postcondition might not hold.
+    Assertion s.AbsFollows() == old(s.AbsFollows()) ||
+      s.AbsFollows() == old(s.AbsFollows()) union
+        set[dom.Follow]{dom.Follow{From: from, To: to}} might not hold.
+
+------------------------------------------------------------------------------
+CANARY H -- Replace cannot install a log that breaks the invariant (S-13)
+------------------------------------------------------------------------------
+
+Not a Gobra canary: a test canary, because the old failure mode was observable
+through the API. Restore the pre-S-13 body of (*MemStore).Replace -- sort on
+(created_at, id) and install unconditionally -- and run
+
+    go test ./internal/store/ -run TestReplaceRejectsNonMonotonicSnapshot
+
+Expected, and observed:
+
+    got 2 tweets: [{ID:3 Author:alice Text:b CreatedAt:1}
+                   {ID:5 Author:alice Text:a CreatedAt:0}]
+
+which is a timeline in ascending timestamp order -- an F2 violation reachable
+from the admin snapshot path.

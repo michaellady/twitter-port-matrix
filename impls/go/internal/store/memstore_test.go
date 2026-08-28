@@ -347,3 +347,65 @@ func TestSnapshotReplaceFullCoverage(t *testing.T) {
 		t.Fatalf("snapshot not stable across Replace: %+v vs %+v", snap, snap2)
 	}
 }
+
+// TestReplaceRejectsNonMonotonicSnapshot is the regression test for the gap
+// recorded on Replace: the old implementation normalised an incoming log by
+// sorting on (created_at, id), which does not establish the append-log
+// invariant. [{id:5, ts:0}, {id:3, ts:1}] sorts to itself and 5 < 3 is false,
+// so the installed log violated the invariant F2 is derived from -- silently,
+// because Replace was trusted and carried no contract.
+//
+// Replace now checks the normalised candidate and discards it if it fails.
+func TestReplaceRejectsNonMonotonicSnapshot(t *testing.T) {
+	s := New()
+	s.Replace(StoreSnapshot{
+		Users: []dom.User{{ID: 1, Handle: "alice"}},
+		Tweets: []dom.Tweet{
+			{ID: 5, Author: "alice", Text: "a", CreatedAt: 0},
+			{ID: 3, Author: "alice", Text: "b", CreatedAt: 1},
+		},
+	})
+	got, _ := s.HomeTimeline("alice", 10, 0)
+	if len(got) != 0 {
+		t.Fatalf("a snapshot whose ids and timestamps disagree must not install a log; got %d tweets: %+v", len(got), got)
+	}
+}
+
+// TestReplaceKeepsWellFormedSnapshot pins the other side: a snapshot that does
+// admit a monotone ordering still loads, so the check is a filter on malformed
+// input rather than a rejection of everything.
+func TestReplaceKeepsWellFormedSnapshot(t *testing.T) {
+	s := New()
+	s.Replace(StoreSnapshot{
+		Users: []dom.User{{ID: 1, Handle: "alice"}},
+		Tweets: []dom.Tweet{
+			{ID: 3, Author: "alice", Text: "b", CreatedAt: 0},
+			{ID: 5, Author: "alice", Text: "a", CreatedAt: 1},
+		},
+	})
+	got, _ := s.HomeTimeline("alice", 10, 0)
+	if len(got) != 2 {
+		t.Fatalf("well-formed snapshot must load; got %d tweets", len(got))
+	}
+	if got[0].ID != 5 || got[1].ID != 3 {
+		t.Fatalf("timeline must be newest-first; got %d then %d", got[0].ID, got[1].ID)
+	}
+}
+
+// TestReplaceOutOfOrderButWellFormedIsNormalised proves the normalisation is
+// still doing work: the same two tweets supplied newest-first load correctly,
+// because sortLogByID puts them back in log order before the check runs.
+func TestReplaceOutOfOrderButWellFormedIsNormalised(t *testing.T) {
+	s := New()
+	s.Replace(StoreSnapshot{
+		Users: []dom.User{{ID: 1, Handle: "alice"}},
+		Tweets: []dom.Tweet{
+			{ID: 5, Author: "alice", Text: "a", CreatedAt: 1},
+			{ID: 3, Author: "alice", Text: "b", CreatedAt: 0},
+		},
+	})
+	got, _ := s.HomeTimeline("alice", 10, 0)
+	if len(got) != 2 || got[0].ID != 5 {
+		t.Fatalf("a shuffled but well-formed snapshot must normalise and load; got %+v", got)
+	}
+}

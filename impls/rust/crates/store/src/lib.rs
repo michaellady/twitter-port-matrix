@@ -13,10 +13,12 @@
 //!   referencing a non-registered handle.
 //!
 //! # Timeline data structure
-//! Per-author append-only list. The home timeline is computed at read time
-//! as a k-way merge (here: gather + sort) over the lists of every author the
-//! requesting user follows, plus the requester's own list, ordered by
-//! `(created_at desc, tweet_id desc)`. F2 is established at merge time.
+//! ONE append-ordered log, never sorted. The home timeline is a backwards walk
+//! over it with a per-tweet visibility test. F2 is a consequence of the log's
+//! insertion order (the monotonicity lemma, S_obs decision D9), not of a sort.
+//! The "per-author list plus k-way merge (gather + sort)" this comment used to
+//! describe was removed in S-05, and the sort obligation it created went with
+//! it.
 //!
 //! # Verus annotations
 //! See the `verus_proof` module at the bottom of this file. The trusted
@@ -744,10 +746,82 @@ mod verus_proof {
         // forward — so any author with `author_tweet_count(s, a) > 0`
         // must have been in `users_keys(s)` (which equals
         // `users_keys(old(s))` post-append).
+        // -----------------------------------------------------------------
+        // S-13. The log ghost view, added so `put_tweet_ensures` can describe
+        // the function it claims to describe.
+        //
+        // The previous contract said
+        //
+        //     users_keys(old(s)).contains(t.author@) ==> result is Ok
+        //
+        // and that is FALSE of the production `MemStore::put_tweet`, which has
+        // a THIRD branch: it rejects an append that would break the append-log
+        // invariant (`t.id <= last.id || t.created_at < last.created_at`).
+        // Verus could not notice, because the function it checks is this
+        // hand-written twin and not the production method -- the twin's body
+        // simply did not have the branch. Adding the branch and re-running
+        // produced, verbatim:
+        //
+        //     error: postcondition not satisfied
+        //        --> crates/store/src/lib.rs:750:17
+        //     750 |  users_keys(old(s)).contains(t.author@)  ==> result is Ok,
+        //     766 |  return Err(StoreError::NonMonotonic);   at this exit
+        //
+        // The fix is not to drop the clause. It is to say what is true: the
+        // accept condition is author-existence CONJOINED with the guard. That
+        // is also the shape the refinement obligation wants, because it is
+        // stated over the abstract state and the request rather than over the
+        // returned error value.
+        #[verifier::external_body]
+        pub closed spec fn log_len(s: &MemStore) -> nat {
+            unimplemented!()
+        }
+
+        #[verifier::external_body]
+        pub closed spec fn log_last_id(s: &MemStore) -> int {
+            unimplemented!()
+        }
+
+        #[verifier::external_body]
+        pub closed spec fn log_last_created_at(s: &MemStore) -> int {
+            unimplemented!()
+        }
+
+        /// Abstract accept predicate for an append: exactly the two guards the
+        /// production `MemStore::put_tweet` applies, in order.
+        pub open spec fn accepts_tweet(s: &MemStore, t: Tweet) -> bool {
+            users_keys(s).contains(t.author@) && (
+                log_len(s) == 0 || (
+                    t.id > log_last_id(s) && t.created_at >= log_last_created_at(s)
+                )
+            )
+        }
+
+        /// Trusted shim for the production monotonicity guard. Body is the
+        /// production expression; what is trusted is that the ghost views
+        /// `log_len` / `log_last_id` / `log_last_created_at` project the
+        /// `Vec<Tweet>` behind the `RwLock` -- which cannot be discharged
+        /// because vstd has no model of `std::sync::RwLock` (blocker B4 in
+        /// spec/refinement/OBLIGATION.md).
+        #[verifier::external_body]
+        pub fn proof_log_breaks_monotonicity(s: &MemStore, t: &Tweet) -> (out: bool)
+            ensures
+                out == !(log_len(s) == 0 || (
+                    t.id > log_last_id(s) && t.created_at >= log_last_created_at(s)
+                ))
+        {
+            let g = s.inner.read().expect("store poisoned");
+            match g.tweets.last() {
+                None => false,
+                Some(last) => t.id <= last.id || t.created_at < last.created_at,
+            }
+        }
+
         pub fn put_tweet_ensures(s: &mut MemStore, t: Tweet) -> (result: Result<(), StoreError>)
             ensures
                 !users_keys(old(s)).contains(t.author@) ==> result is Err,
-                users_keys(old(s)).contains(t.author@)  ==> result is Ok,
+                accepts_tweet(old(s), t)  ==> result is Ok,
+                !accepts_tweet(old(s), t) ==> result is Err,
                 result is Ok ==>
                     author_tweet_count(s, t.author@)
                         == author_tweet_count(old(s), t.author@) + 1,
@@ -759,6 +833,10 @@ mod verus_proof {
         {
             if !proof_can_post_tweet(s, &t.author) {
                 return Err(StoreError::UnknownUser);
+            }
+            // The branch the previous twin omitted. Mirrors production.
+            if proof_log_breaks_monotonicity(s, &t) {
+                return Err(StoreError::NonMonotonic);
             }
             proof_append_tweet(s, t);
             Ok(())
@@ -774,17 +852,43 @@ mod verus_proof {
         // across the call. The returned values themselves remain trusted in
         // each method's read shim:
         //
-        //   - `follow_set` returns `HashSet<String>`. Pinning that to
-        //     `follow_edges(s)` restricted to `from` would require a
-        //     `vstd::hash_set` model that does not ship in
-        //     vstd 0.0.0-2026-04-20-1748.
-        //   - `home_timeline` returns `Vec<Tweet>` after a `sort_by` on
-        //     `(created_at desc, id desc)`. Pinning the F1 (visibility)
-        //     and F2 (sort order) postconditions structurally would require
-        //     either a `vstd::vec` sort spec or a verified mergesort import;
-        //     neither ships in the pinned vstd. F1 + F2 are explicitly
-        //     out of scope for this sub-PR — see the module docstring +
-        //     `TCB.md` for the trust framing.
+        // S-13 CORRECTION. Both reasons this comment used to give are wrong,
+        // and getting the blocker right changes what lifting it would take.
+        //
+        //   - It said pinning `follow_set` needs "a `vstd::hash_set` model
+        //     that does not ship in vstd 0.0.0-2026-04-20-1748". It does ship.
+        //     `vstd/hash_set.rs` defines `HashSetWithView<Key>` and
+        //     `StringHashSet`, both with `View` into `Set<..>`, and
+        //     `vstd/std_specs/hash.rs` defines `ExHashSet` / `ExHashMap` with
+        //     `assume_specification`s for insert, contains, remove, len, iter.
+        //   - It said `home_timeline` returns a `Vec<Tweet>` "after a
+        //     `sort_by`" and that F1/F2 need "a `vstd::vec` sort spec or a
+        //     verified mergesort". There has been no sort here since S-05:
+        //     `MemStore::home_timeline` walks the append-ordered log
+        //     backwards. No sort specification is owed.
+        //
+        // The real blocker for both is the same, and it is upstream of the
+        // collections: the state lives behind `std::sync::RwLock`, and
+        // `vstd/std_specs/` has no `sync.rs`. Removing `external_body` from
+        // `ExMemStore` and projecting the field inside a `spec fn` reports,
+        // verbatim:
+        //
+        //     error: `std::sync::poison::rwlock::RwLock` is not supported
+        //     error: `std::sync::poison::rwlock::RwLockReadGuard` is not supported
+        //     error: `std::sync::poison::rwlock::impl&%11::read` is not supported
+        //     error: `std::sync::poison::PoisonError` is not supported
+        //     error: `<RwLockReadGuard as Deref>::deref` is not supported
+        //
+        // Swapping to `vstd::rwlock::RwLock` does not help: it offers
+        // `spec fn inv(&self, val: V) -> bool` and a `ReadHandle::view()` that
+        // requires holding a handle. There is no `spec fn value(&self) -> V`,
+        // and there cannot be -- outside the critical section a lock-protected
+        // value is not a function of the lock. So the refinement obligation's
+        // abstraction function is not definable over `MemStore` as shaped, in
+        // this verifier or any other. Lifting it means making the verified
+        // core a pure value type and moving the lock into the trusted shim,
+        // which is the shape `S_obs` itself has. See
+        // spec/refinement/OBLIGATION.md, blockers B4 and B5.
         //
         // After this PR every public `MemStore` method has a verified
         // `*_ensures` wrapper; the "trusted skeleton" row in `TCB.md` is
@@ -825,25 +929,20 @@ mod verus_proof {
             proof_follow_set(s, from)
         }
 
-        // Trusted shim around the entire `MemStore::home_timeline` body
-        // (lock-acquire + author-set construction + per-author tweet
-        // gather + `Vec::sort_by((created_at desc, id desc))` + `truncate`).
-        // Body calls the real production read; what is trusted is:
+        // Trusted shim around the `MemStore::home_timeline` body: lock-acquire
+        // plus a backwards walk over the append-ordered log with a per-tweet
+        // visibility test. NOTE THE SIGNATURE DRIFT: production takes a
+        // `cursor: i64` and returns `(Vec<Tweet>, bool)`; this twin takes
+        // neither and returns only the vector. Nothing checks that the twin
+        // and the production method agree -- see
+        // spec/refinement/OBLIGATION.md section 7.
         //
-        //   - F1 visibility: every returned tweet's author is in
-        //     `{user} ∪ follows[user]` (the production gather loop only
-        //     iterates over `authors` which is exactly that set);
-        //   - F2 sort order: the returned `Vec<Tweet>` is sorted by
-        //     `(created_at desc, id desc)` (the production `sort_by`
-        //     comparator delivers it; vstd has no sort spec to chain
-        //     through);
-        //   - the optional `truncate(limit)` preserves both invariants
-        //     (truncation drops a suffix; the prefix is still sorted and
-        //     still has the same author set as before).
-        //
-        // Same `&MemStore`-not-`&mut` framing argument as
-        // `proof_follow_set`: the type system pins the three ghost-view
-        // axes unchanged.
+        // What is trusted is F1 (visibility) and F2 (ordering) on the returned
+        // vector. Not because of a missing sort spec, because there is no
+        // sort, but because `abs` is not definable over `MemStore` while the
+        // state sits behind `std::sync::RwLock`. The Go corner proves both
+        // properties on the same algorithm, which is the evidence that the
+        // obstacle is the state's shape rather than the property.
         #[verifier::external_body]
         pub fn proof_home_timeline(s: &MemStore, user: &String, limit: usize) -> (out: Vec<Tweet>)
         {
@@ -899,7 +998,8 @@ mod tests {
         s.put_user(alice()).unwrap();
         let err = s.put_user(alice()).unwrap_err();
         assert_eq!(err, StoreError::HandleTaken);
-        assert_eq!(err.to_string(), "duplicate_user");
+        // S_obs error vocabulary (S-05): the wire code is "handle_taken".
+        assert_eq!(err.to_string(), "handle_taken");
     }
 
     #[test]
@@ -962,7 +1062,7 @@ mod tests {
         s.put_tweet(Tweet { id: 1, author: "bob".into(), text: "b".into(), created_at: 1 }).unwrap();
         s.put_tweet(Tweet { id: 2, author: "carol".into(), text: "c".into(), created_at: 2 }).unwrap();
         s.put_tweet(Tweet { id: 3, author: "alice".into(), text: "a".into(), created_at: 3 }).unwrap();
-        let tl = s.home_timeline("alice", 0);
+        let (tl, _more) = s.home_timeline("alice", 50, 0);
         let ids: Vec<i64> = tl.iter().map(|t| t.id).collect();
         // alice's own + bob's, NOT carol's
         assert_eq!(ids, vec![3, 1]);
@@ -977,7 +1077,7 @@ mod tests {
         s.put_follow(Follow::new("alice".to_string(), "bob".to_string()).unwrap()).unwrap();
         s.put_tweet(Tweet { id: 1, author: "bob".into(), text: "first".into(), created_at: 1 }).unwrap();
         s.put_tweet(Tweet { id: 2, author: "bob".into(), text: "second".into(), created_at: 1 }).unwrap();
-        let tl = s.home_timeline("alice", 0);
+        let (tl, _more) = s.home_timeline("alice", 50, 0);
         let ids: Vec<i64> = tl.iter().map(|t| t.id).collect();
         assert_eq!(ids, vec![2, 1]);
     }
@@ -989,7 +1089,7 @@ mod tests {
         for i in 1..=5 {
             s.put_tweet(Tweet { id: i, author: "alice".into(), text: "x".into(), created_at: i }).unwrap();
         }
-        let tl = s.home_timeline("alice", 2);
+        let (tl, _more) = s.home_timeline("alice", 2, 0);
         assert_eq!(tl.len(), 2);
         assert_eq!(tl[0].id, 5);
         assert_eq!(tl[1].id, 4);
@@ -998,7 +1098,7 @@ mod tests {
     #[test]
     fn home_timeline_unknown_user_empty() {
         let s = MemStore::new();
-        assert!(s.home_timeline("ghost", 0).is_empty());
+        assert!(s.home_timeline("ghost", 50, 0).0.is_empty());
     }
 
     #[test]
@@ -1037,8 +1137,12 @@ mod tests {
         s.put_user(bob()).unwrap();
         s.put_follow(Follow::new("alice".to_string(), "carol".to_string()).unwrap()).unwrap();
         s.put_follow(Follow::new("alice".to_string(), "bob".to_string()).unwrap()).unwrap();
-        s.put_tweet(Tweet { id: 2, author: "bob".into(), text: "b".into(), created_at: 1 }).unwrap();
+        // Appended in id order: the log is append-ordered and PutTweet's guard
+        // rejects an out-of-order append (the premise F2 is derived from).
+        // The old order here (id 2 then id 1) is the same latent defect the Go
+        // corner found in its own TestSnapshotIsSorted.
         s.put_tweet(Tweet { id: 1, author: "alice".into(), text: "a".into(), created_at: 1 }).unwrap();
+        s.put_tweet(Tweet { id: 2, author: "bob".into(), text: "b".into(), created_at: 1 }).unwrap();
         let snap = s.snapshot();
         assert_eq!(snap.users.iter().map(|u| u.id).collect::<Vec<_>>(), vec![1, 2, 3]);
         assert_eq!(
@@ -1076,7 +1180,7 @@ mod tests {
         assert!(!s.has_user("alice"));
         assert!(!s.has_user("bob"));
         assert!(s.has_user("carol"));
-        let tl = s.home_timeline("carol", 0);
+        let (tl, _more) = s.home_timeline("carol", 50, 0);
         assert_eq!(tl.len(), 1);
         assert_eq!(tl[0].id, 9);
     }
@@ -1094,7 +1198,7 @@ mod tests {
         };
         s.replace(snap);
         // ghost has no entry in users but their tweet is loaded
-        let tl = s.home_timeline("ghost", 0);
+        let (tl, _more) = s.home_timeline("ghost", 50, 0);
         assert_eq!(tl.len(), 1);
     }
 

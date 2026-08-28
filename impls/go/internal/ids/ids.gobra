@@ -30,7 +30,7 @@ package ids
 // at the call sites. This keeps Phase 2a a pure additive setup with no
 // stub surgery.
 pred (g *Generator) LockP() {
-	acc(&g.next)
+	acc(&g.next) && g.next >= 1
 }
 
 // @ requires acc(g)

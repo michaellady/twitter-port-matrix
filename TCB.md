@@ -103,3 +103,27 @@ obligation.
 This is a reduction, not a relocation. See findings F004 and F005 — F005 in
 particular records why the reduction is only sound once the log invariant is
 enforced at the mutation site.
+
+
+## Corrections from the R5 assessment (S-13)
+
+Two claims elsewhere in this file were overtaken by evidence.
+
+**`Snapshot` and `Replace` "carry no F-property obligation."** False for
+`Replace`, and it mattered: the pre-fix body would install
+`[{ID:3 ts:1} {ID:5 ts:0}]` — a timeline in ascending timestamp order — through
+the admin path, reachable rather than theoretical. `Replace` now carries a real
+`LockP()` contract and its `// @ trusted` marker is gone. The fix was to trust
+*less*: `sortLogByID` is trusted with no functional postcondition at all, so
+Gobra havocs its output, and a **verified** `isMonotoneLog` check decides
+whether the candidate is installed. A malformed snapshot loads as an empty log
+instead of an F2 counterexample.
+
+**The Rust corner's trusted surface is larger than `external_body` counts
+show.** Those counts measure annotations on the *proof twins*, which are
+separate functions from the shipped ones. The shipped code carries no contract
+at all; the twins must be kept in step with it by hand, and one had drifted.
+Any statement of the form "Verus verifies N obligations" should be read as "N
+obligations about hand-written copies of the shipped code."
+
+See `evidence/findings/F012`.

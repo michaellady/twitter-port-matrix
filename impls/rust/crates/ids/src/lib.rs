@@ -155,6 +155,34 @@ impl Default for Generator {
 // through `lock_value()` to discharge `out as int == count(g)`,
 // `count(g) == count(old(g)) + 1`, and `out >= 1` without trusting the
 // body.
+// S-13 MEASUREMENT. `cargo-verus verus verify -p ids` reports
+//
+//     verification results:: 0 verified, 0 errors
+//
+// Zero obligations. Every item in the module below is `external_body`, so
+// Verus checks nothing here at all. What that means for F8, stated plainly:
+//
+//   - `next_id_ensures` carries the F8 contract, but `external_body` means its
+//     ensures are ASSUMED, not proved;
+//   - nothing calls `next_id_ensures`. The production path is
+//     `Generator::next_id`, a different function, which no contract mentions;
+//   - `count(g)` is `lock_state_value(inner_state(g))`, and both of those are
+//     `external_body` too, so the contract is stated over symbols with no
+//     definition.
+//
+// So F8 on the Rust corner is an assumed postcondition, on a function that is
+// never executed, written in terms of uninterpreted symbols. That is not a
+// weak proof; it is not a proof.
+//
+// This is load-bearing beyond F8. `MemStore::put_tweet` rejects an append
+// whose id does not strictly exceed the previous one, and discharging "that
+// guard never fires" -- which is what separates S_obs's two-outcome
+// stepPostTweet from the store's three outcomes -- needs exactly what F8 would
+// give. The Go corner discharged F8 on its real `(*ids.Generator).Next` in
+// S-13 by unfolding a permission predicate around the mutex; the same route is
+// closed here because vstd 0.0.0-2026-04-20-1748 models neither
+// `std::sync::Mutex` nor `std::sync::RwLock` (`vstd/std_specs/` has no
+// `sync.rs`). See spec/refinement/OBLIGATION.md, section 6 and blocker B4.
 #[cfg(verus_only)]
 mod verus_proof {
     use super::*;

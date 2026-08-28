@@ -47,16 +47,24 @@
 // discharges it against the real body. The proof moved from a stub to the
 // code, which is the direction it should move.
 //
-// # F1 is still not proved, here or below
+// # F1 IS NOW PROVED, here and below (S-13)
 //
-// The retired stub also claimed F1. It is not replaced, and this is not an
-// oversight: the store cannot express the visibility property either (see the
-// F1 section in memstore.gobra — it needs the returned elements related back
-// to their source log positions). Service is a pass-through, so it can export
-// no more than the store proves. F1 stays runtime-enforced and R0/R1/R2-
-// covered; only F2 is discharged at R4.
+// The previous text here said F1 was not proved "here or below", because "the
+// store cannot express the visibility property either". The store can, and
+// now does; see the F1 section in memstore.gobra. `HomeTimeline` below
+// forwards the visibility clause verbatim alongside the F2 ordering clause, so
+// both cross the layer boundary as proofs.
+//
+// Two of the store's timeline clauses do NOT cross: "no fabrication" and "no
+// loss". Both are existentially quantified, and Gobra does not re-instantiate
+// an existential postcondition at a call site -- restating either one verbatim
+// on the line after the call, with the inner predicate still unfolded, fails
+// with "Assert might fail". That is blocker B3 in
+// spec/refinement/OBLIGATION.md.
 
 package service
+
+import "github.com/michaellady/twitter-port-matrix-impl-go/internal/dom"
 
 // LockP is the lock-invariant predicate for *Service. It composes the
 // component LockP() predicates of the verified primitives Service holds, plus
@@ -76,3 +84,50 @@ pred (s *Service) LockP() {
 // does not expose. Both stay runtime-enforced by the explicit field
 // assignments in the `dom.Tweet{...}` literal and by the discharged
 // `(*MemStore).PutTweet` body.
+
+// =============================================================================
+// R5 — abs at the service boundary.
+// =============================================================================
+//
+// The store's abs is the one that matters, but the store is not the boundary a
+// request crosses. `Service` is: `httpshim` decodes a request and calls
+// exactly one Service method. So the R5 obligation has to be readable at THIS
+// layer, in terms of the same abstract state, or it says nothing about the
+// observable machine.
+//
+// This also settles a claim the file above makes twice -- that a user-existence
+// postcondition "would require an `unfolding`-clause composing the
+// Service-level LockP() with the inner MemStore.LockP(), which the store's
+// predicate does not expose". It does not require that. A wildcard
+// `unfolding acc(s.LockP(), _)` yields wildcard access to the nested
+// `s.st.LockP()`, which is exactly what the store's own pure projections ask
+// for. The composition below is three lines and Gobra discharges it.
+
+ghost
+requires acc(s.LockP(), _)
+decreases
+pure func (s *Service) AbsUsers() (res set[string]) {
+	return unfolding acc(s.LockP(), _) in s.st.AbsUsers()
+}
+
+ghost
+requires acc(s.LockP(), _)
+decreases
+pure func (s *Service) AbsFollows() (res set[dom.Follow]) {
+	return unfolding acc(s.LockP(), _) in s.st.AbsFollows()
+}
+
+ghost
+requires acc(s.LockP(), _)
+decreases
+pure func (s *Service) AbsLogLen() (res int) {
+	return unfolding acc(s.LockP(), _) in s.st.AbsLogLen()
+}
+
+ghost
+requires acc(s.LockP(), _)
+requires 0 <= i && i < s.AbsLogLen()
+decreases
+pure func (s *Service) AbsLogAt(i int) (res dom.Tweet) {
+	return unfolding acc(s.LockP(), _) in s.st.AbsLogAt(i)
+}

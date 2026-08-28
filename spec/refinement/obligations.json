@@ -1,0 +1,508 @@
+{
+  "note": "R5 obligation clauses, one row per clause, with the verifier result that backs it. Companion to OBLIGATION.md. 'discharged' means the named verifier reported zero errors with the clause present AND a canary showed the clause can fail; 'blocked' rows name the capability that is missing.",
+  "rung": "R5",
+  "alphabet": {
+    "wire": {
+      "statable": false,
+      "reason": "step_L and resp_L at the (method, path, body) alphabet compose a decoder and an encoder that are outside both verification perimeters by design: Gobra runs over [clock ids dom store service] and not httpshim; crates/server carries no [package.metadata.verus] verify key and cargo-verus emits no verification results line for it. Bringing them in needs a verified strict-JSON decoder, URL query parser and canonical encoder in each verifier's spec language; neither ships one."
+    },
+    "core": {
+      "statable": true,
+      "ops": [
+        "CreateUser",
+        "Follow",
+        "Unfollow",
+        "PostTweet",
+        "Tick",
+        "Timeline"
+      ]
+    }
+  },
+  "tools": {
+    "gobra": {
+      "image": "ghcr.io/viperproject/gobra@sha256:2ef080ccd284945829501996e6d63ed2f1c94b7cf6a30d2b934272fb8a6df2c6",
+      "reports_itself_as": "Gobra 1.1-SNAPSHOT",
+      "final_result": "clock/ids/dom/store/service: 'Gobra found no errors', 0 error(s) each. Viper members: 283 total, 133 with a body and verified. Baseline before S-13, measured by re-running the same command over the HEAD versions of the five changed files: 242 total, 98 verified. The 242 figure quoted in STORIES.md is the total-members count."
+    },
+    "verus": {
+      "version": "0.2026.04.24.f8e1704",
+      "vstd": "0.0.0-2026-04-20-1748",
+      "final_result": "clock 2, ids 0, domain 9, store 7, service 5 verified; 0 errors. Unchanged from baseline: the S-13 work on this corner corrected a false contract and documented blockers; it did not add discharged obligations."
+    },
+    "r0": {
+      "go": "R0 PASSED: every step matches S_obs byte-for-byte (54/54)",
+      "rust": "R0 PASSED: every step matches S_obs byte-for-byte (54/54)"
+    },
+    "unit_tests": {
+      "go": "go test ./... ok, all packages",
+      "rust": "cargo test --workspace ok, 94 passed / 0 failed -- AFTER repairing pre-existing rot: the store and service test modules had not compiled since S-05 (stale home_timeline arity, stale ServiceError variant names) and two assertions still named the pre-S_obs error vocabulary."
+    }
+  },
+  "blockers": {
+    "B1": "Gobra has no string indexing in the ghost language, and pure functions must be a single expression, so dom.ValidHandle / dom.ValidText cannot appear in a specification.",
+    "B2": "Gobra does not thread a package-level var's initializer postcondition into method bodies; `assert ErrHandleTaken != nil` fails inside PutUser.",
+    "B3": "Gobra does not re-instantiate an existentially-quantified postcondition at a call site; restating the store's clause verbatim one line after the call fails.",
+    "B4": "vstd has no model of std::sync::RwLock or std::sync::Mutex (no std_specs/sync.rs), so a Verus spec fn cannot project MemStore's state.",
+    "B5": "vstd::rwlock::RwLock exposes inv(&self, val) and ReadHandle::view() but no spec fn value(&self) -> V, so an abstraction function over lock-protected state is not definable even after swapping locks.",
+    "B6": "Verus external_body proof twins are not mechanically linked to the production functions they mirror.",
+    "B7": "Gobra cannot fold a concrete type's predicate through an interface-typed field, so clock.Clock reaches the service only via the untyped `nowLogical` / `tickLogical` trusted shims, which carry no postcondition."
+  },
+  "clauses": [
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "init",
+      "clause": "abs(init) == init_S on users, follows and log axes",
+      "site": "(*MemStore).New",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "CreateUser",
+      "clause": "fresh handle => AbsUsers' == AbsUsers + {h}",
+      "site": "(*MemStore).PutUser",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "CreateUser",
+      "clause": "taken handle => AbsUsers' == AbsUsers",
+      "site": "(*MemStore).PutUser",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "CreateUser",
+      "clause": "fresh handle => err == nil",
+      "site": "(*MemStore).PutUser",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "CreateUser",
+      "clause": "taken handle => err != nil",
+      "site": "(*MemStore).PutUser",
+      "status": "blocked",
+      "blocker": "B2"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "CreateUser",
+      "clause": "response commutation for HasUser: result == h in AbsUsers",
+      "site": "(*MemStore).HasUser",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "Follow",
+      "clause": "both endpoints known => AbsFollows' == AbsFollows + {e} and err == nil (F3 idempotent, F9)",
+      "site": "(*MemStore).PutFollow",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "Follow",
+      "clause": "either endpoint unknown => AbsFollows' == AbsFollows",
+      "site": "(*MemStore).PutFollow",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "Unfollow",
+      "clause": "AbsFollows' == AbsFollows - {e}, unconditionally (F3 idempotent)",
+      "site": "(*MemStore).DeleteFollow",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "Timeline",
+      "clause": "response commutation for Follows: result == e in AbsFollows",
+      "site": "(*MemStore).Follows",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "PostTweet",
+      "clause": "AbsAcceptsTweet(t) => log length +1, t last, err == nil (F6)",
+      "site": "(*MemStore).PutTweet",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "PostTweet",
+      "clause": "not AbsAcceptsTweet(t) => log length unchanged",
+      "site": "(*MemStore).PutTweet",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "PostTweet",
+      "clause": "the existing log prefix is never rewritten",
+      "site": "(*MemStore).PutTweet",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "Timeline",
+      "clause": "F2 ordering: descending (created_at, id)",
+      "site": "(*MemStore).HomeTimeline",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "Timeline",
+      "clause": "F1 visibility: every entry authored by user or followed by user",
+      "site": "(*MemStore).HomeTimeline",
+      "status": "discharged",
+      "verifier": "gobra",
+      "new_in": "S-13"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "Timeline",
+      "clause": "D10 cursor: cursor > 0 => every returned id < cursor",
+      "site": "(*MemStore).HomeTimeline",
+      "status": "discharged",
+      "verifier": "gobra",
+      "new_in": "S-13"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "Timeline",
+      "clause": "no fabrication: every returned tweet is some log entry",
+      "site": "(*MemStore).HomeTimeline",
+      "status": "discharged",
+      "verifier": "gobra",
+      "new_in": "S-13"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "Timeline",
+      "clause": "no loss: if !more, every visible entry under the cursor is on the page",
+      "site": "(*MemStore).HomeTimeline",
+      "status": "discharged",
+      "verifier": "gobra",
+      "new_in": "S-13"
+    },
+    {
+      "corner": "go",
+      "layer": "store",
+      "op": "admin",
+      "clause": "Replace installs a log satisfying the append-log invariant",
+      "site": "(*MemStore).Replace",
+      "status": "discharged",
+      "verifier": "gobra",
+      "new_in": "S-13",
+      "was": "// @ trusted, no LockP contract, and its (created_at, id) sort did not establish the invariant"
+    },
+    {
+      "corner": "go",
+      "layer": "ids",
+      "op": "PostTweet",
+      "clause": "F8: every issued id is the previous counter value, and the counter advances by exactly 1; result >= 1",
+      "site": "(*ids.Generator).Next",
+      "status": "discharged",
+      "verifier": "gobra",
+      "new_in": "S-13",
+      "was": "// @ trusted with no postcondition"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "init",
+      "clause": "abs(init) == init_S on users, follows and log axes",
+      "site": "(*Service).New",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "CreateUser",
+      "clause": "at most the requested handle is added; no other user appears",
+      "site": "(*Service).CreateUser",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "CreateUser",
+      "clause": "already-registered handle => AbsUsers unchanged",
+      "site": "(*Service).CreateUser",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "CreateUser",
+      "clause": "valid, fresh handle => added",
+      "site": "(*Service).CreateUser",
+      "status": "blocked",
+      "blocker": "B1"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "Follow",
+      "clause": "at most the named edge is added",
+      "site": "(*Service).Follow",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "Follow",
+      "clause": "F4 on abs: from == to => AbsFollows unchanged",
+      "site": "(*Service).Follow",
+      "status": "discharged",
+      "verifier": "gobra",
+      "new_in": "S-13"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "Follow",
+      "clause": "F9 on abs: unknown endpoint => AbsFollows unchanged",
+      "site": "(*Service).Follow",
+      "status": "discharged",
+      "verifier": "gobra",
+      "new_in": "S-13"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "Follow",
+      "clause": "valid, known, distinct => edge added",
+      "site": "(*Service).Follow",
+      "status": "blocked",
+      "blocker": "B1"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "Unfollow",
+      "clause": "at most the named edge is removed; unknown endpoint removes nothing",
+      "site": "(*Service).Unfollow",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "PostTweet",
+      "clause": "log grows by at most one",
+      "site": "(*Service).PostTweet",
+      "status": "discharged",
+      "verifier": "gobra"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "PostTweet",
+      "clause": "F6 on abs: unknown author => log unchanged",
+      "site": "(*Service).PostTweet",
+      "status": "discharged",
+      "verifier": "gobra",
+      "new_in": "S-13"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "PostTweet",
+      "clause": "the existing log prefix is never rewritten",
+      "site": "(*Service).PostTweet",
+      "status": "discharged",
+      "verifier": "gobra",
+      "new_in": "S-13"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "PostTweet",
+      "clause": "valid, known author => appended",
+      "site": "(*Service).PostTweet",
+      "status": "blocked",
+      "blocker": "B1",
+      "also": "needs the store's monotonicity guard shown never to fire, which needs F8 (now available) AND the clock premise, which is unavailable through B7"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "Timeline",
+      "clause": "F1, F2, D10 cursor, and framing on all three axes",
+      "site": "(*Service).HomeTimeline",
+      "status": "discharged",
+      "verifier": "gobra",
+      "new_in": "S-13"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "Timeline",
+      "clause": "no fabrication, no loss",
+      "site": "(*Service).HomeTimeline",
+      "status": "blocked",
+      "blocker": "B3",
+      "note": "discharged one layer down at (*MemStore).HomeTimeline"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "Tick",
+      "clause": "F7: now' == now + 1",
+      "site": "(*clock.Logical).Tick",
+      "status": "discharged",
+      "verifier": "gobra",
+      "note": "not forwarded to (*Service).Tick"
+    },
+    {
+      "corner": "go",
+      "layer": "service",
+      "op": "Tick",
+      "clause": "F7 forwarded through the interface-typed clock field",
+      "site": "(*Service).Tick",
+      "status": "blocked",
+      "blocker": "B7"
+    },
+    {
+      "corner": "go",
+      "layer": "all",
+      "op": "CreateUser, PostTweet",
+      "clause": "id-counter axis of abs, and the id in the response body",
+      "site": "-",
+      "status": "blocked",
+      "blocker": "B7",
+      "note": "ids.Generator is not projected into abs; F8 is now proved locally but the counter is not an axis of abs"
+    },
+    {
+      "corner": "rust",
+      "layer": "store",
+      "op": "all",
+      "clause": "abs_rust has a body",
+      "site": "-",
+      "status": "blocked",
+      "blocker": "B4",
+      "also": "B5"
+    },
+    {
+      "corner": "rust",
+      "layer": "store",
+      "op": "all",
+      "clause": "any state or response commutation clause",
+      "site": "-",
+      "status": "blocked",
+      "blocker": "B4",
+      "note": "would be an axiom over an uninterpreted abs, not a theorem"
+    },
+    {
+      "corner": "rust",
+      "layer": "ids",
+      "op": "PostTweet",
+      "clause": "F8",
+      "site": "crates/ids",
+      "status": "blocked",
+      "blocker": "B4",
+      "measurement": "verification results:: 0 verified, 0 errors"
+    },
+    {
+      "corner": "rust",
+      "layer": "store",
+      "op": "PostTweet",
+      "clause": "put_tweet_ensures describes the production put_tweet",
+      "site": "crates/store verus_proof",
+      "status": "corrected_in_S-13",
+      "was": "the contract claimed `author known => Ok`, which is false: production also returns Err(NonMonotonic). Verified by adding the branch and reading `error: postcondition not satisfied`. The contract now states the accept condition as author-existence conjoined with the guard."
+    }
+  ],
+  "canaries": [
+    {
+      "corner": "go",
+      "target": "(*MemStore).HomeTimeline",
+      "defect": "silently drop one visible tweet from the page",
+      "killed_by": "no-loss loop invariant",
+      "verifier_said": "Loop invariant might not be preserved"
+    },
+    {
+      "corner": "go",
+      "target": "(*MemStore).HomeTimeline",
+      "defect": "delete the F1 visibility filter",
+      "killed_by": "visibility loop invariant",
+      "verifier_said": "Loop invariant might not be preserved"
+    },
+    {
+      "corner": "go",
+      "target": "(*MemStore).PutTweet",
+      "defect": "reject an append S_obs accepts",
+      "killed_by": "accept-condition clause",
+      "verifier_said": "Postcondition might not hold: old(s.AbsAcceptsTweet(t)) ==> err == nil"
+    },
+    {
+      "corner": "go",
+      "target": "(*ids.Generator).Next",
+      "defect": "counter does not advance",
+      "killed_by": "F8 postcondition",
+      "verifier_said": "Postcondition might not hold: unfolding acc(g.LockP()) in g.next == result + 1"
+    },
+    {
+      "corner": "go",
+      "target": "(*Service).Follow",
+      "defect": "add a reverse edge nobody asked for",
+      "killed_by": "at-most-the-named-edge clause",
+      "verifier_said": "Postcondition might not hold"
+    },
+    {
+      "corner": "go",
+      "target": "(*MemStore).Replace",
+      "defect": "restore the pre-fix (created_at, id) sort with no check",
+      "killed_by": "TestReplaceRejectsNonMonotonicSnapshot",
+      "test_said": "got 2 tweets: [{ID:3 ts:1} {ID:5 ts:0}]"
+    },
+    {
+      "corner": "rust",
+      "target": "store::verus_proof::has_user_ensures",
+      "defect": "assert(false)",
+      "killed_by": "Verus",
+      "verifier_said": "error: assertion failed; verification results:: 6 verified, 1 errors"
+    },
+    {
+      "corner": "rust",
+      "target": "store::verus_proof::put_tweet_ensures",
+      "defect": "remove the monotonicity branch from the twin",
+      "killed_by": "accept-condition clause",
+      "verifier_said": "error: postcondition not satisfied: !accepts_tweet(old(s), t) ==> result is Err"
+    }
+  ]
+}

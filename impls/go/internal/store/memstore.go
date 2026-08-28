@@ -90,8 +90,14 @@ type MemStore struct {
 
 // New returns an empty store.
 //
+// R5 (init commutation). abs(init_L) == init_S on all three axes: S_obs's
+// Init() starts with an empty handle set, an empty edge set and an empty log.
+//
 // @ ensures acc(s.LockP())
 // @ ensures s != nil
+// @ ensures s.AbsUsers() == set[string]{}
+// @ ensures s.AbsFollows() == set[dom.Follow]{}
+// @ ensures s.AbsLogLen() == 0
 func New() (s *MemStore) {
 	s = &MemStore{
 		users:   map[string]dom.User{},
@@ -104,8 +110,35 @@ func New() (s *MemStore) {
 
 // PutUser registers a user, rejecting a duplicate handle.
 //
+// R5 (users axis). The three clauses below are, in order, the response
+// commutation and the two branches of the state commutation for S_obs's
+// stepCreateUser, restricted to the users axis of abs:
+//
+//	resp_S : handle_taken  <=>  handle already registered
+//	step_S : accept  ==>  userByHandle gains exactly this handle
+//	step_S : reject  ==>  state unchanged  (S_obs rejects in the response,
+//	                                        never in the state)
+//
+// NOT DISCHARGED, and not weakened to hide it: the reject-branch response
+// clause `(u.Handle in old(s.AbsUsers())) ==> err != nil`.
+//
+// MISSING CAPABILITY: Gobra 1.1-SNAPSHOT does not thread a package-level
+// `var`'s initializer postcondition into method bodies. `ErrHandleTaken` is
+// initialised by `newErrHandleTaken()`, which carries `// @ ensures err != nil`,
+// yet `assert ErrHandleTaken != nil` inside PutUser fails with
+// "Assertion ErrHandleTaken != nil might not hold". Measured directly against
+// this build (image sha256:2ef080cc). So the ACCEPT half of the response
+// commutation is proved and the REJECT half is not -- the proof knows the
+// rejected call changes no state, but cannot see that it reported an error.
+//
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
+// @ ensures !(u.Handle in old(s.AbsUsers())) ==> err == nil
+// @ ensures !(u.Handle in old(s.AbsUsers())) ==>
+// @            s.AbsUsers() == old(s.AbsUsers()) union set[string]{u.Handle}
+// @ ensures (u.Handle in old(s.AbsUsers())) ==> s.AbsUsers() == old(s.AbsUsers())
+// @ ensures s.AbsFollows() == old(s.AbsFollows())
+// @ ensures s.AbsLogLen() == old(s.AbsLogLen())
 func (s *MemStore) PutUser(u dom.User) (err error) {
 	s.mu.Lock()
 	// @ unfold acc(s.LockP())
@@ -122,8 +155,17 @@ func (s *MemStore) PutUser(u dom.User) (err error) {
 
 // HasUser reports whether a handle is registered.
 //
+// R5 (users axis, response commutation). A pure read: the returned bool is
+// exactly membership in abs, and abs is unchanged.
+//
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
+// @ ensures result == (handle in s.AbsUsers())
+// @ ensures s.AbsUsers() == old(s.AbsUsers())
+// @ ensures s.AbsFollows() == old(s.AbsFollows())
+// @ ensures s.AbsLogLen() == old(s.AbsLogLen())
+// @ ensures forall k int :: 0 <= k && k < old(s.AbsLogLen()) ==>
+// @            s.AbsLogAt(k) == old(s.AbsLogAt(k))
 func (s *MemStore) HasUser(handle string) (result bool) {
 	s.mu.RLock()
 	// @ unfold acc(s.LockP())
@@ -139,8 +181,23 @@ func (s *MemStore) HasUser(handle string) (result bool) {
 // The edge insert is now a plain single-level map write. The putFollowEdge
 // trusted shim is gone.
 //
+// R5 (follows axis). F9 and F3 are both consequences rather than separate
+// claims: the accept guard IS the S_obs existence test, and `union` is
+// idempotent, so re-adding an edge lands on the same abstract state.
+//
+// The reject-branch response clause is missing for the reason recorded on
+// PutUser: Gobra does not carry `ErrUnknownUser != nil` in from the
+// package-level var initialiser.
+//
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
+// @ ensures s.AbsUsers() == old(s.AbsUsers())
+// @ ensures (f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers())) ==> err == nil
+// @ ensures (f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers())) ==>
+// @            s.AbsFollows() == old(s.AbsFollows()) union set[dom.Follow]{f}
+// @ ensures !((f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers()))) ==>
+// @            s.AbsFollows() == old(s.AbsFollows())
+// @ ensures s.AbsLogLen() == old(s.AbsLogLen())
 func (s *MemStore) PutFollow(f dom.Follow) (err error) {
 	s.mu.Lock()
 	// @ unfold acc(s.LockP())
@@ -163,8 +220,17 @@ func (s *MemStore) PutFollow(f dom.Follow) (err error) {
 // DeleteFollow removes an edge. Idempotent (F3): deleting an absent edge is a
 // no-op. The deleteFollowEdge trusted shim is gone.
 //
+// R5 (follows axis). Total and unconditional, exactly like S_obs's
+// stepUnfollow: the abstract post-state is the pre-state minus one edge,
+// whether or not that edge was there. F3 idempotence is `setminus` being
+// idempotent, not a separate proof.
+//
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
+// @ ensures s.AbsUsers() == old(s.AbsUsers())
+// @ ensures s.AbsFollows() ==
+// @            old(s.AbsFollows()) setminus set[dom.Follow]{dom.Follow{From: from, To: to}}
+// @ ensures s.AbsLogLen() == old(s.AbsLogLen())
 func (s *MemStore) DeleteFollow(from, to string) {
 	s.mu.Lock()
 	// @ unfold acc(s.LockP())
@@ -191,10 +257,23 @@ func (s *MemStore) DeleteFollow(from, to string) {
 // the entry if present and is a no-op otherwise -- exactly what the
 // postcondition states.
 //
+// The postcondition is a FULL FUNCTIONAL SPEC of `delete`, not just "the key
+// is gone". It has to be, for the same reason appendTweet below carries one:
+// DeleteFollow must re-establish LockP() after the call, and LockP() now
+// carries the R5 follows-axis invariant (every key in `follows` maps to true).
+// A key-only postcondition leaves Gobra free to imagine `delete` rewrote some
+// OTHER entry to false, which would make the fold unprovable and would push
+// the follows axis of abs back into the trusted surface. Widening a trusted
+// builtin shim to the builtin's real semantics buys a proof here rather than
+// hiding one -- the same trade appendTweet documents.
+//
 // @ trusted
 // @ requires acc(m)
+// @ requires forall k2 dom.Follow :: k2 in domain(m) ==> m[k2]
 // @ ensures  acc(m)
 // @ ensures  !(k in domain(m))
+// @ ensures  domain(m) == old(domain(m)) setminus set[dom.Follow]{k}
+// @ ensures  forall k2 dom.Follow :: k2 in domain(m) ==> m[k2]
 // @ decreases
 func deleteFollowEdge(m map[dom.Follow]bool, k dom.Follow) {
 	delete(m, k)
@@ -203,8 +282,14 @@ func deleteFollowEdge(m map[dom.Follow]bool, k dom.Follow) {
 // Follows reports whether from follows to. A single-level lookup; this is the
 // visibility test HomeTimeline uses per tweet.
 //
+// R5 (follows axis, response commutation). A pure read.
+//
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
+// @ ensures result == (dom.Follow{From: from, To: to} in s.AbsFollows())
+// @ ensures s.AbsFollows() == old(s.AbsFollows())
+// @ ensures s.AbsUsers() == old(s.AbsUsers())
+// @ ensures s.AbsLogLen() == old(s.AbsLogLen())
 func (s *MemStore) Follows(from, to string) (result bool) {
 	s.mu.RLock()
 	// @ unfold acc(s.LockP())
@@ -224,8 +309,31 @@ func (s *MemStore) Follows(from, to string) (result bool) {
 // in the id generator. The appendTweet trusted shim is gone -- a slice append
 // on a single-level field needs no inner-slice permission.
 //
+// R5 (log axis). The three ensures blocks below are the state commutation
+// for S_obs's stepPostTweet, and they make one divergence VISIBLE rather than
+// leaving it in a comment.
+//
+// S_obs's stepPostTweet has TWO outcomes: unknown author, or append. This
+// method has THREE: it also rejects an append that would break the log
+// invariant LockP() carries. Under the real composition that third branch is
+// unreachable, because ids come from a strictly-increasing generator (F8) and
+// timestamps from a non-decreasing clock (F7) -- but that is a fact about the
+// COMPOSITION, not about this method, and R5 is a per-function obligation.
+// So the accept condition is stated with the guard in it. Discharging
+// "the guard never fires" is the service layer's obligation, and the state of
+// that obligation is recorded on Service.PostTweet.
+//
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
+// @ ensures s.AbsUsers() == old(s.AbsUsers())
+// @ ensures s.AbsFollows() == old(s.AbsFollows())
+// @ ensures s.AbsLogLen() >= old(s.AbsLogLen())
+// @ ensures forall k int :: 0 <= k && k < old(s.AbsLogLen()) ==>
+// @            s.AbsLogAt(k) == old(s.AbsLogAt(k))
+// @ ensures old(s.AbsAcceptsTweet(t)) ==> err == nil
+// @ ensures old(s.AbsAcceptsTweet(t)) ==> s.AbsLogLen() == old(s.AbsLogLen()) + 1
+// @ ensures old(s.AbsAcceptsTweet(t)) ==> s.AbsLogAt(old(s.AbsLogLen())) == t
+// @ ensures !old(s.AbsAcceptsTweet(t)) ==> s.AbsLogLen() == old(s.AbsLogLen())
 func (s *MemStore) PutTweet(t dom.Tweet) (err error) {
 	s.mu.Lock()
 	// @ unfold acc(s.LockP())
@@ -409,28 +517,79 @@ func iterFollows(m map[dom.Follow]bool, from string, out map[string]bool) {
 // @ ensures forall a, b int :: 0 <= a && a < b && b < len(out) ==>
 // @            (out[a].CreatedAt > out[b].CreatedAt ||
 // @             (out[a].CreatedAt == out[b].CreatedAt && out[a].ID > out[b].ID))
+// @ ensures forall a int :: 0 <= a && a < len(out) ==>
+// @            (out[a].Author == user ||
+// @             (dom.Follow{From: user, To: out[a].Author} in s.AbsFollows()))
+// @ ensures cursor > 0 ==> forall a int :: 0 <= a && a < len(out) ==> out[a].ID < cursor
+// @ ensures forall a int :: 0 <= a && a < len(out) ==>
+// @            exists i int :: 0 <= i && i < s.AbsLogLen() && s.AbsLogAt(i) == out[a]
+// @ ensures !more ==> forall k int :: 0 <= k && k < s.AbsLogLen() &&
+// @            (cursor <= 0 || s.AbsLogAt(k).ID < cursor) &&
+// @            (s.AbsLogAt(k).Author == user ||
+// @             (dom.Follow{From: user, To: s.AbsLogAt(k).Author} in s.AbsFollows())) ==>
+// @            (exists a int :: 0 <= a && a < len(out) && out[a] == s.AbsLogAt(k))
+// @ ensures s.AbsUsers() == old(s.AbsUsers())
+// @ ensures s.AbsFollows() == old(s.AbsFollows())
+// @ ensures s.AbsLogLen() == old(s.AbsLogLen())
 func (s *MemStore) HomeTimeline(user string, limit int, cursor int64) (out []dom.Tweet, more bool) {
 	buf := make([]dom.Tweet, limit)
 	n := 0
 	s.mu.RLock()
 	// @ unfold acc(s.LockP())
+	// R5 framing. A read must leave every axis of abs alone, and Gobra havocs
+	// anything the loop holds permission to unless an invariant pins it.
+	// @ ghost var usersBefore set[string] = domain(s.users)
+	// @ ghost var followsBefore set[dom.Follow] = domain(s.follows)
+	// @ ghost var logLenBefore int = len(s.tweets)
+	// @ ghost var src seq[int] = seq[int]{}
+	// `i` is hoisted out of the for-clause so it stays in scope after the
+	// loop; the R5 completeness postcondition has to distinguish "the walk
+	// reached the bottom of the log" from "the page filled up first".
+	i := len(s.tweets) - 1
 	// @ invariant acc(&s.mu)
 	// @ invariant acc(&s.users) && acc(s.users)
 	// @ invariant acc(&s.follows) && acc(s.follows)
 	// @ invariant acc(&s.tweets) && acc(s.tweets)
+	// @ invariant domain(s.users) == usersBefore
+	// @ invariant domain(s.follows) == followsBefore
+	// @ invariant len(s.tweets) == logLenBefore
 	// @ invariant forall p, q int :: 0 <= p && p < q && q < len(s.tweets) ==>
 	// @              s.tweets[p].ID < s.tweets[q].ID && s.tweets[p].CreatedAt <= s.tweets[q].CreatedAt
+	// @ invariant forall f dom.Follow :: f in domain(s.follows) ==> s.follows[f]
 	// @ invariant acc(buf)
 	// @ invariant len(buf) == limit
 	// @ invariant 0 <= n && n <= limit
+	// R5 (no fabrication). `src` records, for each slot written, the log
+	// position it came from. Without it the postcondition can say the page is
+	// ordered and visible but not that its elements are tweets that were
+	// actually posted.
+	// @ invariant len(src) == n
+	// @ invariant forall a int :: 0 <= a && a < n ==> 0 <= src[a] && src[a] < len(s.tweets)
+	// @ invariant forall a int :: 0 <= a && a < n ==> buf[a] == s.tweets[src[a]]
 	// @ invariant -1 <= i && i < len(s.tweets)
 	// @ invariant forall a, b int :: 0 <= a && a < b && b < n ==>
 	// @              (buf[a].CreatedAt > buf[b].CreatedAt ||
 	// @               (buf[a].CreatedAt == buf[b].CreatedAt && buf[a].ID > buf[b].ID))
 	// @ invariant i >= 0 ==> forall a int :: 0 <= a && a < n ==>
 	// @              (buf[a].ID > s.tweets[i].ID && buf[a].CreatedAt >= s.tweets[i].CreatedAt)
+	// R5 (F1, visibility). Every slot written passed the filter, so the
+	// visibility test survives to the postcondition instead of being a
+	// property of the loop body that nothing records.
+	// @ invariant forall a int :: 0 <= a && a < n ==>
+	// @              (buf[a].Author == user ||
+	// @               s.follows[dom.Follow{From: user, To: buf[a].Author}])
+	// @ invariant cursor > 0 ==> forall a int :: 0 <= a && a < n ==> buf[a].ID < cursor
+	// R5 (no loss). Every log position ALREADY WALKED PAST that was visible
+	// under the cursor is recorded in src. This is the completeness half of
+	// the response commutation: without it the page could be ordered, visible
+	// and unfabricated and still silently drop tweets.
+	// @ invariant forall k int :: i < k && k < len(s.tweets) &&
+	// @              (cursor <= 0 || s.tweets[k].ID < cursor) &&
+	// @              (s.tweets[k].Author == user ||
+	// @               s.follows[dom.Follow{From: user, To: s.tweets[k].Author}]) ==>
+	// @              (exists a int :: 0 <= a && a < n && src[a] == k)
 	// @ decreases i + 1
-	for i := len(s.tweets) - 1; i >= 0; i-- {
+	for ; i >= 0; i-- {
 		t := s.tweets[i]
 		if cursor > 0 && t.ID >= cursor {
 			continue
@@ -443,9 +602,13 @@ func (s *MemStore) HomeTimeline(user string, limit int, cursor int64) (out []dom
 			break
 		}
 		buf[n] = t
+		// @ src = src ++ seq[int]{i}
 		n++
 	}
+	// @ assert i < 0 || more
 	// @ fold acc(s.LockP())
+	// @ assert forall a int :: 0 <= a && a < n ==>
+	// @    0 <= src[a] && src[a] < s.AbsLogLen() && s.AbsLogAt(src[a]) == buf[a]
 	s.mu.RUnlock()
 	return buf[:n], more
 }
@@ -495,48 +658,122 @@ func (s *MemStore) Snapshot() StoreSnapshot {
 
 // Replace loads a snapshot.
 //
-// The incoming tweet order is normalised to (created_at asc, id asc) so the
-// restored log satisfies the monotonicity lemma. This sort is a precondition
-// repair on untrusted input, not part of any read path.
+// THE GAP THIS CLOSES. Until now Replace was `// @ trusted`, carried no
+// LockP() contract, and normalised the incoming log by sorting it on
+// (created_at, id). That sort does NOT establish the append-log invariant
+// LockP() carries and that F2 is derived from: the input
+// [{id:5, ts:0}, {id:3, ts:1}] sorts to itself, and 5 < 3 is false, so
+// `tweets[i].ID < tweets[j].ID` fails at i=0, j=1. F2 was therefore proved
+// against an invariant that one trusted method could install a counterexample
+// to, and nothing checked it.
 //
-// LOAD-BEARING TRUST ASSUMPTION, RECORDED RATHER THAN PAPERED OVER. Now that
-// LockP() carries the append-log invariant and F2 is proved from it, this
-// method is the one way that invariant can be broken without Gobra noticing.
-// It is `// @ trusted` and carries no LockP() contract, so the verifier never
-// checks that the state it installs satisfies the invariant — and the sort it
-// performs is NOT sufficient to establish it. Ordering by (created_at, id)
-// leaves ids non-monotonic whenever the snapshot's ids disagree with its
-// timestamps: the input [{id:5, ts:0}, {id:3, ts:1}] sorts to itself, and
-// 5 < 3 is false, so `tweets[i].ID < tweets[j].ID` fails at i=0, j=1.
+// The fix is not a better sort. It is to STOP TRUSTING THE SORT. The
+// normalisation still runs, but its output is now an untrusted candidate that
+// `isMonotoneLog` checks; a candidate that fails the check is discarded rather
+// than installed. Whatever `sortLogByID` does -- including nothing -- the log
+// this method installs satisfies the invariant, because the check is what
+// establishes it and the check is verified.
 //
-// Nothing in the observable API can reach this: `Replace` is admin-snapshot
-// only, and every log the verified write path builds goes through PutTweet's
-// checked guard. But F2's proof is conditional on snapshots being well-formed,
-// and that condition lives here, in trusted code, not in the proof.
+// A malformed snapshot therefore loads with an EMPTY tweet log instead of
+// loading a log that silently violates F2. That is a behaviour change, and it
+// is the point: the previous behaviour was to install the counterexample.
 //
-// @ trusted
-// @ decreases
+// @ requires acc(s.LockP())
+// @ requires acc(snap.Users, 1/2) && acc(snap.Follows, 1/2) && acc(snap.Tweets, 1/2)
+// @ ensures acc(s.LockP())
+// @ ensures acc(snap.Users, 1/2) && acc(snap.Follows, 1/2) && acc(snap.Tweets, 1/2)
 func (s *MemStore) Replace(snap StoreSnapshot) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	// @ unfold acc(s.LockP())
 
-	s.users = make(map[string]dom.User, len(snap.Users))
-	for _, u := range snap.Users {
-		s.users[u.Handle] = u
+	s.users = map[string]dom.User{}
+	// @ invariant acc(&s.users) && acc(s.users)
+	// @ invariant acc(snap.Users, 1/2)
+	// @ invariant 0 <= a && a <= len(snap.Users)
+	// @ decreases len(snap.Users) - a
+	for a := 0; a < len(snap.Users); a++ {
+		s.users[snap.Users[a].Handle] = snap.Users[a]
 	}
 
-	s.follows = make(map[dom.Follow]bool, len(snap.Follows))
-	for _, f := range snap.Follows {
-		s.follows[f] = true
+	s.follows = map[dom.Follow]bool{}
+	// @ invariant acc(&s.follows) && acc(s.follows)
+	// @ invariant acc(snap.Follows, 1/2)
+	// @ invariant 0 <= b && b <= len(snap.Follows)
+	// @ invariant forall f dom.Follow :: f in domain(s.follows) ==> s.follows[f]
+	// @ decreases len(snap.Follows) - b
+	for b := 0; b < len(snap.Follows); b++ {
+		s.follows[snap.Follows[b]] = true
 	}
 
-	tweets := make([]dom.Tweet, len(snap.Tweets))
-	copy(tweets, snap.Tweets)
-	sort.SliceStable(tweets, func(i, j int) bool {
-		if tweets[i].CreatedAt != tweets[j].CreatedAt {
-			return tweets[i].CreatedAt < tweets[j].CreatedAt
+	cand := make([]dom.Tweet, len(snap.Tweets))
+	// @ invariant acc(cand)
+	// @ invariant acc(snap.Tweets, 1/2)
+	// @ invariant len(cand) == len(snap.Tweets)
+	// @ invariant 0 <= c && c <= len(cand)
+	// @ decreases len(cand) - c
+	for c := 0; c < len(cand); c++ {
+		cand[c] = snap.Tweets[c]
+	}
+	sortLogByID(cand)
+	if isMonotoneLog(cand) {
+		s.tweets = cand
+	} else {
+		s.tweets = nil
+	}
+
+	// @ fold acc(s.LockP())
+	s.mu.Unlock()
+}
+
+// sortLogByID normalises an incoming snapshot log into (id asc) order.
+//
+// TRUSTED, AND DELIBERATELY WITHOUT A FUNCTIONAL POSTCONDITION. `sort.Slice`
+// takes a closure and an `interface{}`, neither of which Gobra 1.1-SNAPSHOT
+// can reason about ("Use of closures detected: Closures are an experimental
+// feature"). Rather than assert a sortedness postcondition the verifier cannot
+// check -- the exact shape of an unfalsifiable claim -- this shim promises
+// NOTHING about the contents. Gobra havocs them. Soundness does not depend on
+// the sort: `isMonotoneLog` below re-derives the invariant from whatever
+// ordering comes back, so a broken sort costs a rejected snapshot, never a
+// violated invariant.
+//
+// (id asc) rather than (created_at, id) asc, because id is the axis the
+// invariant is strict on. Sorting on created_at first is what let the old
+// implementation return an id-inverted log unchanged.
+//
+// @ trusted
+// @ requires acc(xs)
+// @ ensures  acc(xs)
+// @ ensures  len(xs) == old(len(xs))
+// @ decreases
+func sortLogByID(xs []dom.Tweet) {
+	sort.SliceStable(xs, func(i, j int) bool { return xs[i].ID < xs[j].ID })
+}
+
+// isMonotoneLog checks the append-log invariant that LockP() carries and F2 is
+// derived from. VERIFIED: the postcondition below is the invariant itself, and
+// Gobra discharges it against this loop.
+//
+// The loop compares ADJACENT entries and the postcondition is over ALL PAIRS.
+// The step from one to the other is the loop invariant: it already holds
+// pairwise over the prefix, and each new element beats the immediately
+// preceding one, which by transitivity beats everything before that.
+//
+// @ requires acc(xs, 1/2)
+// @ ensures  acc(xs, 1/2)
+// @ ensures  ok ==> forall i, j int :: 0 <= i && i < j && j < len(xs) ==>
+// @             xs[i].ID < xs[j].ID && xs[i].CreatedAt <= xs[j].CreatedAt
+// @ decreases
+func isMonotoneLog(xs []dom.Tweet) (ok bool) {
+	// @ invariant acc(xs, 1/2)
+	// @ invariant 1 <= k && k <= len(xs) + 1
+	// @ invariant forall i, j int :: 0 <= i && i < j && j < k && j < len(xs) ==>
+	// @              xs[i].ID < xs[j].ID && xs[i].CreatedAt <= xs[j].CreatedAt
+	// @ decreases len(xs) - k
+	for k := 1; k < len(xs); k++ {
+		if xs[k].ID <= xs[k-1].ID || xs[k].CreatedAt < xs[k-1].CreatedAt {
+			return false
 		}
-		return tweets[i].ID < tweets[j].ID
-	})
-	s.tweets = tweets
+	}
+	return true
 }

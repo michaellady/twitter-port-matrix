@@ -35,13 +35,34 @@ func NewAt(seed int64) (g *Generator) {
 }
 
 // Next issues the next ID and advances by 1.
-// @ trusted
-func (g *Generator) Next() int64 {
+//
+// F8, DISCHARGED. The `// @ trusted` marker is gone. This method has exactly
+// the shape `(*clock.Logical).Tick` has carried a real contract since S3P1b --
+// take the LockP token, unfold, mutate the one protected field, fold, hand the
+// token back -- and it verifies the same way. The sidecar's claim that the
+// discharge "happens in Phase 2b" was a statement about work not done, not
+// about a tool limitation: nothing in the flat `int64`-behind-a-mutex shape
+// needed anything Gobra lacks.
+//
+// This matters past F8. `(*MemStore).PutTweet` rejects an append whose id does
+// not strictly exceed the previous one, and that guard is the difference
+// between S_obs's two-outcome stepPostTweet and the store's three. Proving the
+// guard never fires needs exactly what this postcondition now gives: every
+// issued id strictly exceeds the one before it.
+//
+// @ requires acc(g.LockP())
+// @ ensures acc(g.LockP())
+// @ ensures result == old(unfolding acc(g.LockP()) in g.next)
+// @ ensures unfolding acc(g.LockP()) in g.next == result + 1
+// @ ensures result >= 1
+func (g *Generator) Next() (result int64) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	id := g.next
+	// @ unfold acc(g.LockP())
+	result = g.next
 	g.next++
-	return id
+	// @ fold acc(g.LockP())
+	return result
 }
 
 // Peek returns the next ID that would be issued, without advancing.
