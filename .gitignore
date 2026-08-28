@@ -1,0 +1,5 @@
+# TLC scratch
+states/
+*.st
+# build output
+/bin/

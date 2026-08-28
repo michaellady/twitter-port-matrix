@@ -1,0 +1,25 @@
+{
+  "note": "Digest pins for every external tool. Phase 0 needs only TLC. Verifier images land in Phase 1 (Gobra) and Phase 2/3 (OpenJML, JBMC).",
+  "tools": {
+    "tla2tools": {
+      "kind": "jar",
+      "path": "docker/tlc/tla2tools.jar",
+      "sha256": "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88",
+      "version": "TLC2 2.19 of 08 August 2024 (rev: 5a47802)",
+      "source": "https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar",
+      "runs_on": "host JDK 17"
+    },
+    "verus": {
+      "kind": "host-binary",
+      "path": "/Users/mikelady/.verus/verus-arm64-macos/verus",
+      "version": "0.2026.04.24.f8e1704",
+      "note": "not on PATH by default; z3 4.12.5 ships alongside it"
+    },
+    "gobra": {
+      "kind": "docker",
+      "image": "ghcr.io/viperproject/gobra",
+      "digest": "sha256:2ef080cc",
+      "status": "PENDING -- full digest to be resolved from the Go repo in Phase 1"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+Replaying 18 legacy steps through S_obs
+  ------------------------------------------------------------------------
+  ok    1 create_alice                               201
+  ok    2 create_bob                                 201
+  ok    3 create_carol                               201
+  ok    4 reject_self_follow                         400
+  ok    5 alice_follows_bob                          204
+  ok    6 alice_follows_bob_idempotent               204
+  DIFF  7 bob_posts_first                           
+         request  POST /tweets {"author":"bob","text":"hello world"}
+         expected 201 {"id":1,"author":"bob","text":"hello world","created_at":1}
+         S_obs    201 {"id":1,"author":"bob","text":"hello world","created_at":0}
+  DIFF  8 alice_timeline_sees_bob                   
+         request  GET /timeline?user=alice 
+         expected 200 {"tweets":[{"id":1,"author":"bob","text":"hello world","created_at":1}],"next_cursor":null}
+         S_obs    200 {"tweets":[{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+  ok    9 carol_timeline_empty                       200
+  ok   10 carol_follows_bob_after_post               204
+  DIFF 11 carol_timeline_sees_old_bob_tweet         
+         request  GET /timeline?user=carol 
+         expected 200 {"tweets":[{"id":1,"author":"bob","text":"hello world","created_at":1}],"next_cursor":null}
+         S_obs    200 {"tweets":[{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+  DIFF 12 bob_posts_second_same_clock               
+         request  POST /tweets {"author":"bob","text":"second"}
+         expected 201 {"id":2,"author":"bob","text":"second","created_at":1}
+         S_obs    201 {"id":2,"author":"bob","text":"second","created_at":0}
+  DIFF 13 alice_timeline_orders_by_id_when_clock_ties
+         request  GET /timeline?user=alice 
+         expected 200 {"tweets":[{"id":2,"author":"bob","text":"second","created_at":1},{"id":1,"author":"bob","text":"hello world","created_at":1}],"next_cursor":null}
+         S_obs    200 {"tweets":[{"id":2,"author":"bob","text":"second","created_at":0},{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+  ok   14 alice_unfollows_bob                        204
+  ok   15 alice_unfollows_bob_idempotent             204
+  ok   16 alice_timeline_after_unfollow              200
+  ok   17 reject_post_unknown_author                 400
+  ok   18 reject_follow_unknown_target               400
+  ------------------------------------------------------------------------
+steps=18 matched=13 diverged=5

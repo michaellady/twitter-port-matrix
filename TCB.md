@@ -1,0 +1,76 @@
+# Trusted computing base
+
+What this repository trusts rather than verifies. A claim is only as strong as
+this list.
+
+## Trusted tools
+
+| Component | Version | Why it is trusted |
+|---|---|---|
+| TLC | 2.19 (rev 5a47802), jar sha256 `936a2620...` | Model checker. A soundness bug would make R3 vacuous |
+| Z3 | 4.12.5, bundled with Verus | SMT backend for the Rust proofs |
+| Verus | 0.2026.04.24.f8e1704 | Deductive verifier for the Rust corner |
+| Go toolchain | 1.25.5 | Compiles `S_obs` and the whole rig |
+| JDK | 17.0.19 | Runs TLC |
+| Gobra, OpenJML, JBMC | pending | Land in Phases 1-3 |
+
+Plus, for every corner, the usual floor: compiler, runtime, OS, CPU.
+
+## Trusted artefacts in this repository
+
+### `S_obs` itself
+
+`spec/s_obs/step.go` is the contract. It is not verified by anything -- it *is*
+the thing everything else is checked against. Three mitigations:
+
+1. It is small enough to review exhaustively.
+2. `tlclink` checks it refines `twitter.tla`, so a large class of errors in it
+   would show up as an illegal transition.
+3. It is exercised by a test suite asserting determinism, purity, totality, the
+   monotonicity lemma, idempotence, and the pinned ambiguity decisions.
+
+None of that makes it correct. It makes it checkable.
+
+### The correlated-failure risk on the Go corner
+
+`S_obs` is written in Go, and Go is one of the four target languages. Without a
+guard, the Go implementation could pass differential rungs by construction
+rather than by agreement.
+
+Enforced mitigations:
+
+- No implementation may import `S_obs`. Checked by `matrixctl doctor`.
+- `S_obs` will be mutation-tested against the R3 link check.
+
+Residual risk, stated plainly: the Go corner shares a language, a standard
+library, and an author with the reference machine. Its differential agreement
+is weaker evidence than the other three corners' by an amount this repository
+cannot quantify. That asymmetry should be reported alongside any Go result.
+
+### The abstraction function
+
+`tools/cmd/tlclink/project.go` maps `S_obs` states onto the model's variables.
+It is trusted. It is deliberately lossy in three recorded ways -- tweet text
+(D1) and user ids (D2) are dropped, tweet ids are shifted by one (D11, see
+finding F002). A wrong projection could make an illegal trace look legal.
+
+The projection is not verified. It is short, and it is written down.
+
+### The four generated `S_obs` renderings
+
+Not yet built. When they exist, nothing will mechanically check that the Verus
+spec, the Gobra predicate, the JML model and the Kotlin contract denote the
+same machine. Generating them from one source reduces this to trusting
+`specgen`, which is the R6 gap named in ASSURANCE.md.
+
+## What is deliberately NOT trusted
+
+- **No gate is decided by an exit code.** `tlclink` ignores TLC's exit status
+  entirely and reads TLC's own words, because TLC exits nonzero both for the
+  violation the check wants and for parse errors it does not.
+- **No gate is trusted unless it has been shown to fail.** `spec check` runs a
+  known-bad canary and treats a canary that passes as a hard failure.
+- **No harness may write to implementation state.** Replay drives the system
+  only through the observable API. This is the specific defect recorded in
+  finding F001, where both existing harnesses set the clock to the expected
+  answer before asking the question.

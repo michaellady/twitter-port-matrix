@@ -1,0 +1,6 @@
+{
+  "source_repo": "https://github.com/michaellady/twitter-formal-spec",
+  "local_source": "/Users/mikelady/dev/twitter_formal_spec",
+  "spec_sha": "0b19aeb0b0893ac89d3a72d95f6545ee89aec2b7",
+  "note": "Same pin carried by twitter_golang_formal_verification and twitter_rust_formal_verification. Vendored read-only; never edited here."
+}
