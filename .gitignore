@@ -3,3 +3,8 @@ states/
 *.st
 # build output
 /bin/
+
+# Cargo build output. This was committed by the initial `git add -A` when the
+# Rust corner was vendored, which meant every cargo build dirtied the tree and
+# buried real changes under thousands of artefact diffs.
+impls/rust/target/
