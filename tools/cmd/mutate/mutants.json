@@ -74,8 +74,19 @@
       "id": "self-follow-guard-dropped",
       "impl": "go",
       "family": "precedence",
-      "description": "NewFollow accepts a self-edge, dropping F4 entirely: follow(alice, alice) succeeds with 204 and alice appears twice in her own timeline sources",
+      "description": "F4 is enforced TWICE -- in service.Follow and again in dom.NewFollow -- so removing either alone is unobservable. This mutant removes BOTH, because a mutant that leaves a redundant guard standing measures nothing. See evidence/findings/F015.",
       "edits": [
+        {
+          "file": "internal/service/service.go",
+          "anchor": [
+            "\tif from == to {",
+            "\t\treturn dom.ErrSelfFollow",
+            "\t}"
+          ],
+          "replacement": [
+            "\t// mutant: F4 service-layer guard removed"
+          ]
+        },
         {
           "file": "internal/dom/dom.go",
           "anchor": [
