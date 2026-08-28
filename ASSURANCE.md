@@ -93,6 +93,14 @@ postcondition, never-executed function, uninterpreted symbols.
 
 See `evidence/findings/F012` for the full assessment.
 
+**The operative limit is JBMC, not Kotlin.** `"abc".equals("abc")` verifies as
+**FALSE** on JBMC 6.11.0 — reproduced in plain Java, so it is a tool defect and
+not a Kotlin cost. It blocks every obligation reducing to string equality,
+which is every timeline obligation. The same obligation over an *empty* log
+verifies with 0 of 964 goals failing. Result: 7 of 15 obligations VERIFIED, 0
+REFUTED, 8 BLOCKED, including F005's monotonicity premise among the verified.
+**That wall is shared with the Java corner.** See `evidence/findings/F014`.
+
 **Kotlin's ceiling is now measured rather than predicted.** JBMC (CBMC 6.11.0)
 does discharge bounded obligations over compiled bytecode, so the corner
 reaches R3 + bounded as forecast — but see `evidence/findings/F013`: six of
