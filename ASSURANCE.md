@@ -50,7 +50,7 @@ argued away.
 | Go | yes | Gobra, 133 verified | **partial** | no | **R5-core, partial** |
 | Rust | yes | Verus, **on twins** | **no** | no | **R4, on hand-written copies** |
 | Java | yes | not attempted | unknown | no | **R3** |
-| Kotlin | yes | none expected | no | no | **R3 + bounded** |
+| Kotlin | yes | JBMC, bounded | no | no | **R3 + bounded (measured)** |
 
 ### Why R5-wire is not reachable, in either corner
 
@@ -92,6 +92,13 @@ obligations about copies of the shipped code*.
 postcondition, never-executed function, uninterpreted symbols.
 
 See `evidence/findings/F012` for the full assessment.
+
+**Kotlin's ceiling is now measured rather than predicted.** JBMC (CBMC 6.11.0)
+does discharge bounded obligations over compiled bytecode, so the corner
+reaches R3 + bounded as forecast — but see `evidence/findings/F013`: six of
+those obligations initially reported VERIFIED because an undischargeable
+erased checkcast made the code after it infeasible. Only a *negation* canary
+distinguished a real proof from a vacuous one.
 
 **Kotlin has no mature deductive verifier.** The best available is compiling to
 JVM bytecode and running JBMC for bounded model checking, plus kotest property

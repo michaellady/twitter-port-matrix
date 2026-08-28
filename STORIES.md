@@ -72,7 +72,7 @@ and reproducing it inside the rig would invalidate the measurement.
       *Gate:* Gobra green per package. Needs the full image digest resolved;
       `docker/pins.json` currently truncates it to `sha256:2ef080cc`.
 
-- [ ] **S-13** Refinement obligations against `S_obs` (**R5**)
+- [x] **S-13** Refinement obligations against `S_obs` (**R5**)
       *Gate:* `abs_L` defined per language; init, response and step
       commutation discharged. This is the rung the whole repository exists
       to reach.
@@ -83,7 +83,7 @@ and reproducing it inside the rig would invalidate the measurement.
       tiebreak, idempotence, orphan-author accept, clock regression,
       pagination fabrication.
 
-- [ ] **S-15** `calibrate` — per-rung kill table, both port directions
+- [~] **S-15** `calibrate` — per-rung kill table, both port directions
       **This is the deliverable.** Fan-out story: run as a workflow.
 
 ## Phase 2 — Java corner
@@ -92,8 +92,8 @@ and reproducing it inside the rig would invalidate the measurement.
 - [ ] **S-18** Java ↔ Rust and Java ↔ Go ports
 
 ## Phase 3 — Kotlin corner
-- [ ] **S-19** Toolchain: `kotlinc` on host; JBMC over bytecode
-- [ ] **S-20** Kotlin implementation; document the R5 ceiling failure plainly
+- [x] **S-19** Toolchain: `kotlinc` on host; JBMC over bytecode
+- [x] **S-20** Kotlin implementation; document the R5 ceiling failure plainly
 
 ## Phase 4 — fill the matrix
 - [ ] **S-21** All 12 ports. Fan-out story: run as a workflow.

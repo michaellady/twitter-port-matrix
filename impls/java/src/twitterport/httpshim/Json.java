@@ -21,13 +21,12 @@ import java.util.Map;
  * <ol>
  *   <li><b>Duplicate keys resolve last-wins.</b> Documented in D7 as a known limitation.
  *   <li><b>Field names match case-SENSITIVELY.</b> This corner originally emulated Go's
- *   case-insensitive fallback because S_obs inherited it from encoding/json. That was a
- *   Go-ism in the reference machine, not a design choice: Rust's serde rejected the same
- *   bodies, so Go and Rust disagreed in production. S_obs is now case-sensitive and this
- *   matches it. See evidence/findings/F010.<em>known</em> field, not an unknown one. D7 says unknown
- *       fields are rejected and says nothing about case, so the written contract and the reference
- *       implementation disagree here. This file follows the reference implementation, because
- *       {@code step.go} is the contract; see the report note on D7.
+ *       case-insensitive fallback, because {@code S_obs} inherited it from
+ *       {@code encoding/json} and {@code step.go} is the contract. That turned out to be a
+ *       Go-ism in the reference machine rather than a design choice: Rust's serde rejected
+ *       the same bodies, so the two corners disagreed in production while every rung stayed
+ *       green. {@code S_obs} is now case-sensitive and this matches it. See
+ *       evidence/findings/F010.
  * </ol>
  */
 public final class Json {
@@ -111,11 +110,6 @@ public final class Json {
     }
 
     private static String matchField(String key, String[] fields) {
-        for (String f : fields) {
-            if (f.equals(key)) {
-                return f;
-            }
-        }
         for (String f : fields) {
             if (f.equals(key)) {
                 return f;

@@ -66,6 +66,32 @@
       "health_path": "/healthz",
       "verifier": "OpenJML",
       "status": "written against the S_obs contract; R0 54/54 byte-exact, canary sweep 4/4 rejected. No build tool and no dependencies: plain javac against JDK 17, serving HTTP/1.1 on a raw ServerSocket (the JDK HttpServer is not total over the request target)"
+    },
+    "kotlin": {
+      "dir": "impls/kotlin",
+      "language": "Kotlin",
+      "build": [
+        "kotlinc",
+        "-nowarn",
+        "-jvm-target",
+        "17",
+        "-include-runtime",
+        "-d",
+        "{bin}.jar",
+        "src"
+      ],
+      "run": [
+        "java",
+        "-cp",
+        "{bin}.jar",
+        "twitterport.MainKt"
+      ],
+      "env": {
+        "ADDR": "{addr}"
+      },
+      "health_path": "/healthz",
+      "verifier": "none -- see ASSURANCE.md: Kotlin has no mature deductive verifier, so this corner is capped at R3 + bounded/differential evidence",
+      "status": "written against the S_obs contract; R0 56/56 byte-exact, canary sweep 4/4 rejected. No build tool and no library dependencies: kotlinc 2.4.10 emits a self-contained jar (-include-runtime bundles kotlin-stdlib), serving HTTP/1.1 on a raw ServerSocket for the same reason the Java corner does -- the JDK HttpServer is not total over the request target, and a Kotlin HTTP framework would have re-introduced the F008 routing defect"
     }
   }
 }
