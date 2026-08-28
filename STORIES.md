@@ -15,16 +15,16 @@ Status: `[ ]` queued · `[~]` in progress · `[x]` done
 - [x] **S-04** Vendor Rust impl; generalise harness launch config
 - [x] **S-05** Retarget Rust to `S_obs` — R0 54/54, canary verified
 
-- [ ] **S-06** `replay --canary` as a first-class mode
+- [x] **S-06** `replay --canary` as a first-class mode
       *Gate:* `matrixctl` asserts R0 can fail, without a manual inject-and-revert.
       Currently the canary is run by hand, which means the gate's own
       falsifiability is not itself gated.
 
-- [ ] **S-07** `tracegen` — randomized op sequences from the `S_obs` alphabet
+- [x] **S-07** `tracegen` — randomized op sequences from the `S_obs` alphabet
       *Gate:* seeded and reproducible; covers every request shape including
       malformed ones; shrinks a failing trace to a minimal one.
 
-- [ ] **S-08** `diffrun` — replay one trace against N impls, diff responses (**R1**)
+- [~] **S-08** `diffrun` — replay one trace against N impls, diff responses (**R1**)
       *Gate:* 100k traces, zero unexplained mismatches, both corners.
       *Canary:* an injected defect must be caught and the trace shrunk.
 
