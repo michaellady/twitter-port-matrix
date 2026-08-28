@@ -65,7 +65,12 @@ func main() {
 	regPath := flag.String("registry", "impls/registry.json", "implementation registry")
 	verbose := flag.Bool("v", false, "print every step, not only the differences")
 	maxShow := flag.Int("max-diffs", 12, "how many differing steps to print in full")
+	canary := flag.String("canary", "", "corrupt responses with this mutation; R0 must then FAIL")
 	flag.Parse()
+
+	if *canary == "all" {
+		os.Exit(runAllCanaries(*implName, *corpusPath, *regPath))
+	}
 
 	if *implName == "" {
 		fmt.Fprintln(os.Stderr, "replay: -impl is required")
@@ -94,7 +99,6 @@ func main() {
 		fmt.Printf("        impl status: %s\n", spec.Status)
 	}
 	fmt.Printf("        corpus=%s (%d steps)\n", *corpusPath, len(steps))
-	fmt.Println(strings.Repeat("=", 72))
 
 	h, err := start(*implName, spec)
 	if err != nil {
@@ -102,8 +106,31 @@ func main() {
 	}
 	defer h.stop()
 
-	results := runAll(h, steps, *verbose)
-	os.Exit(report(results, *maxShow))
+	var mut *mutation
+	if *canary != "" {
+		m, ok := mutations[*canary]
+		if !ok {
+			die("unknown canary %q; available:\n%s", *canary, describeMutations())
+		}
+		mut = &m
+		fmt.Printf("        CANARY: %s -- R0 must FAIL\n", m.desc)
+	}
+	fmt.Println(strings.Repeat("=", 72))
+
+	results := runAll(h, steps, *verbose, mut)
+	code := report(results, *maxShow)
+	if mut != nil {
+		// Inverted: a canary that does not break R0 means R0 cannot detect a
+		// wrong implementation, which makes every green R0 run meaningless.
+		if code == 0 {
+			fmt.Printf("\nCANARY DID NOT FAIL: mutation %q left R0 green.\n"+
+				"R0 cannot detect this class of defect, so a passing R0 run proves nothing about it.\n", mut.name)
+			os.Exit(1)
+		}
+		fmt.Printf("\ncanary %q correctly rejected: R0 can fail.\n", mut.name)
+		os.Exit(0)
+	}
+	os.Exit(code)
 }
 
 func die(format string, a ...any) {
@@ -133,7 +160,7 @@ func loadCorpus(path string) ([]corpusStep, error) {
 	return out, sc.Err()
 }
 
-func runAll(h *harness, steps []corpusStep, verbose bool) []result {
+func runAll(h *harness, steps []corpusStep, verbose bool, mut *mutation) []result {
 	client := &http.Client{Timeout: 10 * time.Second}
 	out := make([]result, 0, len(steps))
 	for _, s := range steps {
@@ -162,6 +189,11 @@ func runAll(h *harness, steps []corpusStep, verbose bool) []result {
 		raw, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		r.gotStatus, r.gotBody = resp.StatusCode, string(raw)
+		if mut != nil {
+			if st, body, changed := mut.apply(r.gotStatus, r.gotBody); changed {
+				r.gotStatus, r.gotBody = st, body
+			}
+		}
 		r.verdict, r.kind = classify(s, r.gotStatus, r.gotBody)
 		out = append(out, r)
 		if verbose {

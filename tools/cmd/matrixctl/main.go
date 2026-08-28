@@ -27,6 +27,12 @@ func main() {
 		} else {
 			err = specCheck()
 		}
+	case "impls":
+		if len(os.Args) < 3 || os.Args[2] != "check" {
+			err = fmt.Errorf("usage: matrixctl impls check")
+		} else {
+			err = implsCheck()
+		}
 	default:
 		usage()
 		os.Exit(2)
@@ -43,5 +49,7 @@ func usage() {
   doctor        check the toolchain, the vendored spec, and the isolation rules
   spec check    regenerate the corpus, model-check twitter.tla, run the S_obs
                 link check, and prove the link check can fail
+  impls check   run R0 against every registered implementation, and prove R0
+                can fail against each one
 `)
 }
