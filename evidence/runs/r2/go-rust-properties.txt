@@ -12,3 +12,7 @@ proptest: R2 properties and metamorphic relations
   ok    visibility-follows-edges   F1: a tweet is visible iff self-authored or followed 23.9s
   ok    post-prepends              a new tweet by a followed author appears first 40.6s
   ok    clock-never-decreases      F7: created_at is non-decreasing across ticks 24.0s
+  ok    reads-are-pure             a GET never changes what the next GET returns 35.1s
+
+[rust]
+------------------------------------------------------------------------
