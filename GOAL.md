@@ -40,6 +40,31 @@ The goal is met when all of these hold:
 - [ ] Every rung has a known-bad canary proving it can fail.
 - [ ] A transfer write-up mapping the calibration back to the WebSocket port.
 
+## Orchestration
+
+The loop drives; workflows are called *by* an iteration when the work becomes
+fan-out-shaped. They compose rather than compete.
+
+| Phase | Driver | Why |
+|---|---|---|
+| 1c–1h | loop | Sequential edit → `replay` → read → fix cycles on one small codebase. Parallel agents would need worktree isolation for less benefit than it costs |
+| **1i** | **workflow** | 48 mutants × 5 rungs = independent chains. Pipeline, not barrier. Worktree isolation is genuinely correct here — mutants really do mutate files in parallel |
+| 2, 3 | loop | Java and Kotlin corners are independent of each other but each is sequential internally |
+| **4** | **workflow** | 12 ports, each an independent generate → verify → calibrate chain |
+
+**The reason 1c–1h stay sequential is not speed, it is independence.** This
+project exists to measure what happens when one agent writes both the code and
+its checks. Fanning out implementation work and rung work into the same
+orchestration rebuilds that defect. `S_obs` generates the oracle, `replay`
+reports the gap, the implementation gets fixed — three roles that must not
+quietly collapse into one.
+
+**Outstanding, not yet done:** F001, F002 and F003 all rest on a single
+reading — mine. F001 in particular claims a shipped conformance suite has no
+signal behind a field, which deserves independent refutation before it is
+relayed to the WebSocket project. A judge panel with distinct lenses is the
+right instrument. Deferred by choice, not overlooked.
+
 ## Standing rules
 
 1. **No gate is decided by an exit code.** Read the tool's own output.
@@ -75,8 +100,15 @@ The goal is met when all of these hold:
 - [x] **1b** `replay` — drives an implementation over HTTP and byte-compares.
       R0 baseline recorded: 7/54 exact, 8 whitespace-only, 39 differ. See
       finding F003
-- [ ] **1c** Retarget Go to the `S_obs` contract: tick endpoint, error-code
-      set, canonical encoding, pagination, sort-free timeline
+- [ ] **1c** Retarget Go to the `S_obs` contract. Semantics go in the
+      VERIFIED CORE (`dom`, `store`, `service`), wire format in the trusted
+      shim — putting semantics in `httpshim` would green R0 over code no
+      verifier reads, and R5 would prove nothing observable. See F004.
+      Order: (i) append-log reshape of `store.HomeTimeline`, deleting the
+      `sortTimeline` and `gatherTimeline` trusted shims; (ii) `POST /tick`
+      route, which unblocks F2/F7/F8/D9 together; (iii) strict decoding
+      (D7, 10 steps); (iv) error vocabulary (7 renamings); (v) drop the
+      trailing newline from `writeJSON` (D8, 8 steps)
 - [ ] **1d** Same for Rust in `impls/rust/`
 - [ ] **1e** `tracegen` + `diffrun` — randomized differential traces. R1
 - [ ] **1f** Shared property + metamorphic suite. R2
@@ -103,7 +135,7 @@ The goal is met when all of these hold:
 ## STATE
 
 **Phase:** 1
-**Next step:** 1c — retarget the Go implementation to the S_obs contract
+**Next step:** 1c(i) — append-log reshape of store.HomeTimeline
 **Last updated:** 2026-08-28
 
 **Gates currently green:**
@@ -119,6 +151,12 @@ The goal is met when all of these hold:
   error-code vocabulary (7 renamings). Then the trailing newline (D8).
 - The Go impl chose the opposite error precedence to D4. Finding F003 — keep
   it; it is the concrete form of the whole argument.
+- F004: upstream's own comment names "a flat reshape of s.byAuthor +
+  s.follows" as an option for discharging F2, then scopes it out. That IS the
+  sort-free design. Doing it deletes two `// @ trusted` shims rather than
+  shrinking them.
+- Orchestration decided: loop drives 1c–1h and Phases 2–3; workflows are
+  called by the loop at 1i and Phase 4. See the Orchestration section.
 - `eclipse-temurin` pull did not land. TLC runs on host JDK 17 with the jar
   pinned by sha256, which is the real determinism lever. Not worth chasing.
 - Docker already has `rust:1.95.0` and `crossbario/autobahn-testsuite` cached
