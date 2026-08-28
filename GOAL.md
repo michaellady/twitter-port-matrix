@@ -110,7 +110,8 @@ right instrument. Deferred by choice, not overlooked.
       route, which unblocks F2/F7/F8/D9 together; (iii) strict decoding
       (D7, 10 steps); (iv) error vocabulary (7 renamings); (v) drop the
       trailing newline from `writeJSON` (D8, 8 steps)
-- [ ] **1d** Same for Rust in `impls/rust/`
+- [x] **1d** Same for Rust in `impls/rust/`. **R0 54/54 byte-exact**, canary
+      verified. Same flat reshape; `external_body` shims retargeted in 1g.
 - [ ] **1e** `tracegen` + `diffrun` — randomized differential traces. R1
 - [ ] **1f** Shared property + metamorphic suite. R2
 - [ ] **1g** `specgen` → Verus and Gobra contracts; both verifiers green. R4
@@ -136,14 +137,19 @@ right instrument. Deferred by choice, not overlooked.
 ## STATE
 
 **Phase:** 1
-**Next step:** 1d(ii) — retarget the Rust implementation (vendored; R0 baseline 15/54)
+**Next step:** 1e — tracegen + diffrun (R1)
 **Last updated:** 2026-08-28
 
 **Gates currently green:**
 `matrixctl doctor` · `matrixctl spec check` (4/4)
 
-**R0 status:** go **54/54 byte-exact** (was 7/54). Canary verified: reintroducing
-the F003 defect fails exactly one step and reverting restores green.
+**R0 status:** go **54/54** (was 7/54) · rust **54/54** (was 15/54). Both
+canaries verified: reintroducing the F003 precedence defect fails exactly one
+step in each, and reverting restores green.
+
+Both corners now agree with S_obs byte-for-byte *and* with each other — but
+that agreement is now earned against an oracle neither produced, rather than
+inherited from a shared permissive spec. That is the F006 gap, closed.
 
 **Blocked / waiting:** nothing
 

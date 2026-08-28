@@ -23,21 +23,23 @@ pub use store::StoreSnapshot as ServiceStoreSnapshot;
 /// Errors raised by the service layer.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ServiceError {
-    EmptyHandle,
-    EmptyText,
+    InvalidHandle,
+    InvalidText,
     SelfFollow,
     UnknownUser,
-    DuplicateUser,
+    HandleTaken,
+    NonMonotonic,
 }
 
 impl std::fmt::Display for ServiceError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ServiceError::EmptyHandle => f.write_str("empty_handle"),
-            ServiceError::EmptyText => f.write_str("empty_text"),
+            ServiceError::InvalidHandle => f.write_str("invalid_handle"),
+            ServiceError::InvalidText => f.write_str("invalid_text"),
             ServiceError::SelfFollow => f.write_str("self_follow_forbidden"),
             ServiceError::UnknownUser => f.write_str("unknown_user"),
-            ServiceError::DuplicateUser => f.write_str("duplicate_user"),
+            ServiceError::HandleTaken => f.write_str("handle_taken"),
+            ServiceError::NonMonotonic => f.write_str("non_monotonic_append"),
         }
     }
 }
@@ -48,6 +50,8 @@ impl From<DomainError> for ServiceError {
     fn from(e: DomainError) -> Self {
         match e {
             DomainError::SelfFollow => ServiceError::SelfFollow,
+            DomainError::InvalidHandle => ServiceError::InvalidHandle,
+            DomainError::InvalidText => ServiceError::InvalidText,
         }
     }
 }
@@ -56,7 +60,8 @@ impl From<StoreError> for ServiceError {
     fn from(e: StoreError) -> Self {
         match e {
             StoreError::UnknownUser => ServiceError::UnknownUser,
-            StoreError::DuplicateUser => ServiceError::DuplicateUser,
+            StoreError::HandleTaken => ServiceError::HandleTaken,
+            StoreError::NonMonotonic => ServiceError::NonMonotonic,
         }
     }
 }
@@ -110,8 +115,19 @@ impl Service {
 
     /// Registers a new user; rejects empty handles.
     pub fn create_user(&self, handle: &str) -> Result<User, ServiceError> {
-        if handle.is_empty() {
-            return Err(ServiceError::EmptyHandle);
+        // Syntax before existence (D6), in the verified core rather than the
+        // HTTP layer -- Verus verifies `domain`, not `server`.
+        if !domain::valid_handle(handle) {
+            return Err(ServiceError::InvalidHandle);
+        }
+        // Reject a duplicate BEFORE consuming an id. Allocating first and
+        // rejecting second burned an id on every rejected registration, which
+        // showed up in the R0 baseline as an id gap. S_obs allocates only on
+        // success. Under concurrent registration this check can still lose to
+        // put_user and waste one id; put_user stays authoritative for
+        // uniqueness. See F005's sibling note in the Go corner.
+        if self.st.has_user(handle) {
+            return Err(ServiceError::HandleTaken);
         }
         let u = User { id: self.user_ids.next_id(), handle: handle.to_string() };
         self.st.put_user(u.clone())?;
@@ -125,6 +141,19 @@ impl Service {
 
     /// Records a follow edge. F4 rejects self-follow; F9 rejects unknown users.
     pub fn follow(&self, from: &str, to: &str) -> Result<(), ServiceError> {
+        // S_obs decision D4: EXISTENCE IS CHECKED BEFORE SEMANTICS.
+        //
+        // twitter.tla's Follow is an unordered conjunction, so it does not say
+        // which error follow(eve, eve) yields when eve is unknown. This code
+        // previously ran Follow::new first and answered self_follow_forbidden;
+        // S_obs answers unknown_user. Both refine the model and one request
+        // tells them apart -- see evidence/findings/F003.
+        if !domain::valid_handle(from) || !domain::valid_handle(to) {
+            return Err(ServiceError::InvalidHandle);
+        }
+        if !self.st.has_user(from) || !self.st.has_user(to) {
+            return Err(ServiceError::UnknownUser);
+        }
         let f = Follow::new(from.to_string(), to.to_string())?;
         Ok(self.st.put_follow(f)?)
     }
@@ -142,8 +171,12 @@ impl Service {
     /// Posts a tweet. F6 rejects unknown authors; F7 stamps with the clock;
     /// F8 issues a fresh strictly-monotonic ID.
     pub fn post_tweet(&self, author: &str, text: &str) -> Result<Tweet, ServiceError> {
-        if text.is_empty() {
-            return Err(ServiceError::EmptyText);
+        // Syntax before existence, uniformly (D6).
+        if !domain::valid_handle(author) {
+            return Err(ServiceError::InvalidHandle);
+        }
+        if !domain::valid_text(text) {
+            return Err(ServiceError::InvalidText);
         }
         if !self.st.has_user(author) {
             return Err(ServiceError::UnknownUser);
@@ -159,8 +192,19 @@ impl Service {
     }
 
     /// Returns the home timeline for `user`. F1 + F2 enforced by the store.
-    pub fn home_timeline(&self, user: &str, limit: usize) -> Vec<Tweet> {
-        self.st.home_timeline(user, limit)
+    /// One page of `user`'s timeline. F1 and F2 are discharged in the store
+    /// by the append-log reshape rather than delegated to a trusted sort.
+    pub fn home_timeline(&self, user: &str, limit: usize, cursor: i64) -> (Vec<Tweet>, bool) {
+        self.st.home_timeline(user, limit, cursor)
+    }
+
+    /// Current logical timestamp, without advancing it.
+    ///
+    /// Read-only on purpose: there is deliberately no exported way to SET the
+    /// clock. That capability is what made the shared conformance corpus
+    /// unfalsifiable on created_at (finding F001).
+    pub fn now(&self) -> i64 {
+        self.clk.now()
     }
 
     /// Captures the full inner state of the verified core: clock value,

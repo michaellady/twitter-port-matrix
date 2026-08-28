@@ -39,7 +39,7 @@
       },
       "health_path": "/healthz",
       "verifier": "Verus",
-      "status": "vendored, NOT yet retargeted to the S_obs contract"
+      "status": "retargeted to the S_obs contract; R0 54/54 byte-exact, canary verified"
     }
   }
 }

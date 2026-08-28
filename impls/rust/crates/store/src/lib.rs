@@ -158,14 +158,17 @@ pub enum StoreError {
     /// F6 / F9: a referenced handle is not registered.
     UnknownUser,
     /// User-creation collision.
-    DuplicateUser,
+    HandleTaken,
+    /// An append would break the log invariant that F2 is derived from.
+    NonMonotonic,
 }
 
 impl std::fmt::Display for StoreError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             StoreError::UnknownUser => f.write_str("unknown_user"),
-            StoreError::DuplicateUser => f.write_str("duplicate_user"),
+            StoreError::HandleTaken => f.write_str("handle_taken"),
+            StoreError::NonMonotonic => f.write_str("non_monotonic_append"),
         }
     }
 }
@@ -175,10 +178,15 @@ impl std::error::Error for StoreError {}
 #[derive(Default)]
 struct Inner {
     users: HashMap<String, User>,
-    /// Adjacency: `from` -> set of handles `from` follows.
-    follows: HashMap<String, HashSet<String>>,
+    /// Follow edges, flat: the edge IS the key. Previously
+    /// `HashMap<String, HashSet<String>>`, whose nested shape forced every
+    /// inner operation into an `external_body` shim.
+    follows: HashSet<(String, String)>,
     /// Per-author append-only list, in insertion order.
-    by_author: HashMap<String, Vec<Tweet>>,
+    /// ONE append-ordered tweet log; never sorted. Replaces
+    /// `HashMap<String, Vec<Tweet>>`. See F004/F005: the monotonicity lemma
+    /// makes F2 a consequence of this shape rather than a claim about a sort.
+    tweets: Vec<Tweet>,
 }
 
 /// Thread-safe in-memory store. All exported methods take `&self` and lock
@@ -197,7 +205,7 @@ impl MemStore {
     pub fn put_user(&self, u: User) -> Result<(), StoreError> {
         let mut g = self.inner.write().expect("store poisoned");
         if g.users.contains_key(&u.handle) {
-            return Err(StoreError::DuplicateUser);
+            return Err(StoreError::HandleTaken);
         }
         g.users.insert(u.handle.clone(), u);
         Ok(())
@@ -218,16 +226,21 @@ impl MemStore {
         if !g.users.contains_key(&f.to) {
             return Err(StoreError::UnknownUser);
         }
-        g.follows.entry(f.from).or_default().insert(f.to);
+        g.follows.insert((f.from, f.to));
         Ok(())
+    }
+
+    /// Reports whether `from` follows `to`. One flat lookup; this is the
+    /// per-tweet visibility test `home_timeline` uses.
+    pub fn follows(&self, from: &str, to: &str) -> bool {
+        let g = self.inner.read().expect("store poisoned");
+        g.follows.contains(&(from.to_string(), to.to_string()))
     }
 
     /// Removes a follow edge. Idempotent (F3): missing edges are no-ops.
     pub fn delete_follow(&self, from: &str, to: &str) {
         let mut g = self.inner.write().expect("store poisoned");
-        if let Some(set) = g.follows.get_mut(from) {
-            set.remove(to);
-        }
+        g.follows.remove(&(from.to_string(), to.to_string()));
     }
 
     /// Appends a tweet to its author's list. Rejects unknown authors (F6).
@@ -236,14 +249,29 @@ impl MemStore {
         if !g.users.contains_key(&t.author) {
             return Err(StoreError::UnknownUser);
         }
-        g.by_author.entry(t.author.clone()).or_default().push(t);
+        // ENFORCE the monotonicity lemma's premises rather than assuming
+        // them. F2 is derived from the log being ordered by construction, and
+        // that rests on two facts about every append: ids strictly increase,
+        // created_at never decreases. Nothing previously checked either, so an
+        // out-of-order append would silently produce a mis-ordered timeline
+        // with no failing test and no failing proof. See F005.
+        if let Some(last) = g.tweets.last() {
+            if t.id <= last.id || t.created_at < last.created_at {
+                return Err(StoreError::NonMonotonic);
+            }
+        }
+        g.tweets.push(t);
         Ok(())
     }
 
     /// Returns the set of handles `from` follows. Snapshot copy.
     pub fn follow_set(&self, from: &str) -> HashSet<String> {
         let g = self.inner.read().expect("store poisoned");
-        g.follows.get(from).cloned().unwrap_or_default()
+        g.follows
+            .iter()
+            .filter(|(f, _)| f == from)
+            .map(|(_, t)| t.clone())
+            .collect()
     }
 
     /// Returns tweets visible to `user`, sorted by `(created_at desc, id desc)`.
@@ -251,35 +279,36 @@ impl MemStore {
     ///
     /// F1 visibility: `user` plus everyone `user` follows.
     /// F2 ordering: `(created_at desc, id desc)`.
-    pub fn home_timeline(&self, user: &str, limit: usize) -> Vec<Tweet> {
+    /// One page of `user`'s timeline, newest first.
+    ///
+    /// F1 (visibility): a tweet is included exactly when its author is the
+    /// user or the user follows its author. One flat lookup per tweet.
+    ///
+    /// F2 (ordering): the result is descending `(created_at, id)` because the
+    /// log is append-ordered and walked backwards. NO SORT IS PERFORMED, so no
+    /// `vstd::vec` sort spec is owed -- which is the obligation the upstream
+    /// module comment declared out of scope.
+    ///
+    /// D10: `cursor` is exclusive; `0` starts from the newest. The returned
+    /// flag reports whether a further visible tweet exists below the page.
+    pub fn home_timeline(&self, user: &str, limit: usize, cursor: i64) -> (Vec<Tweet>, bool) {
         let g = self.inner.read().expect("store poisoned");
-
-        let mut authors: HashSet<&str> = HashSet::new();
-        authors.insert(user);
-        if let Some(set) = g.follows.get(user) {
-            for to in set {
-                authors.insert(to.as_str());
+        let mut out: Vec<Tweet> = Vec::with_capacity(limit);
+        let mut more = false;
+        for t in g.tweets.iter().rev() {
+            if cursor > 0 && t.id >= cursor {
+                continue;
             }
-        }
-
-        let mut collected: Vec<Tweet> = Vec::new();
-        for a in &authors {
-            if let Some(list) = g.by_author.get(*a) {
-                collected.extend(list.iter().cloned());
+            if t.author != user && !g.follows.contains(&(user.to_string(), t.author.clone())) {
+                continue;
             }
+            if out.len() == limit {
+                more = true;
+                break;
+            }
+            out.push(t.clone());
         }
-
-        // F2: (created_at desc, id desc)
-        collected.sort_by(|a, b| {
-            b.created_at
-                .cmp(&a.created_at)
-                .then_with(|| b.id.cmp(&a.id))
-        });
-
-        if limit > 0 && collected.len() > limit {
-            collected.truncate(limit);
-        }
-        collected
+        (out, more)
     }
 
     /// Captures a flat snapshot of all state. Stable iteration order for
@@ -292,18 +321,15 @@ impl MemStore {
         let g = self.inner.read().expect("store poisoned");
         let mut users: Vec<User> = g.users.values().cloned().collect();
         users.sort_by_key(|u| u.id);
-        let mut follows: Vec<Follow> = Vec::new();
-        for (from, set) in g.follows.iter() {
-            for to in set {
-                follows.push(Follow { from: from.clone(), to: to.clone() });
-            }
-        }
+        let mut follows: Vec<Follow> = g
+            .follows
+            .iter()
+            .map(|(from, to)| Follow { from: from.clone(), to: to.clone() })
+            .collect();
         follows.sort_by(|a, b| a.from.cmp(&b.from).then_with(|| a.to.cmp(&b.to)));
-        let mut tweets: Vec<Tweet> = Vec::new();
-        for list in g.by_author.values() {
-            tweets.extend(list.iter().cloned());
-        }
-        tweets.sort_by_key(|t| t.id);
+        // The log is already in canonical order because the invariant is
+        // enforced on append. No sort needed.
+        let tweets: Vec<Tweet> = g.tweets.clone();
         StoreSnapshot { users, follows, tweets }
     }
 
@@ -315,21 +341,19 @@ impl MemStore {
         let mut g = self.inner.write().expect("store poisoned");
         g.users.clear();
         g.follows.clear();
-        g.by_author.clear();
+        g.tweets.clear();
         for u in s.users {
             g.users.insert(u.handle.clone(), u);
         }
         for f in s.follows {
-            g.follows.entry(f.from).or_default().insert(f.to);
+            g.follows.insert((f.from, f.to));
         }
-        for t in s.tweets {
-            g.by_author.entry(t.author.clone()).or_default().push(t);
-        }
-        // Per-author lists sorted by tweet id so subsequent snapshots are
-        // deterministic and so timeline iteration order is stable.
-        for list in g.by_author.values_mut() {
-            list.sort_by_key(|t| t.id);
-        }
+        // Normalise incoming order so the restored log satisfies the
+        // monotonicity lemma. This is precondition repair on untrusted input,
+        // not part of any read path.
+        let mut tweets = s.tweets;
+        tweets.sort_by(|a, b| a.created_at.cmp(&b.created_at).then_with(|| a.id.cmp(&b.id)));
+        g.tweets = tweets;
     }
 }
 
@@ -487,7 +511,7 @@ mod verus_proof {
                 result is Err ==> users_keys(s) == users_keys(old(s)),
         {
             if proof_users_contains(s, &u.handle) {
-                return Err(StoreError::DuplicateUser);
+                return Err(StoreError::HandleTaken);
             }
             proof_users_insert(s, u);
             Ok(())
@@ -884,7 +908,7 @@ mod tests {
         let s = MemStore::new();
         s.put_user(alice()).unwrap();
         let err = s.put_user(alice()).unwrap_err();
-        assert_eq!(err, StoreError::DuplicateUser);
+        assert_eq!(err, StoreError::HandleTaken);
         assert_eq!(err.to_string(), "duplicate_user");
     }
 

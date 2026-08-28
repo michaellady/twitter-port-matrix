@@ -1,3 +1,6 @@
+// Assertions updated in step 1d(ii) when this implementation was retargeted
+// onto the S_obs contract. Not weakened -- the OBSERVABLE CONTRACT changed,
+// deliberately and in a documented way. See spec/s_obs/DECISIONS.md.
 //! Per-endpoint black-box tests. Each test exercises one HTTP-level
 //! validation rule and asserts at least three things (status, body shape,
 //! state side-effect) — that's the contract `manifestcheck` enforces
@@ -64,11 +67,12 @@ async fn users_post_duplicate_returns_409() {
     let _ = send(&app, "POST", "/users", Some(json!({"handle":"alice"}))).await;
     let (s, b) = send(&app, "POST", "/users", Some(json!({"handle":"alice"}))).await;
     assert_eq!(s, StatusCode::CONFLICT);
-    assert_eq!(b, json!({"error":"duplicate_user"}));
-    // State: alice still has id=1; bob gets a fresh id (note: the user-id
-    // generator burns an id on the duplicate attempt — same as the Go impl).
+    assert_eq!(b, json!({"error":"handle_taken"}));
+    // The id generator no longer burns an id on a rejected registration, so
+    // this is now an exact assertion rather than a lower bound. The previous
+    // `>= 2` was written around the defect.
     let (_, b) = send(&app, "POST", "/users", Some(json!({"handle":"bob"}))).await;
-    assert!(b["id"].as_i64().unwrap() >= 2);
+    assert_eq!(b["id"].as_i64().unwrap(), 2);
 }
 
 #[tokio::test]
@@ -76,10 +80,13 @@ async fn users_post_empty_handle_400() {
     let (_clk, app) = fresh();
     let (s, b) = send(&app, "POST", "/users", Some(json!({"handle":""}))).await;
     assert_eq!(s, StatusCode::BAD_REQUEST);
-    assert_eq!(b, json!({"error":"empty_handle"}));
-    // State: timeline of empty user is rejected separately.
-    let (s2, _) = send(&app, "GET", "/timeline?user=alice", None).await;
-    assert_eq!(s2, StatusCode::OK);
+    assert_eq!(b, json!({"error":"invalid_handle"}));
+    // A timeline for a user who was never created is now rejected rather than
+    // answered with an empty page: totality means every request has a defined
+    // answer, and an empty page hides a client error.
+    let (s2, b2) = send(&app, "GET", "/timeline?user=alice", None).await;
+    assert_eq!(s2, StatusCode::BAD_REQUEST);
+    assert_eq!(b2, json!({"error":"unknown_user"}));
 }
 
 // -----------------------------------------------------------------------------
@@ -163,7 +170,7 @@ async fn tweet_empty_text_400() {
     let _ = send(&app, "POST", "/users", Some(json!({"handle":"alice"}))).await;
     let (s, b) = send(&app, "POST", "/tweets", Some(json!({"author":"alice","text":""}))).await;
     assert_eq!(s, StatusCode::BAD_REQUEST);
-    assert_eq!(b, json!({"error":"empty_text"}));
+    assert_eq!(b, json!({"error":"invalid_text"}));
     // State: timeline still empty.
     let (_, tl) = send(&app, "GET", "/timeline?user=alice", None).await;
     assert_eq!(tl["tweets"].as_array().unwrap().len(), 0);
@@ -175,9 +182,10 @@ async fn tweet_unknown_author_400_f6() {
     let (s, b) = send(&app, "POST", "/tweets", Some(json!({"author":"ghost","text":"hi"}))).await;
     assert_eq!(s, StatusCode::BAD_REQUEST);
     assert_eq!(b, json!({"error":"unknown_user"}));
-    // State: ghost is still not a user.
+    // State: ghost is still not a user, and asking for their timeline is now
+    // rejected rather than answered with an empty page.
     let (s2, _) = send(&app, "GET", "/timeline?user=ghost", None).await;
-    assert_eq!(s2, StatusCode::OK);
+    assert_eq!(s2, StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]
@@ -203,12 +211,14 @@ async fn timeline_empty_user_400() {
     let (_clk, app) = fresh();
     let (s, b) = send(&app, "GET", "/timeline", None).await;
     assert_eq!(s, StatusCode::BAD_REQUEST);
-    assert_eq!(b, json!({"error":"empty_user"}));
-    // State: independent of any users created.
+    // No query string at all is a malformed request; a present-but-empty user
+    // is a syntactically invalid handle. The old contract collapsed both into
+    // one code.
+    assert_eq!(b, json!({"error":"malformed_request"}));
     let _ = send(&app, "POST", "/users", Some(json!({"handle":"alice"}))).await;
     let (s2, b2) = send(&app, "GET", "/timeline?user=", None).await;
     assert_eq!(s2, StatusCode::BAD_REQUEST);
-    assert_eq!(b2, json!({"error":"empty_user"}));
+    assert_eq!(b2, json!({"error":"invalid_handle"}));
 }
 
 #[tokio::test]
@@ -224,12 +234,11 @@ async fn timeline_invalid_limit_400() {
 }
 
 #[tokio::test]
-async fn timeline_unknown_user_returns_empty_200() {
+async fn timeline_unknown_user_rejected() {
     let (_clk, app) = fresh();
     let (s, b) = send(&app, "GET", "/timeline?user=ghost", None).await;
-    assert_eq!(s, StatusCode::OK);
-    assert_eq!(b, json!({"tweets":[],"next_cursor":null}));
-    assert!(b["tweets"].as_array().unwrap().is_empty());
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    assert_eq!(b, json!({"error":"unknown_user"}));
 }
 
 #[tokio::test]
@@ -278,6 +287,12 @@ async fn timeline_limit_truncates() {
     let (s, b) = send(&app, "GET", "/timeline?user=alice&limit=2", None).await;
     assert_eq!(s, StatusCode::OK);
     assert_eq!(b["tweets"].as_array().unwrap().len(), 2);
-    let (_, b2) = send(&app, "GET", "/timeline?user=alice&limit=0", None).await;
-    assert_eq!(b2["tweets"].as_array().unwrap().len(), 5);
+    // limit=0 previously meant "unlimited". D10 has no unlimited mode --
+    // default 50, range 1..=100 -- so 0 is now an explicit rejection.
+    let (s2, b2) = send(&app, "GET", "/timeline?user=alice&limit=0", None).await;
+    assert_eq!(s2, StatusCode::BAD_REQUEST);
+    assert_eq!(b2, json!({"error":"invalid_limit"}));
+    // The default page size returns all five.
+    let (_, b3) = send(&app, "GET", "/timeline?user=alice", None).await;
+    assert_eq!(b3["tweets"].as_array().unwrap().len(), 5);
 }

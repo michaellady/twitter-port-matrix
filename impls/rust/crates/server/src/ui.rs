@@ -269,7 +269,7 @@ async fn home_or_login(
             page("log in", None, &body).into_response()
         }
         Some(handle) => {
-            let tweets = svc.home_timeline(&handle, 50);
+            let tweets = svc.home_timeline(&handle, 50, 0).0;
             let body = format!(
                 r#"{error_html}
                    <div class="compose">
@@ -330,7 +330,7 @@ async fn ui_register(
         return Redirect::to("/?error=empty+handle").into_response();
     }
     match svc.create_user(&handle) {
-        Ok(_) | Err(ServiceError::DuplicateUser) => {
+        Ok(_) | Err(ServiceError::HandleTaken) => {
             let mut headers = HeaderMap::new();
             headers.insert(header::SET_COOKIE, cookie_header_for(&handle).parse().unwrap());
             (StatusCode::SEE_OTHER, headers, [(header::LOCATION, "/")]).into_response()
@@ -372,7 +372,7 @@ async fn profile(
     Path(handle): Path<String>,
 ) -> Response {
     let actor = current_actor(&headers);
-    let tweets = svc.home_timeline(&handle, 50);
+    let tweets = svc.home_timeline(&handle, 50, 0).0;
     let own_tweets: Vec<_> = tweets.into_iter().filter(|t| t.author == handle).collect();
 
     let follow_btn = match &actor {

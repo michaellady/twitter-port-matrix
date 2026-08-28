@@ -70,6 +70,58 @@ verus! {
     pub enum DomainError {
         /// F4: `from == to` is rejected at construction time.
         SelfFollow,
+        /// D6: handle outside `[a-z0-9_]{1,32}`.
+        InvalidHandle,
+        /// D1: text outside 1..280 bytes, or containing a control character.
+        InvalidText,
+    }
+
+    /// Observable validation bounds (S_obs D1, D6).
+    ///
+    /// These live in the verified core, not the HTTP layer. Verus verifies
+    /// `domain`; it does not verify `server`. Validation in the handler would
+    /// mean the proofs never see the rules that decide what is accepted.
+    pub open spec fn handle_len_ok(n: nat) -> bool { 1 <= n && n <= 32 }
+
+    /// Accepts 1..=32 bytes drawn from `[a-z0-9_]`. A narrow alphabet is a
+    /// narrow surface on which two implementations can disagree.
+    pub fn valid_handle(h: &str) -> bool {
+        let b = h.as_bytes();
+        if b.len() == 0 || b.len() > 32 {
+            return false;
+        }
+        let mut i = 0;
+        while i < b.len()
+            invariant 0 <= i <= b.len(),
+            decreases b.len() - i,
+        {
+            let c = b[i];
+            let ok = (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 95;
+            if !ok {
+                return false;
+            }
+            i = i + 1;
+        }
+        true
+    }
+
+    /// Accepts 1..=280 bytes with no control characters.
+    pub fn valid_text(t: &str) -> bool {
+        let b = t.as_bytes();
+        if b.len() == 0 || b.len() > 280 {
+            return false;
+        }
+        let mut i = 0;
+        while i < b.len()
+            invariant 0 <= i <= b.len(),
+            decreases b.len() - i,
+        {
+            if b[i] < 32 {
+                return false;
+            }
+            i = i + 1;
+        }
+        true
     }
 
     impl Follow {
@@ -94,6 +146,8 @@ impl fmt::Display for DomainError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             DomainError::SelfFollow => f.write_str("self_follow_forbidden"),
+            DomainError::InvalidHandle => f.write_str("invalid_handle"),
+            DomainError::InvalidText => f.write_str("invalid_text"),
         }
     }
 }
