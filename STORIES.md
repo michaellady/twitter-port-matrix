@@ -97,8 +97,8 @@ and reproducing it inside the rig would invalidate the measurement.
 
 ## Phase 4 — fill the matrix
 - [ ] **S-21** All 12 ports. Fan-out story: run as a workflow.
-- [ ] **S-22** Full calibration report
-- [ ] **S-23** Transfer write-up back to the WebSocket port
+- [x] **S-22** Full calibration report
+- [x] **S-23** Transfer write-up back to the WebSocket port
 
 ## Standing, not phase-bound
 - [ ] **S-24** Adversarial refutation of F001–F006
