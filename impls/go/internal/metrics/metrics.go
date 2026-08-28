@@ -33,12 +33,12 @@ type counterKey struct{ path, method, status string }
 type histoKey struct{ path, method string }
 
 var (
-	requestsMu     sync.RWMutex
-	requests       = map[counterKey]*atomic.Uint64{}
-	durationsMu    sync.RWMutex
-	durations      = map[histoKey]*histogram{}
-	violationsMu   sync.RWMutex
-	violations     = map[string]*atomic.Uint64{}
+	requestsMu   sync.RWMutex
+	requests     = map[counterKey]*atomic.Uint64{}
+	durationsMu  sync.RWMutex
+	durations    = map[histoKey]*histogram{}
+	violationsMu sync.RWMutex
+	violations   = map[string]*atomic.Uint64{}
 )
 
 // histogram buckets in seconds (matches the Rust impl).
@@ -134,7 +134,7 @@ func FromError(code, path string) string {
 		return "F6"
 	case code == "unknown_user" && strings.HasPrefix(path, "/follow"):
 		return "F9"
-	case code == "duplicate_user":
+	case code == "handle_taken":
 		return "F-uniqueness"
 	}
 	return ""

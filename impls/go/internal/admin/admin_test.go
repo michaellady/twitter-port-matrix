@@ -255,7 +255,7 @@ func TestSnapshotRoundTripAddsUser(t *testing.T) {
 		t.Fatalf("alice/bob missing after load")
 	}
 	// alice's home timeline must include bob's tweet (follow restored).
-	tw := dst.HomeTimeline("alice", 0)
+	tw, _ := dst.HomeTimeline("alice", 1000, 0)
 	if len(tw) != 2 {
 		t.Fatalf("alice timeline: want 2 tweets, got %d", len(tw))
 	}

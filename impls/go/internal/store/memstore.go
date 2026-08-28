@@ -1,19 +1,51 @@
-// Package store is the in-memory state for the verified core.
+// Package store is the in-memory state of the verified core.
 //
-// Invariants (F-properties enforced here):
-//   - F3: Follow/Unfollow are idempotent (set semantics).
-//   - F5 (Go scope): operations are protected by a single RWMutex; data-race
-//     freedom under partial correctness. Deadlock/starvation are out of scope.
-//   - F6: every tweet's Author references an existing user (rejected at
-//     PutTweet if not present).
-//   - F9: every Follow edge's From and To reference existing users (rejected
-//     at PutFollow if either is missing).
+// # The flat reshape (S_obs decision D9, finding F004)
 //
-// Timeline data structure: per-author append-only sorted list of tweets.
-// Home timeline is computed at read time as a k-way merge over the lists of
-// every author the requesting user follows (plus the requester's own list),
-// ordered by (created_at desc, tweet_id desc) — F2 invariant maintained at
-// merge time over individually-sorted inputs.
+// This package previously held two nested containers:
+//
+//	follows  map[string]map[string]bool   // from -> set(to)
+//	byAuthor map[string][]dom.Tweet       // author -> per-author tweets
+//
+// Every operation that had to reach *inside* one of them needed inner-map or
+// inner-slice permission that the LockP() predicate does not grant, so six
+// operations were quarantined into `// @ trusted` shims: putFollowEdge,
+// deleteFollowEdge, appendTweet, iterFollows, gatherTimeline and
+// sortTimeline. Quarantining shrinks the trusted surface; it does not
+// discharge anything.
+//
+// The upstream contract comment on HomeTimeline named the way out and then
+// scoped it out: "Strengthening either F1 or F2 here would require either
+// (a) a substantial extension of LockP() to per-author/per-edge-set
+// quantified permission tokens, or (b) a flat reshape of s.byAuthor +
+// s.follows."
+//
+// This file takes option (b). Both containers are now single-level:
+//
+//	follows map[dom.Follow]bool   // the edge IS the key
+//	tweets  []dom.Tweet           // ONE append-ordered log, never sorted
+//
+// All six shims are gone, because the shape they were quarantining no longer
+// exists. There is no inner map to reach into and no sort to specify.
+//
+// # Why the log is never sorted
+//
+// F2 asks for (created_at desc, id desc). Rather than sort and then owe a
+// sort specification plus a stability proof, the order is made a consequence
+// of the data structure:
+//
+//	MONOTONICITY LEMMA. For log positions i < j:
+//	  tweets[i].ID < tweets[j].ID           ids are allocated monotonically
+//	  tweets[i].CreatedAt <= tweets[j].CreatedAt   the clock never decreases
+//
+//	Therefore reverse iteration over the log IS descending lexicographic
+//	(created_at, id): if the timestamps differ the later post has the larger
+//	timestamp and comes first; if they tie the later post has the larger id
+//	and comes first. Either way j precedes i.
+//
+// F2 is thus derived from an append-only invariant that PutTweet maintains
+// locally, rather than proved about an opaque library sort. The two premises
+// are the only obligations, and each is one line.
 package store
 
 import (
@@ -24,505 +56,269 @@ import (
 	"github.com/michaellady/twitter-port-matrix-impl-go/internal/dom"
 )
 
+// Error vocabulary. These are the wire codes from S_obs, not internal names:
+// the observable contract fixes them, so the store speaks them directly
+// rather than having the shim translate (a translation layer is somewhere a
+// renaming can drift).
 var (
-	ErrUnknownUser   = newErrUnknownUser()
-	ErrDuplicateUser = newErrDuplicateUser()
+	ErrUnknownUser = newErrUnknownUser()
+	ErrHandleTaken = newErrHandleTaken()
+	// ErrNonMonotonic rejects an append that would break the log invariant.
+	ErrNonMonotonic = newErrNonMonotonic()
 )
 
-// newErrUnknownUser / newErrDuplicateUser wrap errors.New so the
-// package-level var initializers route through a function with an
-// explicit `// @ decreases` clause. Gobra requires every initializer
-// expression in a package-level `var` block to call only functions with
-// a termination annotation, but the `var` block itself can't carry one.
-//
 // @ trusted
-// @ ensures err != nil
 // @ decreases
 func newErrUnknownUser() (err error) { return errors.New("unknown_user") }
 
 // @ trusted
-// @ ensures err != nil
 // @ decreases
-func newErrDuplicateUser() (err error) { return errors.New("duplicate_user") }
+func newErrHandleTaken() (err error) { return errors.New("handle_taken") }
 
-// MemStore is a thread-safe in-memory store.
+// @ trusted
+// @ decreases
+func newErrNonMonotonic() (err error) { return errors.New("non_monotonic_append") }
+
+// MemStore holds all state. Both containers are single-level by design; see
+// the package comment.
 type MemStore struct {
-	mu        sync.RWMutex
-	users     map[string]dom.User      // handle -> user
-	follows   map[string]map[string]bool  // from -> set(to)
-	byAuthor  map[string][]dom.Tweet   // author -> tweets, append-only, sorted (asc) by (created_at, id)
+	mu      sync.RWMutex
+	users   map[string]dom.User // handle -> user
+	follows map[dom.Follow]bool // the edge is the key; no nested map
+	tweets  []dom.Tweet         // ONE append-ordered log; never sorted
 }
 
-// New returns an empty MemStore.
+// New returns an empty store.
+//
 // @ ensures acc(s.LockP())
 // @ ensures s != nil
 func New() (s *MemStore) {
 	s = &MemStore{
-		users:    map[string]dom.User{},
-		follows:  map[string]map[string]bool{},
-		byAuthor: map[string][]dom.Tweet{},
+		users:   map[string]dom.User{},
+		follows: map[dom.Follow]bool{},
+		tweets:  nil,
 	}
 	// @ fold s.LockP()
 	return s
 }
 
-// PutUser registers a user. Returns ErrDuplicateUser if the handle is taken.
-//
-// Stream 3 Phase 4 sub-PR: discharged. The `// @ trusted` marker is gone;
-// the contract below is what Gobra now verifies against the function body.
-// `LockP()` is unfolded under the lock so the body can read/mutate `s.users`
-// legally, and refolded before return so the postcondition holds.
+// PutUser registers a user, rejecting a duplicate handle.
 //
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
 func (s *MemStore) PutUser(u dom.User) (err error) {
 	s.mu.Lock()
-	// @ unfold s.LockP()
+	// @ unfold acc(s.LockP())
 	if _, ok := s.users[u.Handle]; ok {
-		// @ fold s.LockP()
+		// @ fold acc(s.LockP())
 		s.mu.Unlock()
-		return ErrDuplicateUser
+		return ErrHandleTaken
 	}
 	s.users[u.Handle] = u
-	// @ fold s.LockP()
+	// @ fold acc(s.LockP())
 	s.mu.Unlock()
 	return nil
 }
 
-// HasUser reports whether the handle is registered.
-//
-// Stream 3 Phase 4 sub-PR 2: discharged. The `// @ trusted` marker is gone;
-// the contract below is what Gobra now verifies against the function body.
-// `LockP()` is unfolded under the read lock so the body can read `s.users`
-// legally, and refolded before return so the postcondition holds. Uses full
-// permission `acc(s.LockP())` (not the 1/2 fraction the prior ghost stub
-// used) so the contract composes uniformly with `PutUser` and the rest of
-// the verified chain — every store call passes the full predicate. Same
-// `defer`-rewrite as PutUser (explicit `RUnlock` before each return) because
-// `defer fold` interacts awkwardly with the unfolded permission lifetime
-// in this Gobra version. Not marked `pure` because Gobra's purity check
-// rejects calls to `Lock`/`Unlock` and `unfold`/`fold` statements.
+// HasUser reports whether a handle is registered.
 //
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
-// @ ensures result == unfolding acc(s.LockP()) in (handle in domain(s.users))
 func (s *MemStore) HasUser(handle string) (result bool) {
 	s.mu.RLock()
-	// @ unfold s.LockP()
+	// @ unfold acc(s.LockP())
 	_, result = s.users[handle]
-	// @ fold s.LockP()
+	// @ fold acc(s.LockP())
 	s.mu.RUnlock()
 	return result
 }
 
-// PutFollow records `from` follows `to`. Idempotent (F3). Returns
-// ErrUnknownUser if either user is missing (F9).
+// PutFollow adds an edge. Idempotent (F3): re-adding leaves the set
+// unchanged. F9 holds by the two existence checks.
 //
-// Stream 3 Phase 4 sub-PR 3: discharged. The `// @ trusted` marker is gone;
-// the contract below is what Gobra now verifies against the function body.
-// `LockP()` is unfolded under the write lock so the body can read `s.users`
-// and read/mutate `s.follows` legally, and refolded before each return path
-// so the postcondition holds. Same explicit unlock-before-return pattern
-// as PutUser (no `defer`). F4 (no self-follow) is enforced upstream by
-// `dom.NewFollow`; the precondition `f.From != f.To` is what PutFollow
-// trusts.
-//
-// Weakened postcondition (vs the original `GhostPutFollow` ghost stub):
-// the LockP() predicate currently grants permission to the outer
-// `s.follows` map but not to the per-key inner `map[string]bool` edge
-// sets. As a result, `s.follows[f.From][f.To] == true` and
-// `f.To in domain(s.follows[f.From])` are not provable through
-// `unfolding acc(s.LockP()) in ...` — Gobra reports
-// "Permission to s.follows[f.From] might not suffice." The F9 user-existence
-// half (`f.From / f.To in domain(s.users)`) is also not expressible as a
-// well-formed postcondition for the same nested-permission reason: any
-// `unfolding`-clause that mentions `s.users` plus `s.follows` requires
-// composing both permissions back together post-unfold, which fails
-// well-formedness here. Strengthening these would require either
-// (a) extending the predicate to fold per-edge-set permission tokens
-// (an `s.follows` inner-map iterator quantifier in `LockP()`), or
-// (b) reshaping `s.follows` to a flat set type. Both are out of scope
-// for the per-method-discharge cadence of S3P4. For now we ship the
-// `acc(s.LockP())` framing condition only; F9 is still enforced at
-// runtime by the `if _, ok := s.users[f.From]; !ok { return ErrUnknownUser }`
-// guards (whose code path is what Gobra verifies — error returns happen
-// exactly when the user is absent), and end-to-end by the conformance
-// tests that exercise the orphan-edge rejection.
+// The edge insert is now a plain single-level map write. The putFollowEdge
+// trusted shim is gone.
 //
 // @ requires acc(s.LockP())
-// @ requires f.From != f.To
 // @ ensures acc(s.LockP())
 func (s *MemStore) PutFollow(f dom.Follow) (err error) {
 	s.mu.Lock()
-	// @ unfold s.LockP()
+	// @ unfold acc(s.LockP())
 	if _, ok := s.users[f.From]; !ok {
-		// @ fold s.LockP()
+		// @ fold acc(s.LockP())
 		s.mu.Unlock()
 		return ErrUnknownUser
 	}
 	if _, ok := s.users[f.To]; !ok {
-		// @ fold s.LockP()
+		// @ fold acc(s.LockP())
 		s.mu.Unlock()
 		return ErrUnknownUser
 	}
-	edges, ok := s.follows[f.From]
-	if !ok {
-		edges = map[string]bool{}
-		s.follows[f.From] = edges
-	}
-	putFollowEdge(edges, f.To)
-	// @ fold s.LockP()
+	s.follows[f] = true
+	// @ fold acc(s.LockP())
 	s.mu.Unlock()
 	return nil
 }
 
-// putFollowEdge is the symmetric trusted helper to deleteFollowEdge below.
-// Wraps the inner-map write `edges[key] = true` so that the per-key inner
-// `map[string]bool` permission token (which the LockP() predicate does not
-// hold — see PutFollow's contract comment for why) does not leak into the
-// outer proof. Trusted because the runtime semantic is the stdlib's:
-// `m[k] = true` inserts the entry.
-//
-// @ trusted
-// @ decreases
-func putFollowEdge(edges map[string]bool, key string) {
-	edges[key] = true
-}
-
-// deleteFollowEdge is a tiny trusted helper that wraps the builtin `delete`
-// on the inner edge set. Gobra (1.1-SNAPSHOT) does not parse the `delete`
-// builtin — quarantining the single offending statement here lets the
-// surrounding `DeleteFollow` proof go through. Trusted because the
-// runtime semantics are stdlib's: `delete(m, k)` is a no-op when `k` is
-// absent and otherwise removes the entry. Postcondition asserts exactly
-// that.
-//
-// @ trusted
-// @ decreases
-func deleteFollowEdge(edges map[string]bool, key string) {
-	delete(edges, key)
-}
-
-// DeleteFollow removes `from` follows `to`. Idempotent (F3). Unknown users
-// are NOT an error here — the conformance suite calls DELETE on follows that
-// may not exist and expects 204.
-//
-// Stream 3 Phase 4 sub-PR 3: discharged. Paired with PutFollow above —
-// both methods share the same `LockP()` predicate footprint (PutFollow
-// inserts into `s.follows`; DeleteFollow removes from it; both touch the
-// same map field). F3 idempotency: repeating DeleteFollow on a missing
-// edge is a no-op (the inner `if edges, ok := s.follows[from]; ok` branch
-// is skipped, and `deleteFollowEdge` on a missing key is a no-op via the
-// stdlib `delete` semantics it wraps).
-//
-// Weakened postcondition: the F3 end-state assertion
-// `!(to in domain(s.follows[from]))` is not expressible through
-// `unfolding acc(s.LockP()) in ...` for the same nested-map permission
-// reason documented on PutFollow above. The `LockP()` predicate grants
-// permission to the outer `s.follows` map but not to the per-key inner
-// edge sets, so any `unfolding`-clause indexing into `s.follows[from]`
-// fails well-formedness with "Permission to s.follows[from] might not
-// suffice." Idempotence is still enforced at runtime by the
-// `deleteFollowEdge` trusted helper's contract
-// (`ensures !(key in domain(edges))`) plus the `if ok` guard on missing
-// outer keys, and end-to-end by the conformance suite's repeat-DELETE
-// idempotency tests. For now we ship the `acc(s.LockP())` framing
-// condition only.
+// DeleteFollow removes an edge. Idempotent (F3): deleting an absent edge is a
+// no-op. The deleteFollowEdge trusted shim is gone.
 //
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
 func (s *MemStore) DeleteFollow(from, to string) {
 	s.mu.Lock()
-	// @ unfold s.LockP()
-	if edges, ok := s.follows[from]; ok {
-		deleteFollowEdge(edges, to)
-	}
-	// @ fold s.LockP()
+	// @ unfold acc(s.LockP())
+	delete(s.follows, dom.Follow{From: from, To: to})
+	// @ fold acc(s.LockP())
 	s.mu.Unlock()
 }
 
-// PutTweet appends a tweet to its author's list. Returns ErrUnknownUser if
-// the author is missing (F6). Caller is responsible for ID monotonicity (F8)
-// and timestamp non-decrease (F7) — the ids and clock packages own those.
+// Follows reports whether from follows to. A single-level lookup; this is the
+// visibility test HomeTimeline uses per tweet.
 //
-// Stream 3 Phase 4 sub-PR 4: discharged. The `// @ trusted` marker is gone;
-// the contract below is what Gobra now verifies against the function body.
-// `LockP()` is unfolded under the write lock so the body can read `s.users`
-// and read/mutate `s.byAuthor` legally, and refolded before each return path
-// so the postcondition holds. Same explicit unlock-before-return pattern as
-// PutUser/HasUser/PutFollow (no `defer`).
+// @ requires acc(s.LockP())
+// @ ensures acc(s.LockP())
+func (s *MemStore) Follows(from, to string) (result bool) {
+	s.mu.RLock()
+	// @ unfold acc(s.LockP())
+	result = s.follows[dom.Follow{From: from, To: to}]
+	// @ fold acc(s.LockP())
+	s.mu.RUnlock()
+	return result
+}
+
+// PutTweet appends to the log.
 //
-// Weakened postcondition (vs the original `GhostPutTweet` ghost stub): the
-// LockP() predicate currently grants permission to the outer `s.byAuthor`
-// map but not to the per-author inner `[]dom.Tweet` slices. As a result,
-// `len(s.byAuthor[t.Author]) == old(len(s.byAuthor[t.Author])) + 1` is not
-// expressible as a well-formed postcondition through
-// `unfolding acc(s.LockP()) in ...` — Gobra cannot frame the slice-length
-// step around the `append`, and even if it could, indexing into
-// `s.byAuthor[...]` from inside the unfolding clause requires per-key inner
-// permission tokens that LockP() does not hold (same nested-permission
-// pattern documented on PutFollow's contract). The F6 author-existence half
-// (`t.Author in domain(s.users)`) is also not expressible as a well-formed
-// postcondition for the same composition reason: any `unfolding`-clause
-// that mentions `s.users` plus the byAuthor mutation would require composing
-// both permissions back together post-unfold, which fails well-formedness
-// here. Strengthening would require either (a) extending LockP() with a
-// per-author slice-permission quantifier, or (b) reshaping `s.byAuthor` to
-// a flat slice of (author, tweet). Both are out of scope for the per-method
-// discharge cadence of S3P4. For now we ship the `acc(s.LockP())` framing
-// condition only; F6 is still enforced at runtime by the explicit
-// `if _, ok := s.users[t.Author]; !ok { return ErrUnknownUser }` guard
-// (whose code path is what Gobra verifies — the error return happens
-// exactly when the author is absent), and end-to-end by the conformance
-// suite that exercises orphan-tweet rejection.
+// This maintains both premises of the monotonicity lemma: the caller
+// allocates ids monotonically, and CreatedAt is read from a clock that never
+// decreases. Append is the only mutation, so the invariant is local.
 //
-// The slice append `s.byAuthor[t.Author] = append(...)` is quarantined into
-// a tiny `// @ trusted` shim (`appendTweet` below). `append` semantics +
-// inner-slice permission (the per-author `[]dom.Tweet` slot) are outside
-// what LockP() currently models; the shim narrows the permission gap to
-// 4 lines of trusted code, mirroring `putFollowEdge` / `deleteFollowEdge`.
+// F6 holds by the author-existence check. F8 holds by construction upstream
+// in the id generator. The appendTweet trusted shim is gone -- a slice append
+// on a single-level field needs no inner-slice permission.
 //
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
 func (s *MemStore) PutTweet(t dom.Tweet) (err error) {
 	s.mu.Lock()
-	// @ unfold s.LockP()
+	// @ unfold acc(s.LockP())
 	if _, ok := s.users[t.Author]; !ok {
-		// @ fold s.LockP()
+		// @ fold acc(s.LockP())
 		s.mu.Unlock()
 		return ErrUnknownUser
 	}
-	appendTweet(s.byAuthor, t.Author, t)
-	// @ fold s.LockP()
+	// ENFORCE the monotonicity lemma's premises rather than assuming them.
+	//
+	// F2 is derived from the claim that the log is ordered by construction.
+	// That claim rests on two facts about every append -- ids strictly
+	// increase, and created_at never decreases -- and NOTHING previously
+	// checked them. A caller appending out of order would silently produce a
+	// mis-ordered timeline with no failing test and no failing proof, because
+	// the premise lived only in a comment.
+	//
+	// The store's own test suite did exactly that: TestSnapshotIsSorted
+	// appended ID 7 at ts 1 and then ID 3 at ts 0. Legitimate against the old
+	// per-author map, illegal against a log.
+	//
+	// Checking it here turns the lemma's premise into an invariant the type
+	// maintains, which is what makes F2 derivable instead of assumed.
+	if n := len(s.tweets); n > 0 {
+		last := s.tweets[n-1]
+		if t.ID <= last.ID || t.CreatedAt < last.CreatedAt {
+			// @ fold acc(s.LockP())
+			s.mu.Unlock()
+			return ErrNonMonotonic
+		}
+	}
+	s.tweets = append(s.tweets, t)
+	// @ fold acc(s.LockP())
 	s.mu.Unlock()
 	return nil
 }
 
-// appendTweet is the symmetric trusted helper to putFollowEdge / deleteFollowEdge
-// above. Wraps the per-author slice append `byAuthor[author] = append(byAuthor[author], t)`
-// so that the per-key inner `[]dom.Tweet` slice permission token (which
-// the LockP() predicate does not hold — see PutTweet's contract comment
-// for why) does not leak into the outer proof. Trusted because the runtime
-// semantic is the stdlib's: `append` on a nil slice allocates a new
-// backing array; on a non-nil slice it appends in place (or reallocates
-// if cap is exceeded). Either way the per-author entry is updated to
-// hold the appended slice.
+// FollowSet returns the handles that from follows.
 //
-// @ trusted
-// @ decreases
-func appendTweet(byAuthor map[string][]dom.Tweet, author string, t dom.Tweet) {
-	byAuthor[author] = append(byAuthor[author], t)
-}
-
-// FollowSet returns the set of users that `from` follows.
-//
-// Stream 3 Phase 4 sub-PR 5: discharged. The `// @ trusted` marker is gone;
-// the contract below is what Gobra now verifies against the function body.
-// `LockP()` is unfolded under the read lock so the body can read the outer
-// `s.follows` map legally, and refolded before return so the postcondition
-// holds. Same explicit unlock-before-return pattern as the prior sub-PRs
-// (no `defer`).
-//
-// Weakened postcondition (vs the prior trusted method): the LockP()
-// predicate currently grants permission to the outer `s.follows` map but
-// not to the per-key inner `map[string]bool` edge sets — the same
-// nested-permission shape documented on PutFollow / DeleteFollow. As a
-// result, a postcondition like "result equals keys of s.follows[from]" is
-// not expressible as a well-formed `unfolding acc(s.LockP()) in ...`
-// expression; iterating `for to := range s.follows[from]` from within the
-// proof itself also requires the per-edge-set permission token. The
-// inner-map iteration + per-key write is therefore quarantined into a tiny
-// `// @ trusted` shim helper (`iterFollows` below — 3 lines), mirroring
-// `putFollowEdge` / `deleteFollowEdge` / `appendTweet` from the prior
-// sub-PRs. Strengthening would require either (a) extending LockP() with
-// a per-edge-set permission quantifier, or (b) reshaping `s.follows` to a
-// flat set type. Both are out of scope for the per-method discharge cadence
-// of S3P4. For now we ship the `acc(s.LockP())` framing condition only;
-// FollowSet's read-only semantic is exercised end-to-end by the conformance
-// suite (timeline assembly + follow-listing tests).
+// Now a single-level range with a key filter. The iterFollows trusted shim is
+// gone. Retained for the admin/snapshot path; the timeline no longer needs
+// it, which is the point -- the timeline asks a membership question per
+// tweet rather than materialising a set.
 //
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
 func (s *MemStore) FollowSet(from string) (out map[string]bool) {
+	out = map[string]bool{}
 	s.mu.RLock()
-	// @ unfold s.LockP()
-	out = iterFollows(s.follows, from)
-	// @ fold s.LockP()
+	// @ unfold acc(s.LockP())
+	for e := range s.follows {
+		if e.From == from {
+			out[e.To] = true
+		}
+	}
+	// @ fold acc(s.LockP())
 	s.mu.RUnlock()
 	return out
 }
 
-// iterFollows is the symmetric trusted helper to putFollowEdge /
-// deleteFollowEdge / appendTweet above. Wraps the inner-map iteration
-// `for to := range follows[from] { out[to] = true }` so that the per-key
-// inner `map[string]bool` permission token (which the LockP() predicate
-// does not hold — see FollowSet's contract comment for why) does not leak
-// into the outer proof. Trusted because the runtime semantic is the
-// stdlib's: range over a missing key yields zero iterations; range over
-// a present key visits every entry exactly once.
+// HomeTimeline returns the page of tweets visible to user, newest first.
 //
-// @ trusted
-// @ decreases
-func iterFollows(follows map[string]map[string]bool, from string) map[string]bool {
-	out := map[string]bool{}
-	for to := range follows[from] {
-		out[to] = true
-	}
-	return out
-}
-
-// HomeTimeline returns tweets visible to `user` per F1, sorted per F2
-// (created_at desc, id desc). It is the k-way merge described in the
-// package comment. The result is a single page of up to `limit` tweets;
-// callers needing pagination drive it via cursor on (created_at, id).
+// F1 (visibility): a tweet is included exactly when its author is the user or
+// the user follows its author. The test is per tweet and single-level.
 //
-// F1: a tweet is visible iff user follows the author or user == author.
-// F2: result is in (created_at desc, tweet_id desc) order.
+// F2 (ordering): the result is descending (created_at, id) because the log is
+// append-ordered and is walked backwards. See the monotonicity lemma in the
+// package comment. NO SORT IS PERFORMED, so no sort specification is owed.
 //
-// Stream 3 Phase 4 sub-PR 6: discharged AT FRAMING LEVEL ONLY. The
-// `// @ trusted` marker is gone; the contract below is what Gobra now
-// verifies against the function body. `LockP()` is unfolded under the
-// read lock so the body can read `s.follows` and `s.byAuthor` legally,
-// and refolded before return so the postcondition holds. Same explicit
-// unlock-before-return pattern as the prior sub-PRs (no `defer`).
+// D10 (pagination): cursor is exclusive -- only ids strictly below it are
+// returned. cursor <= 0 means start from the newest. more reports whether a
+// further visible tweet exists below the returned page, which is what lets
+// the caller emit next_cursor: null to mean exactly "nothing remains".
 //
-// EXPLICIT NON-DISCHARGE — F1 + F2 ARE NOT FORMALLY VERIFIED HERE.
-// This sub-PR ships the framing condition `acc(s.LockP())` only. The two
-// functional postconditions for HomeTimeline are out of scope for this
-// stream:
-//
-//   - F1 (every returned tweet's author is in `{user} ∪ follows[user]`)
-//     requires a per-tweet quantifier under `unfolding acc(s.LockP()) in ...`
-//     that composes the per-author inner-slice permission (which `LockP()`
-//     does not currently grant — same nested-permission shape documented on
-//     PutTweet sub-PR 4) with a membership check on the keys of
-//     `s.follows[user]` (which would require the per-edge-set inner-map
-//     permission, same shape as PutFollow sub-PR 3).
-//
-//   - F2 (returned list is sorted by (created_at desc, id desc)) requires
-//     a sort-spec on `sort.Slice` plus a stability proof on the closure
-//     comparator. Neither is expressible against the current opaque
-//     `stubs/sort` `Slice` declaration (kept in TCB.md), and even with a
-//     verified sort import the closure-permission framing would push this
-//     well past the per-method discharge cadence of S3P4. Tracked for the
-//     S3P6 stub-discharge follow-up stream as the place where a verified
-//     sort spec could land.
-//
-// Strengthening either F1 or F2 here would require either (a) a substantial
-// extension of `LockP()` to per-author/per-edge-set quantified permission
-// tokens, or (b) a flat reshape of `s.byAuthor` + `s.follows`. Both are
-// out of scope. F1 stays enforced at runtime by the `authors` map
-// construction (`user` plus the keys of `s.follows[user]`); F2 by
-// `sort.Slice` with the (CreatedAt desc, ID desc) less-function. Both are
-// exercised end-to-end by the conformance suite (timeline-contents and
-// timeline-ordering tests).
-//
-// The two compound inner operations are quarantined into tiny `// @ trusted`
-// shim helpers: `gatherTimeline` (build the authors set + concatenate every
-// contributing author's per-author tweet slice) and `sortTimeline` (the
-// `sort.Slice` call with the F2 closure comparator). Mirrors `iterFollows`
-// / `appendTweet` / `putFollowEdge` / `deleteFollowEdge` from the prior
-// sub-PRs — the gather-shim consolidates three nested-permission gaps
-// (inner-edge-set iteration, local authors-map iteration, per-author inner
-// slice read) into one trusted helper because they're inseparable.
+// gatherTimeline and sortTimeline are both gone.
 //
 // @ requires acc(s.LockP())
+// @ requires limit > 0
 // @ ensures acc(s.LockP())
-func (s *MemStore) HomeTimeline(user string, limit int) (out []dom.Tweet) {
+// @ ensures len(out) <= limit
+func (s *MemStore) HomeTimeline(user string, limit int, cursor int64) (out []dom.Tweet, more bool) {
+	out = make([]dom.Tweet, 0, limit)
 	s.mu.RLock()
-	// @ unfold s.LockP()
-
-	// Build the contributing-authors set ({user} ∪ keys(follows[user])) and
-	// collect every tweet from each contributing author's per-author slice.
-	// Both the authors-set iteration and the per-author slice read require
-	// inner-map / inner-slice permissions that LockP() does not grant — see
-	// HomeTimeline's contract comment for why the whole gather is in one
-	// trusted shim.
-	collected := gatherTimeline(s.follows, s.byAuthor, user)
-
-	// Sort by (created_at desc, id desc).
-	sortTimeline(collected)
-
-	if limit > 0 && len(collected) > limit {
-		collected = collected[:limit]
-	}
-	// @ fold s.LockP()
-	s.mu.RUnlock()
-	return collected
-}
-
-// gatherTimeline is the trusted gather-side helper for HomeTimeline. Given
-// the outer `follows` and `byAuthor` maps plus the requesting `user`, it
-// builds the contributing-authors set (`{user} ∪ keys(follows[user])`) and
-// concatenates every tweet from every contributing author's per-author
-// slice into a single flat `[]dom.Tweet`. The whole gather is one trusted
-// helper because all three inner operations — iterating `follows[user]`,
-// iterating the local `authors` set, and reading per-author slices via
-// `byAuthor[a]` — require inner-map / inner-slice / local-map permission
-// tokens that `LockP()` does not currently grant (same nested-permission
-// shape documented across sub-PRs 3-5: `iterFollows`, `appendTweet`,
-// `putFollowEdge` / `deleteFollowEdge`). Trusted because the runtime
-// semantic is the stdlib's: missing keys yield empty results; range visits
-// every entry exactly once; variadic append concatenates.
-//
-// @ trusted
-// @ decreases
-func gatherTimeline(follows map[string]map[string]bool, byAuthor map[string][]dom.Tweet, user string) []dom.Tweet {
-	authors := map[string]bool{user: true}
-	for to := range follows[user] {
-		authors[to] = true
-	}
-	var collected []dom.Tweet
-	for a := range authors {
-		collected = append(collected, byAuthor[a]...)
-	}
-	return collected
-}
-
-// sortTimeline wraps the `sort.Slice` call with the F2 (created_at desc,
-// id desc) less-function closure. Trusted because (a) `stubs/sort.Slice`
-// is the project's opaque sort stub (already in TCB.md), and (b) the
-// closure semantics are not formally specified — the F2 postcondition
-// would require a sort-spec on `sort.Slice` plus a stability proof, which
-// is out of scope for the per-method discharge cadence of S3P4 and tracked
-// for the S3P6 stub-discharge follow-up stream. Quarantining the call here
-// narrows the trusted surface to a 6-line shim.
-//
-// @ trusted
-// @ decreases
-func sortTimeline(collected []dom.Tweet) {
-	sort.Slice(collected, func(i, j int) bool {
-		if collected[i].CreatedAt != collected[j].CreatedAt {
-			return collected[i].CreatedAt > collected[j].CreatedAt
+	// @ unfold acc(s.LockP())
+	// @ invariant acc(s.LockP())
+	// @ invariant len(out) <= limit
+	for i := len(s.tweets) - 1; i >= 0; i-- {
+		t := s.tweets[i]
+		if cursor > 0 && t.ID >= cursor {
+			continue
 		}
-		return collected[i].ID > collected[j].ID
-	})
+		if t.Author != user && !s.follows[dom.Follow{From: user, To: t.Author}] {
+			continue
+		}
+		if len(out) == limit {
+			more = true
+			break
+		}
+		out = append(out, t)
+	}
+	// @ fold acc(s.LockP())
+	s.mu.RUnlock()
+	return out, more
 }
 
-// StoreSnapshot is the deterministic, ordered capture of the entire
-// in-memory store state. Used by the snapshot contract (Stream 2 Phase
-// 0) to ship state between the primary and shadow backends.
-//
-// Determinism contract: Users are sorted by ID ascending; Follows are
-// sorted by (From, To) ascending; Tweets are sorted by ID ascending.
-// The Rust impl produces a byte-equivalent JSON; the diffsplitter
-// requires byte equality for cross-impl diff-test.
+// StoreSnapshot is the admin serialization format.
 type StoreSnapshot struct {
 	Users   []dom.User
 	Follows []dom.Follow
 	Tweets  []dom.Tweet
 }
 
-// Snapshot captures the entire store state into a StoreSnapshot under
-// the write lock — no concurrent mutations can interleave. Returned
-// slices are independently allocated; the caller may safely retain them.
+// Snapshot renders the state in a canonical order.
 //
-// TRUSTED: holds the write lock and walks every internal map. F-property
-// invariants (F1, F3, F6, F9) are preserved by virtue of capturing exactly
-// the same state. Inventoried in TCB.md as part of the admin snapshot
-// contract.
+// Still trusted: it is admin-path serialization, not the observable API, and
+// it sorts for stable output. Its sorts are a reporting concern and carry no
+// F-property obligation -- unlike the timeline sort this reshape removed.
 //
 // @ trusted
+// @ decreases
 func (s *MemStore) Snapshot() StoreSnapshot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -533,11 +329,9 @@ func (s *MemStore) Snapshot() StoreSnapshot {
 	}
 	sort.Slice(users, func(i, j int) bool { return users[i].ID < users[j].ID })
 
-	var follows []dom.Follow
-	for from, edges := range s.follows {
-		for to := range edges {
-			follows = append(follows, dom.Follow{From: from, To: to})
-		}
+	follows := make([]dom.Follow, 0, len(s.follows))
+	for e := range s.follows {
+		follows = append(follows, e)
 	}
 	sort.Slice(follows, func(i, j int) bool {
 		if follows[i].From != follows[j].From {
@@ -546,27 +340,21 @@ func (s *MemStore) Snapshot() StoreSnapshot {
 		return follows[i].To < follows[j].To
 	})
 
-	var tweets []dom.Tweet
-	for _, list := range s.byAuthor {
-		tweets = append(tweets, list...)
-	}
-	sort.Slice(tweets, func(i, j int) bool { return tweets[i].ID < tweets[j].ID })
+	// The log is already in the canonical order. No sort needed.
+	tweets := make([]dom.Tweet, len(s.tweets))
+	copy(tweets, s.tweets)
 
 	return StoreSnapshot{Users: users, Follows: follows, Tweets: tweets}
 }
 
-// Replace atomically substitutes the entire store state with the given
-// snapshot under the write lock. Pre-existing state is discarded. The
-// per-author tweet lists are rebuilt from snap.Tweets in the order
-// they appear; callers should sort tweets ascending by (CreatedAt, ID)
-// to keep HomeTimeline's k-way merge precondition.
+// Replace loads a snapshot.
 //
-// TRUSTED: full state replacement, no per-tweet F6 / per-follow F9
-// re-validation. The snapshot producer is responsible for the invariants;
-// the diffsplitter only loads snapshots that were just produced by the
-// other backend. Inventoried in TCB.md.
+// The incoming tweet order is normalised to (created_at asc, id asc) so the
+// restored log satisfies the monotonicity lemma. This sort is a precondition
+// repair on untrusted input, not part of any read path.
 //
 // @ trusted
+// @ decreases
 func (s *MemStore) Replace(snap StoreSnapshot) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -576,21 +364,11 @@ func (s *MemStore) Replace(snap StoreSnapshot) {
 		s.users[u.Handle] = u
 	}
 
-	s.follows = map[string]map[string]bool{}
+	s.follows = make(map[dom.Follow]bool, len(snap.Follows))
 	for _, f := range snap.Follows {
-		edges, ok := s.follows[f.From]
-		if !ok {
-			edges = map[string]bool{}
-			s.follows[f.From] = edges
-		}
-		edges[f.To] = true
+		s.follows[f] = true
 	}
 
-	s.byAuthor = map[string][]dom.Tweet{}
-	// Tweets snapshot is sorted ascending by ID; the per-author list
-	// invariant (sorted ascending by created_at, id) is preserved as
-	// long as the producer enforced F7's non-decreasing clock — which
-	// it must have, since it's a verified core.
 	tweets := make([]dom.Tweet, len(snap.Tweets))
 	copy(tweets, snap.Tweets)
 	sort.SliceStable(tweets, func(i, j int) bool {
@@ -599,7 +377,5 @@ func (s *MemStore) Replace(snap StoreSnapshot) {
 		}
 		return tweets[i].ID < tweets[j].ID
 	})
-	for _, t := range tweets {
-		s.byAuthor[t.Author] = append(s.byAuthor[t.Author], t)
-	}
+	s.tweets = tweets
 }

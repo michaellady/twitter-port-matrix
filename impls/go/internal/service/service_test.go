@@ -14,8 +14,8 @@ func newSvc() *Service { return New(clock.New()) }
 func TestCreateUserEmptyHandle(t *testing.T) {
 	s := newSvc()
 	_, err := s.CreateUser("")
-	if !errors.Is(err, ErrEmptyHandle) {
-		t.Fatalf("err=%v, want ErrEmptyHandle", err)
+	if !errors.Is(err, dom.ErrInvalidHandle) {
+		t.Fatalf("err=%v, want dom.ErrInvalidHandle", err)
 	}
 }
 
@@ -39,8 +39,8 @@ func TestCreateUserDuplicate(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err := s.CreateUser("alice")
-	if !errors.Is(err, store.ErrDuplicateUser) {
-		t.Fatalf("err=%v, want ErrDuplicateUser", err)
+	if !errors.Is(err, store.ErrHandleTaken) {
+		t.Fatalf("err=%v, want ErrHandleTaken", err)
 	}
 }
 
@@ -92,8 +92,8 @@ func TestUnfollowIdempotentAndUnknownGuard(t *testing.T) {
 func TestPostTweetEmptyText(t *testing.T) {
 	s := newSvc()
 	_, _ = s.CreateUser("alice")
-	if _, err := s.PostTweet("alice", ""); !errors.Is(err, ErrEmptyText) {
-		t.Fatalf("err=%v, want ErrEmptyText", err)
+	if _, err := s.PostTweet("alice", ""); !errors.Is(err, dom.ErrInvalidText) {
+		t.Fatalf("err=%v, want dom.ErrInvalidText", err)
 	}
 }
 
@@ -135,7 +135,7 @@ func TestHomeTimelineDelegates(t *testing.T) {
 	_, _ = s.CreateUser("bob")
 	_ = s.Follow("alice", "bob")
 	_, _ = s.PostTweet("bob", "hi")
-	got := s.HomeTimeline("alice", 0)
+	got, _ := s.HomeTimeline("alice", 1000, 0)
 	if len(got) != 1 || got[0].Author != "bob" {
 		t.Fatalf("got %v, want [bob's tweet]", got)
 	}

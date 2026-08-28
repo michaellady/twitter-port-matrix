@@ -92,10 +92,27 @@ func New(clk clock.Clock) (s *Service) {
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
 func (s *Service) CreateUser(handle string) (u dom.User, err error) {
-	if handle == "" {
-		return dom.User{}, ErrEmptyHandle
+	// Syntax before existence (D6). The bound and the alphabet are part of
+	// the observable contract, so they live here in the verified core rather
+	// than in the HTTP shim, which Gobra does not verify.
+	if !dom.ValidHandle(handle) {
+		return dom.User{}, dom.ErrInvalidHandle
 	}
 	// @ unfold s.LockP()
+	// Reject a duplicate BEFORE consuming an id. The previous order allocated
+	// first and rejected second, so every rejected registration burned a user
+	// id -- visible in the R0 baseline as {"handle":"Alice","id":5} after four
+	// rejections. S_obs allocates only on success.
+	//
+	// Under concurrent registration of the same handle this check can still
+	// lose the race to PutUser and waste one id. PutUser stays authoritative
+	// for uniqueness, so only the id is lost, never the guarantee. S_obs has
+	// no concurrency notion, so R0 cannot see this; it is left for R1's
+	// concurrency exploration and recorded rather than hidden.
+	if s.st.HasUser(handle) {
+		// @ fold s.LockP()
+		return dom.User{}, store.ErrHandleTaken
+	}
 	u = dom.User{ID: s.idsUsr.Next(), Handle: handle}
 	err = s.st.PutUser(u)
 	// @ fold s.LockP()
@@ -142,15 +159,24 @@ func (s *Service) HasUser(handle string) (result bool) {
 // @ requires isComparable(dom.ErrSelfFollow)
 // @ ensures acc(s.LockP())
 func (s *Service) Follow(from, to string) (err error) {
-	if from == to {
-		// F4 short-circuit: dom.NewFollow would return ErrSelfFollow on
-		// this path; we mirror that here so the from != to fact is
-		// available syntactically for the rest of the body. Identical
-		// runtime behavior — Follow has no other side effects on the
-		// self-follow path either way.
-		_, derr := dom.NewFollow(from, to)
-		return derr
+	// S_obs decision D4: EXISTENCE IS CHECKED BEFORE SEMANTICS.
+	//
+	// twitter.tla's Follow is an unordered conjunction
+	// (a in knownUsers /\ b in knownUsers /\ a # b), so the model does not
+	// say which error follow(eve, eve) yields when eve is unknown. This code
+	// previously tested from == to first and answered self_follow_forbidden;
+	// S_obs answers unknown_user. Both refine the model, TLC accepts either,
+	// and either would prove F4 under Gobra -- yet one request tells them
+	// apart. See evidence/findings/F003.
+	if !dom.ValidHandle(from) || !dom.ValidHandle(to) {
+		return dom.ErrInvalidHandle
 	}
+	// @ unfold s.LockP()
+	if !s.st.HasUser(from) || !s.st.HasUser(to) {
+		// @ fold s.LockP()
+		return store.ErrUnknownUser
+	}
+	// @ fold s.LockP()
 	f, derr := dom.NewFollow(from, to)
 	if derr != nil {
 		return derr
@@ -194,6 +220,13 @@ func (s *Service) Follow(from, to string) (err error) {
 // @ ensures acc(s.LockP())
 func (s *Service) Unfollow(from, to string) (err error) {
 	// @ unfold s.LockP()
+	// Syntax before existence (D6). Self-unfollow of a known user is a legal
+	// no-op: twitter.tla's Unfollow requires a,b in knownUsers but, unlike
+	// Follow, does NOT require a # b. See S_obs decision D5.
+	if !dom.ValidHandle(from) || !dom.ValidHandle(to) {
+		// @ fold s.LockP()
+		return dom.ErrInvalidHandle
+	}
 	if !s.st.HasUser(from) || !s.st.HasUser(to) {
 		// @ fold s.LockP()
 		return store.ErrUnknownUser
@@ -242,8 +275,12 @@ func (s *Service) Unfollow(from, to string) (err error) {
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
 func (s *Service) PostTweet(author, text string) (t dom.Tweet, err error) {
-	if text == "" {
-		return dom.Tweet{}, ErrEmptyText
+	// Syntax before existence, uniformly (D6).
+	if !dom.ValidHandle(author) {
+		return dom.Tweet{}, dom.ErrInvalidHandle
+	}
+	if !dom.ValidText(text) {
+		return dom.Tweet{}, dom.ErrInvalidText
 	}
 	// @ unfold s.LockP()
 	if !s.st.HasUser(author) {
@@ -264,11 +301,24 @@ func (s *Service) PostTweet(author, text string) (t dom.Tweet, err error) {
 	return t, nil
 }
 
-// HomeTimeline returns the current timeline page for `user`. F1 visibility +
-// F2 ordering enforced by the store.
-// @ trusted
-func (s *Service) HomeTimeline(user string, limit int) []dom.Tweet {
-	return s.st.HomeTimeline(user, limit)
+// HomeTimeline returns one page of the timeline for `user`, newest first.
+//
+// F1 (visibility) and F2 (ordering) are discharged in the store by the
+// append-log reshape rather than delegated to a trusted sort -- see the
+// monotonicity lemma in package store. This method is now a plain forwarding
+// call with a real contract, so the `// @ trusted` marker is gone.
+//
+// cursor is exclusive: only ids strictly below it are returned. cursor <= 0
+// starts from the newest. `more` reports whether a further visible tweet
+// exists below the page, which is what lets the caller distinguish
+// "next_cursor: null means nothing remains" from "the page happened to fill".
+//
+// @ requires acc(s.LockP())
+// @ requires limit > 0
+// @ ensures acc(s.LockP())
+// @ ensures len(out) <= limit
+func (s *Service) HomeTimeline(user string, limit int, cursor int64) (out []dom.Tweet, more bool) {
+	return s.st.HomeTimeline(user, limit, cursor)
 }
 
 // Tick advances the clock — used by the conformance harness between steps to
@@ -385,4 +435,17 @@ type ServiceSnapshot struct {
 	IDCounterUsers  int64
 	IDCounterTweets int64
 	ClockNow        int64
+}
+
+// Now returns the current logical timestamp without advancing it.
+//
+// Exported so the tick route can report the clock it just advanced. Read-only:
+// there is deliberately no exported way to SET the clock, because that is the
+// capability that made the shared conformance corpus unfalsifiable on
+// created_at (finding F001).
+//
+// @ requires acc(s.LockP())
+// @ ensures acc(s.LockP())
+func (s *Service) Now() int64 {
+	return nowLogical(s.clk)
 }

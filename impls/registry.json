@@ -9,7 +9,7 @@
       "addr_env": "ADDR",
       "health_path": "/healthz",
       "verifier": "Gobra",
-      "status": "vendored; R0 baseline 7/54 exact, 39 differ (see evidence/findings/F003) -- retargeting is step 1c"
+      "status": "retargeted to the S_obs contract; R0 54/54 byte-exact, canary verified"
     }
   }
 }

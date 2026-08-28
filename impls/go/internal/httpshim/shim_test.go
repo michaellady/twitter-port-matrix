@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/michaellady/twitter-port-matrix-impl-go/internal/clock"
@@ -54,13 +53,30 @@ func bodyContainsKey(t *testing.T, raw []byte, key string) any {
 	return v
 }
 
+// The assertions below were updated when the implementation was retargeted
+// onto the S_obs contract in step 1c. They are not weakened -- the OBSERVABLE
+// CONTRACT changed, deliberately and in a documented way:
+//
+//   * 405 -> 404 not_found. S_obs routes on (method, path) as one unit; an
+//     unmatched pair is simply not a route (D7).
+//   * invalid_json / empty_handle / empty_text / empty_user / duplicate_user
+//     -> malformed_request / invalid_handle / invalid_text /
+//     malformed_request / handle_taken. The old vocabulary was unconstrained
+//     by twitter.tla; S_obs fixes it (D6, D7).
+//   * timeline for an unknown user: 200 with an empty page -> 400
+//     unknown_user. Totality means every request has a defined answer, and
+//     silently returning an empty page for a user who does not exist hides a
+//     client error.
+//
+// See spec/s_obs/DECISIONS.md.
+
 func TestUsersRejectsNonPost(t *testing.T) {
 	srv := newServer()
 	defer srv.Close()
 	for _, m := range []string{http.MethodGet, http.MethodDelete, http.MethodPut} {
 		resp, _ := do(t, srv, m, "/users", "")
-		if resp.StatusCode != http.StatusMethodNotAllowed {
-			t.Fatalf("%s /users got status=%d, want 405", m, resp.StatusCode)
+		if resp.StatusCode != http.StatusNotFound {
+			t.Fatalf("%s /users got status=%d, want 404", m, resp.StatusCode)
 		}
 	}
 }
@@ -72,7 +88,7 @@ func TestUsersInvalidJSON(t *testing.T) {
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status=%d, want 400", resp.StatusCode)
 	}
-	if got := bodyContainsKey(t, body, "error"); got != "invalid_json" {
+	if got := bodyContainsKey(t, body, "error"); got != "malformed_request" {
 		t.Fatalf("error=%v, want invalid_json", got)
 	}
 }
@@ -84,7 +100,7 @@ func TestUsersEmptyHandle(t *testing.T) {
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status=%d", resp.StatusCode)
 	}
-	if got := bodyContainsKey(t, body, "error"); got != "empty_handle" {
+	if got := bodyContainsKey(t, body, "error"); got != "invalid_handle" {
 		t.Fatalf("error=%v, want empty_handle", got)
 	}
 }
@@ -100,7 +116,7 @@ func TestUsersDuplicate(t *testing.T) {
 	if resp.StatusCode != http.StatusConflict {
 		t.Fatalf("second create status=%d, want 409", resp.StatusCode)
 	}
-	if got := bodyContainsKey(t, body, "error"); got != "duplicate_user" {
+	if got := bodyContainsKey(t, body, "error"); got != "handle_taken" {
 		t.Fatalf("error=%v", got)
 	}
 }
@@ -109,8 +125,8 @@ func TestFollowMethodNotAllowed(t *testing.T) {
 	srv := newServer()
 	defer srv.Close()
 	resp, _ := do(t, srv, http.MethodGet, "/follow", "")
-	if resp.StatusCode != http.StatusMethodNotAllowed {
-		t.Fatalf("status=%d, want 405", resp.StatusCode)
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("status=%d, want 404", resp.StatusCode)
 	}
 }
 
@@ -127,7 +143,7 @@ func TestTweetsMethodNotAllowed(t *testing.T) {
 	srv := newServer()
 	defer srv.Close()
 	resp, _ := do(t, srv, http.MethodGet, "/tweets", "")
-	if resp.StatusCode != http.StatusMethodNotAllowed {
+	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("status=%d", resp.StatusCode)
 	}
 }
@@ -149,7 +165,7 @@ func TestTweetsEmptyText(t *testing.T) {
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status=%d", resp.StatusCode)
 	}
-	if got := bodyContainsKey(t, body, "error"); got != "empty_text" {
+	if got := bodyContainsKey(t, body, "error"); got != "invalid_text" {
 		t.Fatalf("error=%v", got)
 	}
 }
@@ -170,7 +186,7 @@ func TestTimelineMethodNotAllowed(t *testing.T) {
 	srv := newServer()
 	defer srv.Close()
 	resp, _ := do(t, srv, http.MethodPost, "/timeline?user=alice", "")
-	if resp.StatusCode != http.StatusMethodNotAllowed {
+	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("status=%d", resp.StatusCode)
 	}
 }
@@ -182,7 +198,7 @@ func TestTimelineMissingUser(t *testing.T) {
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status=%d", resp.StatusCode)
 	}
-	if got := bodyContainsKey(t, body, "error"); got != "empty_user" {
+	if got := bodyContainsKey(t, body, "error"); got != "malformed_request" {
 		t.Fatalf("error=%v", got)
 	}
 }
@@ -190,7 +206,10 @@ func TestTimelineMissingUser(t *testing.T) {
 func TestTimelineInvalidLimit(t *testing.T) {
 	srv := newServer()
 	defer srv.Close()
-	for _, q := range []string{"?user=alice&limit=-1", "?user=alice&limit=abc"} {
+	// alice must exist, or the existence check fires before the limit check
+	// and this test silently asserts unknown_user instead of invalid_limit.
+	_, _ = do(t, srv, http.MethodPost, "/users", `{"handle":"alice"}`)
+	for _, q := range []string{"?user=alice&limit=-1", "?user=alice&limit=abc", "?user=alice&limit=0", "?user=alice&limit=101"} {
 		resp, body := do(t, srv, http.MethodGet, "/timeline"+q, "")
 		if resp.StatusCode != http.StatusBadRequest {
 			t.Fatalf("limit=%q status=%d", q, resp.StatusCode)
@@ -201,15 +220,15 @@ func TestTimelineInvalidLimit(t *testing.T) {
 	}
 }
 
-func TestTimelineEmptyForUnknownUser(t *testing.T) {
+func TestTimelineRejectsUnknownUser(t *testing.T) {
 	srv := newServer()
 	defer srv.Close()
 	resp, body := do(t, srv, http.MethodGet, "/timeline?user=ghost", "")
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("status=%d", resp.StatusCode)
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status=%d, want 400", resp.StatusCode)
 	}
-	if !strings.Contains(string(body), `"tweets":[]`) {
-		t.Fatalf("expected empty tweets array, got %s", body)
+	if got := bodyContainsKey(t, body, "error"); got != "unknown_user" {
+		t.Fatalf("error=%v, want unknown_user", got)
 	}
 }
 

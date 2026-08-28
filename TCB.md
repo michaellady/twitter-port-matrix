@@ -74,3 +74,32 @@ same machine. Generating them from one source reduces this to trusting
   only through the observable API. This is the specific defect recorded in
   finding F001, where both existing harnesses set the clock to the expected
   answer before asking the question.
+
+## The verified-core / trusted-shim boundary (added in step 1c)
+
+Gobra's verification matrix is `[clock, ids, dom, store, service]`. It does
+**not** include `httpshim`. The split follows that line exactly:
+
+| Concern | Location | Status |
+|---|---|---|
+| Handle and text validity, validation order, error vocabulary, follow/unfollow semantics, the append-log invariant, timeline visibility and ordering, pagination, clock advance | `dom`, `store`, `service` | verified core |
+| JSON strictness, canonical byte encoding, routing, status mapping | `httpshim` | trusted transport |
+
+Putting contract semantics in the shim would produce a green R0 over code no
+verifier ever reads, and R5 would then prove nothing about observable
+behaviour. During step 1c three core patches silently failed to apply and R0
+still climbed from 7/54 to 44/54 on shim changes alone — a live demonstration
+that R0 alone cannot tell you *where* the behaviour lives.
+
+### Trusted surface removed in step 1c
+
+The store went from 10 `// @ trusted` markers to 4. Deleted: `putFollowEdge`,
+`deleteFollowEdge`, `appendTweet`, `iterFollows`, `gatherTimeline`,
+`sortTimeline` — all six existed solely because `follows` and `byAuthor` were
+nested containers. Remaining: two error constructors, plus `Snapshot` and
+`Replace`, which are admin-path serialization carrying no F-property
+obligation.
+
+This is a reduction, not a relocation. See findings F004 and F005 — F005 in
+particular records why the reduction is only sound once the log invariant is
+enforced at the mutation site.

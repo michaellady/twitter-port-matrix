@@ -100,7 +100,8 @@ right instrument. Deferred by choice, not overlooked.
 - [x] **1b** `replay` — drives an implementation over HTTP and byte-compares.
       R0 baseline recorded: 7/54 exact, 8 whitespace-only, 39 differ. See
       finding F003
-- [ ] **1c** Retarget Go to the `S_obs` contract. Semantics go in the
+- [x] **1c** Retarget Go to the `S_obs` contract. **R0 54/54 byte-exact**,
+      canary verified. Six `// @ trusted` shims deleted from the store. Semantics go in the
       VERIFIED CORE (`dom`, `store`, `service`), wire format in the trusted
       shim — putting semantics in `httpshim` would green R0 over code no
       verifier reads, and R5 would prove nothing observable. See F004.
@@ -135,26 +136,29 @@ right instrument. Deferred by choice, not overlooked.
 ## STATE
 
 **Phase:** 1
-**Next step:** 1c(i) — append-log reshape of store.HomeTimeline
+**Next step:** 1d — vendor and retarget the Rust implementation
 **Last updated:** 2026-08-28
 
 **Gates currently green:**
 `matrixctl doctor` · `matrixctl spec check` (4/4)
 
-**R0 status:** go 7/54 exact — baseline before retargeting, see F003
+**R0 status:** go **54/54 byte-exact** (was 7/54). Canary verified: reintroducing
+the F003 defect fails exactly one step and reverting restores green.
 
 **Blocked / waiting:** nothing
 
 **Notes for the next iteration:**
-- 1c has three roots to fix, in this order: add the tick route (unblocks F2,
-  F7, F8, D9 at once), make parsing strict (D7, 10 steps), align the
-  error-code vocabulary (7 renamings). Then the trailing newline (D8).
-- The Go impl chose the opposite error precedence to D4. Finding F003 — keep
-  it; it is the concrete form of the whole argument.
-- F004: upstream's own comment names "a flat reshape of s.byAuthor +
-  s.follows" as an option for discharging F2, then scopes it out. That IS the
-  sort-free design. Doing it deletes two `// @ trusted` shims rather than
-  shrinking them.
+- 1c is done. The store's `// @ trusted` markers went 10 -> 4; the six that
+  went were putFollowEdge, deleteFollowEdge, appendTweet, iterFollows,
+  gatherTimeline and sortTimeline, all of which existed only because of the
+  nested map shapes. The four remaining are two error constructors and
+  Snapshot/Replace.
+- F005: enforcing the log invariant in PutTweet is what makes F2 genuinely
+  derived. Carry the same enforcement into the Rust corner in 1d — the lemma
+  has the same two premises there.
+- WATCH OUT in 1d: three `str.replace` patches on service.go silently no-oped
+  because their anchors missed Gobra `// @ unfold` comment lines, and R0 still
+  climbed to 44/54 on shim changes alone. Assert on EVERY source patch.
 - Orchestration decided: loop drives 1c–1h and Phases 2–3; workflows are
   called by the loop at 1i and Phase 4. See the Orchestration section.
 - `eclipse-temurin:21-jre` is now pulled and digest-pinned in

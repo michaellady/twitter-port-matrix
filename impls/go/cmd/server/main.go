@@ -35,8 +35,13 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	ui.Mount(mux, svc)                        // Phase 2: UI ("/", "/u/", forms)
-	httpshim.Register(mux, svc)               // Phase 1: JSON API + /healthz + /version
+	// The demo UI owns "/" and is NOT part of the observable contract, so it
+	// is opt-in. With it mounted, an unrouted path reaches the UI instead of
+	// the API's JSON not_found, which would fail R0. Default is API-only.
+	if os.Getenv("UI") == "true" {
+		ui.Mount(mux, svc)
+	}
+	httpshim.Register(mux, svc)               // JSON API + /healthz + /version
 	admin.Mount(mux, svc)                     // Stream 2 Phase 0: /_admin/snapshot, /_admin/load-snapshot
 	mux.Handle("/metrics", metrics.Handler()) // Phase 4: Prometheus exposition
 

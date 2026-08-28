@@ -1,8 +1,8 @@
 // Package admin is the EXPLICITLY TRUSTED HTTP boundary for Stream 2's
 // snapshot contract. It exposes two endpoints:
 //
-//   POST /_admin/snapshot      — capture full service state as JSON
-//   POST /_admin/load-snapshot — replace full service state from JSON
+//	POST /_admin/snapshot      — capture full service state as JSON
+//	POST /_admin/load-snapshot — replace full service state from JSON
 //
 // Both require an X-Admin-Token header that constant-time-compares
 // (crypto/subtle) against the ADMIN_TOKEN env var. Bound at Mount-time

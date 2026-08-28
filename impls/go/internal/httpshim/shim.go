@@ -11,6 +11,7 @@ package httpshim
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -48,6 +49,13 @@ func Register(mux *http.ServeMux, svc *service.Service) {
 	mux.HandleFunc("/follow", h.follow)
 	mux.HandleFunc("/tweets", h.tweets)
 	mux.HandleFunc("/timeline", h.timeline)
+	mux.HandleFunc("/tick", h.tick)
+	// Catch-all. Without it net/http's ServeMux answers an unrouted path with
+	// its own plain-text "404 page not found", which is not the observable
+	// contract: S_obs requires {"error":"not_found"}. Totality means every
+	// request has a DEFINED response, so the default route is part of the
+	// contract rather than a fallback.
+	mux.HandleFunc("/", h.notFound)
 	mux.HandleFunc("/healthz", h.healthz)
 	mux.HandleFunc("/version", h.version)
 }
@@ -111,13 +119,34 @@ type tweetBody struct {
 
 type timelineBody struct {
 	Tweets     []tweetBody `json:"tweets"`
-	NextCursor *string     `json:"next_cursor"`
+	NextCursor *int64      `json:"next_cursor"`
 }
 
+// clockBody renders {"clock":<n>}.
+type clockBody struct {
+	Clock int64 `json:"clock"`
+}
+
+// Pagination bounds from S_obs decision D10.
+const (
+	defaultLimit = 50
+	maxLimit     = 100
+)
+
+// writeJSON emits the canonical encoding required by S_obs decision D8.
+//
+// json.Encoder.Encode appends a trailing newline; Marshal does not. Under a
+// byte-equality conformance rule that newline is a real observable
+// difference, and it accounted for 8 of the 54 R0 baseline steps.
 func writeJSON(w http.ResponseWriter, status int, v any) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
+	_, _ = w.Write(b)
 }
 
 func writeErr(w http.ResponseWriter, status int, code string) {
@@ -135,28 +164,64 @@ func writeErrFor(w http.ResponseWriter, r *http.Request, status int, code string
 	writeJSON(w, status, errBody{Error: code})
 }
 
+// decodeStrict parses exactly one JSON object into dst, rejecting unknown
+// fields and trailing content (S_obs decision D7).
+//
+// Lenient parsing is a classic source of cross-language divergence: it is
+// precisely where two implementations can accept different inputs and both
+// look correct. Ten of the 54 R0 baseline steps failed here.
+//
+// Known limitation, stated rather than hidden: duplicate JSON keys resolve
+// last-wins, which is Go's decoder behaviour. No generated trace emits them.
+func decodeStrict(r *http.Request, dst any) bool {
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(dst); err != nil {
+		return false
+	}
+	if _, err := dec.Token(); err != io.EOF {
+		return false
+	}
+	return true
+}
+
+// writeErrFromDomain maps a core error onto its wire status.
+//
+// The verified core already speaks the observable vocabulary, so this is a
+// status lookup rather than a renaming. A translation table here would be one
+// more place for the vocabulary to drift out from under the proofs.
+func writeErrFromDomain(w http.ResponseWriter, r *http.Request, err error) {
+	switch err {
+	case store.ErrHandleTaken:
+		writeErrFor(w, r, http.StatusConflict, "handle_taken")
+	case store.ErrUnknownUser:
+		writeErrFor(w, r, http.StatusBadRequest, "unknown_user")
+	case dom.ErrSelfFollow:
+		writeErrFor(w, r, http.StatusBadRequest, "self_follow_forbidden")
+	case dom.ErrInvalidHandle:
+		writeErr(w, http.StatusBadRequest, "invalid_handle")
+	case dom.ErrInvalidText:
+		writeErr(w, http.StatusBadRequest, "invalid_text")
+	default:
+		writeErr(w, http.StatusInternalServerError, "internal_error")
+	}
+}
+
 func (h *handlers) users(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		writeErr(w, http.StatusMethodNotAllowed, "method_not_allowed")
+		writeErr(w, http.StatusNotFound, "not_found")
 		return
 	}
 	var req struct {
-		Handle string `json:"handle"`
+		Handle *string `json:"handle"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErr(w, http.StatusBadRequest, "invalid_json")
+	if !decodeStrict(r, &req) || req.Handle == nil {
+		writeErr(w, http.StatusBadRequest, "malformed_request")
 		return
 	}
-	u, err := h.svc.CreateUser(req.Handle)
+	u, err := h.svc.CreateUser(*req.Handle)
 	if err != nil {
-		switch err {
-		case service.ErrEmptyHandle:
-			writeErr(w, http.StatusBadRequest, "empty_handle")
-		case store.ErrDuplicateUser:
-			writeErrFor(w, r, http.StatusConflict, "duplicate_user")
-		default:
-			writeErr(w, http.StatusInternalServerError, "internal_error")
-		}
+		writeErrFromDomain(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, userBody{Handle: u.Handle, ID: u.ID})
@@ -166,40 +231,25 @@ func (h *handlers) follow(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost, http.MethodDelete:
 	default:
-		writeErr(w, http.StatusMethodNotAllowed, "method_not_allowed")
+		writeErr(w, http.StatusNotFound, "not_found")
 		return
 	}
 	var req struct {
-		From string `json:"from"`
-		To   string `json:"to"`
+		From *string `json:"from"`
+		To   *string `json:"to"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErr(w, http.StatusBadRequest, "invalid_json")
+	if !decodeStrict(r, &req) || req.From == nil || req.To == nil {
+		writeErr(w, http.StatusBadRequest, "malformed_request")
 		return
 	}
+	var err error
 	if r.Method == http.MethodPost {
-		if err := h.svc.Follow(req.From, req.To); err != nil {
-			switch err {
-			case dom.ErrSelfFollow:
-				writeErrFor(w, r, http.StatusBadRequest, "self_follow_forbidden")
-			case store.ErrUnknownUser:
-				writeErrFor(w, r, http.StatusBadRequest, "unknown_user")
-			default:
-				writeErr(w, http.StatusInternalServerError, "internal_error")
-			}
-			return
-		}
-		w.WriteHeader(http.StatusNoContent)
-		return
+		err = h.svc.Follow(*req.From, *req.To)
+	} else {
+		err = h.svc.Unfollow(*req.From, *req.To)
 	}
-	// DELETE
-	if err := h.svc.Unfollow(req.From, req.To); err != nil {
-		switch err {
-		case store.ErrUnknownUser:
-			writeErrFor(w, r, http.StatusBadRequest, "unknown_user")
-		default:
-			writeErr(w, http.StatusInternalServerError, "internal_error")
-		}
+	if err != nil {
+		writeErrFromDomain(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -207,27 +257,20 @@ func (h *handlers) follow(w http.ResponseWriter, r *http.Request) {
 
 func (h *handlers) tweets(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		writeErr(w, http.StatusMethodNotAllowed, "method_not_allowed")
+		writeErr(w, http.StatusNotFound, "not_found")
 		return
 	}
 	var req struct {
-		Author string `json:"author"`
-		Text   string `json:"text"`
+		Author *string `json:"author"`
+		Text   *string `json:"text"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeErr(w, http.StatusBadRequest, "invalid_json")
+	if !decodeStrict(r, &req) || req.Author == nil || req.Text == nil {
+		writeErr(w, http.StatusBadRequest, "malformed_request")
 		return
 	}
-	t, err := h.svc.PostTweet(req.Author, req.Text)
+	t, err := h.svc.PostTweet(*req.Author, *req.Text)
 	if err != nil {
-		switch err {
-		case service.ErrEmptyText:
-			writeErr(w, http.StatusBadRequest, "empty_text")
-		case store.ErrUnknownUser:
-			writeErrFor(w, r, http.StatusBadRequest, "unknown_user")
-		default:
-			writeErr(w, http.StatusInternalServerError, "internal_error")
-		}
+		writeErrFromDomain(w, r, err)
 		return
 	}
 	writeJSON(w, http.StatusCreated, tweetBody{
@@ -235,31 +278,102 @@ func (h *handlers) tweets(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// tick advances the logical clock (S_obs decision D3).
+//
+// The clock previously had no route at all. That is why the shared corpus
+// asserted a created_at no sequence of its own requests could reach, and why
+// both conformance harnesses resolved it by writing to the clock directly --
+// see evidence/findings/F001. One request now maps 1:1 onto one TLA+ Tick
+// step, so every timestamp in a trace is produced by the trace.
+func (h *handlers) tick(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		writeErr(w, http.StatusNotFound, "not_found")
+		return
+	}
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, "malformed_request")
+		return
+	}
+	if s := strings.TrimSpace(string(body)); s != "" && s != "{}" {
+		writeErr(w, http.StatusBadRequest, "malformed_request")
+		return
+	}
+	h.svc.Tick()
+	writeJSON(w, http.StatusOK, clockBody{Clock: h.svc.Now()})
+}
+
 func (h *handlers) timeline(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		writeErr(w, http.StatusMethodNotAllowed, "method_not_allowed")
+		writeErr(w, http.StatusNotFound, "not_found")
 		return
 	}
-	user := r.URL.Query().Get("user")
-	if user == "" {
-		writeErr(w, http.StatusBadRequest, "empty_user")
+	if r.URL.RawQuery == "" {
+		writeErr(w, http.StatusBadRequest, "malformed_request")
 		return
 	}
-	limit := 0
-	if s := r.URL.Query().Get("limit"); s != "" {
-		v, err := strconv.Atoi(strings.TrimSpace(s))
-		if err != nil || v < 0 {
+	q := r.URL.Query()
+	// Unknown or repeated query parameters are rejected (D7).
+	for k, v := range q {
+		if k != "user" && k != "limit" && k != "cursor" {
+			writeErr(w, http.StatusBadRequest, "malformed_request")
+			return
+		}
+		if len(v) != 1 {
+			writeErr(w, http.StatusBadRequest, "malformed_request")
+			return
+		}
+	}
+	users, ok := q["user"]
+	if !ok {
+		writeErr(w, http.StatusBadRequest, "malformed_request")
+		return
+	}
+	user := users[0]
+	if !dom.ValidHandle(user) {
+		writeErr(w, http.StatusBadRequest, "invalid_handle")
+		return
+	}
+	if !h.svc.HasUser(user) {
+		writeErrFor(w, r, http.StatusBadRequest, "unknown_user")
+		return
+	}
+
+	limit := defaultLimit
+	if raw, ok := q["limit"]; ok {
+		v, err := strconv.ParseInt(raw[0], 10, 64)
+		if err != nil || v < 1 || v > maxLimit {
 			writeErr(w, http.StatusBadRequest, "invalid_limit")
 			return
 		}
-		limit = v
+		limit = int(v)
 	}
-	tw := h.svc.HomeTimeline(user, limit)
+	var cursor int64
+	if raw, ok := q["cursor"]; ok {
+		v, err := strconv.ParseInt(raw[0], 10, 64)
+		if err != nil || v < 1 {
+			writeErr(w, http.StatusBadRequest, "invalid_cursor")
+			return
+		}
+		cursor = v
+	}
+
+	tw, more := h.svc.HomeTimeline(user, limit, cursor)
 	out := timelineBody{Tweets: make([]tweetBody, 0, len(tw))}
 	for _, t := range tw {
 		out.Tweets = append(out.Tweets, tweetBody{
 			ID: t.ID, Author: t.Author, Text: t.Text, CreatedAt: t.CreatedAt,
 		})
 	}
+	// next_cursor is null exactly when nothing remains below the page (D10).
+	if more && len(tw) > 0 {
+		last := tw[len(tw)-1].ID
+		out.NextCursor = &last
+	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+// notFound is the total-by-construction default route (S_obs D7).
+func (h *handlers) notFound(w http.ResponseWriter, r *http.Request) {
+	writeErr(w, http.StatusNotFound, "not_found")
 }

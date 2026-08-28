@@ -36,8 +36,8 @@ func TestPutUserDuplicate(t *testing.T) {
 		t.Fatal(err)
 	}
 	err := s.PutUser(dom.User{ID: 2, Handle: "alice"})
-	if !errors.Is(err, ErrDuplicateUser) {
-		t.Fatalf("PutUser duplicate: err=%v, want ErrDuplicateUser", err)
+	if !errors.Is(err, ErrHandleTaken) {
+		t.Fatalf("PutUser duplicate: err=%v, want ErrHandleTaken", err)
 	}
 }
 
@@ -110,7 +110,7 @@ func TestHomeTimelineSeesOwnAndFollowed(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	timeline := s.HomeTimeline("alice", 0)
+	timeline, _ := s.HomeTimeline("alice", 1000, 0)
 	if len(timeline) != 2 {
 		t.Fatalf("timeline length=%d, want 2 (alice's own + bob's)", len(timeline))
 	}
@@ -134,7 +134,7 @@ func TestHomeTimelineOrderingDescByCreatedAtThenID(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	timeline := s.HomeTimeline("alice", 0)
+	timeline, _ := s.HomeTimeline("alice", 1000, 0)
 	wantIDs := []int64{4, 3, 2, 1}
 	for i, want := range wantIDs {
 		if timeline[i].ID != want {
@@ -154,7 +154,7 @@ func TestHomeTimelineOrderingDescByCreatedAtThenID(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	got := s2.HomeTimeline("alice", 0)
+	got, _ := s2.HomeTimeline("alice", 1000, 0)
 	wantIDs2 := []int64{3, 2, 1}
 	for i, want := range wantIDs2 {
 		if got[i].ID != want {
@@ -171,13 +171,13 @@ func TestHomeTimelineLimit(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if got := s.HomeTimeline("alice", 3); len(got) != 3 {
+	if got, _ := s.HomeTimeline("alice", 3, 0); len(got) != 3 {
 		t.Fatalf("limit=3 got len=%d", len(got))
 	}
-	if got := s.HomeTimeline("alice", 0); len(got) != 10 {
+	if got, _ := s.HomeTimeline("alice", 1000, 0); len(got) != 10 {
 		t.Fatalf("limit=0 got len=%d, want all 10", len(got))
 	}
-	if got := s.HomeTimeline("alice", 100); len(got) != 10 {
+	if got, _ := s.HomeTimeline("alice", 100, 0); len(got) != 10 {
 		t.Fatalf("limit > available got len=%d, want 10", len(got))
 	}
 }
@@ -188,7 +188,7 @@ func TestHomeTimelineUnknownUserReturnsEmpty(t *testing.T) {
 	if err := s.PutTweet(dom.Tweet{ID: 1, Author: "alice", CreatedAt: 1}); err != nil {
 		t.Fatal(err)
 	}
-	if got := s.HomeTimeline("ghost", 0); len(got) != 0 {
+	if got, _ := s.HomeTimeline("ghost", 1000, 0); len(got) != 0 {
 		t.Fatalf("unknown user timeline got %d entries, want 0", len(got))
 	}
 }
@@ -205,12 +205,12 @@ func TestPostBeforeFollowAndUnfollowAfterVisible(t *testing.T) {
 	if err := s.PutFollow(f); err != nil {
 		t.Fatal(err)
 	}
-	if got := s.HomeTimeline("alice", 0); len(got) != 1 || got[0].ID != 1 {
+	if got, _ := s.HomeTimeline("alice", 1000, 0); len(got) != 1 || got[0].ID != 1 {
 		t.Fatalf("post-before-follow: got %v, want [bob's tweet id=1]", got)
 	}
 	// Now unfollow — bob's tweet must vanish from alice's timeline.
 	s.DeleteFollow("alice", "bob")
-	if got := s.HomeTimeline("alice", 0); len(got) != 0 {
+	if got, _ := s.HomeTimeline("alice", 1000, 0); len(got) != 0 {
 		t.Fatalf("after unfollow: got %v, want []", got)
 	}
 }
@@ -235,7 +235,13 @@ func TestSnapshotIsSorted(t *testing.T) {
 	if err := s.PutTweet(dom.Tweet{ID: 7, Author: "carol", Text: "z", CreatedAt: 1}); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.PutTweet(dom.Tweet{ID: 3, Author: "alice", Text: "y", CreatedAt: 0}); err != nil {
+	// The log is append-ordered, so an out-of-order append is now REJECTED
+	// rather than silently accepted and sorted later. This is the enforced
+	// form of the monotonicity premise that F2 rests on.
+	if err := s.PutTweet(dom.Tweet{ID: 3, Author: "alice", Text: "y", CreatedAt: 0}); err != ErrNonMonotonic {
+		t.Fatalf("out-of-order append: err=%v, want ErrNonMonotonic", err)
+	}
+	if err := s.PutTweet(dom.Tweet{ID: 8, Author: "alice", Text: "y", CreatedAt: 1}); err != nil {
 		t.Fatal(err)
 	}
 	snap := s.Snapshot()
@@ -247,9 +253,10 @@ func TestSnapshotIsSorted(t *testing.T) {
 	if snap.Follows[0].From != "alice" || snap.Follows[1].From != "carol" {
 		t.Fatalf("follows not sorted: %+v", snap.Follows)
 	}
-	// Tweets sorted by ID ascending
-	if snap.Tweets[0].ID != 3 || snap.Tweets[1].ID != 7 {
-		t.Fatalf("tweets not sorted by id: %+v", snap.Tweets)
+	// Tweets come back in log order, which IS id-ascending because the log
+	// invariant is enforced on append. Snapshot performs no sort on them.
+	if snap.Tweets[0].ID != 7 || snap.Tweets[1].ID != 8 {
+		t.Fatalf("tweets not in log order: %+v", snap.Tweets)
 	}
 }
 
@@ -269,7 +276,7 @@ func TestReplaceRoundTrip(t *testing.T) {
 	if !dst.HasUser("alice") || !dst.HasUser("bob") {
 		t.Fatal("users missing after Replace")
 	}
-	tw := dst.HomeTimeline("alice", 0)
+	tw, _ := dst.HomeTimeline("alice", 1000, 0)
 	if len(tw) != 1 || tw[0].Author != "bob" {
 		t.Fatalf("alice timeline after Replace: %+v", tw)
 	}
@@ -292,7 +299,7 @@ func TestReplaceClearsExistingState(t *testing.T) {
 	if !s.HasUser("fresh") {
 		t.Fatal("Replace did not install fresh user")
 	}
-	if got := s.HomeTimeline("fresh", 0); len(got) != 0 {
+	if got, _ := s.HomeTimeline("fresh", 1000, 0); len(got) != 0 {
 		t.Fatalf("Replace did not clear pre-existing tweets: %+v", got)
 	}
 }

@@ -267,7 +267,7 @@ func (h *handlers) homeOrLogin(w http.ResponseWriter, r *http.Request) {
 			fmt.Sprintf("the handle @%s is no longer registered (state may have been reset). Re-register or pick another.", actor)))
 		return
 	}
-	tweets := h.svc.HomeTimeline(actor, 50)
+	tweets, _ := h.svc.HomeTimeline(actor, 50, 0)
 	body := fmt.Sprintf(`
 <h2>home timeline</h2>
 <div class="compose">
@@ -291,7 +291,7 @@ func (h *handlers) profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	actor, _ := currentActor(r)
-	tweets := h.svc.HomeTimeline(handle, 50) // shows their own + their follows; close enough for the demo
+	tweets, _ := h.svc.HomeTimeline(handle, 50, 0) // shows their own + their follows; close enough for the demo
 	// Filter to just this handle's tweets for the profile view
 	own := tweets[:0]
 	for _, t := range tweets {
@@ -364,7 +364,7 @@ func (h *handlers) register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, err := h.svc.CreateUser(handle)
-	if err != nil && !errors.Is(err, store.ErrDuplicateUser) {
+	if err != nil && !errors.Is(err, store.ErrHandleTaken) {
 		renderPage(w, "log in", "", loginBody(handle,
 			fmt.Sprintf("could not register @%s: %v", handle, err)))
 		return
