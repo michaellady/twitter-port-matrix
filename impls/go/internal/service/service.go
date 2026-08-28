@@ -313,12 +313,30 @@ func (s *Service) PostTweet(author, text string) (t dom.Tweet, err error) {
 // exists below the page, which is what lets the caller distinguish
 // "next_cursor: null means nothing remains" from "the page happened to fill".
 //
+// The `unfold`/`fold` pair is what hands `acc(s.st.LockP())` to the store
+// method and takes it back; without it Gobra reports "Permission to s.st
+// might not suffice" at the call. The result-permission and length clauses
+// are forwarded verbatim from store.HomeTimeline's contract, so this really
+// is a pass-through at the level of the proof and not only of the code.
+//
+// The F2 ordering clause is forwarded verbatim from store.HomeTimeline, so
+// the property survives the layer boundary instead of being re-asserted on
+// trust. This is the first time the service layer exports F2 as a proved
+// postcondition rather than a comment.
+//
 // @ requires acc(s.LockP())
 // @ requires limit > 0
 // @ ensures acc(s.LockP())
+// @ ensures acc(out)
 // @ ensures len(out) <= limit
+// @ ensures forall a, b int :: 0 <= a && a < b && b < len(out) ==>
+// @            (out[a].CreatedAt > out[b].CreatedAt ||
+// @             (out[a].CreatedAt == out[b].CreatedAt && out[a].ID > out[b].ID))
 func (s *Service) HomeTimeline(user string, limit int, cursor int64) (out []dom.Tweet, more bool) {
-	return s.st.HomeTimeline(user, limit, cursor)
+	// @ unfold s.LockP()
+	out, more = s.st.HomeTimeline(user, limit, cursor)
+	// @ fold s.LockP()
+	return out, more
 }
 
 // Tick advances the clock — used by the conformance harness between steps to
@@ -444,8 +462,14 @@ type ServiceSnapshot struct {
 // capability that made the shared conformance corpus unfalsifiable on
 // created_at (finding F001).
 //
+// Same framing point as HomeTimeline above: `s.clk` is reachable only after
+// unfolding LockP(), so the read is bracketed rather than returned directly.
+//
 // @ requires acc(s.LockP())
 // @ ensures acc(s.LockP())
-func (s *Service) Now() int64 {
-	return nowLogical(s.clk)
+func (s *Service) Now() (result int64) {
+	// @ unfold s.LockP()
+	result = nowLogical(s.clk)
+	// @ fold s.LockP()
+	return result
 }

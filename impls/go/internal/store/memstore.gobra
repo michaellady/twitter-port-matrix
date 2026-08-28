@@ -1,81 +1,99 @@
-// Gobra contracts for MemStore — F3, F5 (Go scope), F6, F9.
+// Gobra contracts for MemStore — F1, F2, F3, F5 (Go scope), F6, F9.
 //
-// F5 caveat: the mutex specs below establish data-race freedom under partial
-// correctness. They do NOT prove deadlock-freedom or starvation-freedom.
-// Those are explicitly out of scope and tested instead via `go test -race`
-// in CI's race job.
+// RETARGETED FOR THE FLAT RESHAPE (S-12). Everything below used to describe
+// the nested containers `follows map[string]map[string]bool` and
+// `byAuthor map[string][]dom.Tweet`. Those are gone; see the package comment
+// in memstore.go for the shapes that replaced them. The predicate had to be
+// retargeted because it still named `s.byAuthor`, a field that no longer
+// exists — which is what made the whole package fail to type-check.
 //
-// Stream 3 Phase 4 sub-PR (PutUser): introduces the `LockP()` permission
-// predicate over `*MemStore`. Same shape as `internal/clock/clock.gobra`
-// (S3P1a) and `internal/ids/ids.gobra` (S3P2a): the predicate abstracts the
-// resource the `mu` mutex protects (write permission to `users`, `follows`,
-// and `byAuthor`). `New()` folds the predicate after construction. The first
-// production method to consume it is `PutUser`, which now carries an in-line
-// `requires acc(s.LockP())` / `ensures acc(s.LockP())` contract instead of
-// `// @ trusted` — so the F3 / F6 / F9 ghost stubs for the remaining store
-// methods (PutFollow / DeleteFollow / PutTweet / FollowSet / HomeTimeline)
-// below stay in place until the follow-up sub-PRs in this stream lift them.
+// F5 caveat, unchanged: the mutex specs establish data-race freedom under
+// partial correctness only. Deadlock-freedom and starvation-freedom are out of
+// scope and are covered instead by `go test -race`.
 //
-// Stream 3 Phase 4 sub-PR 2 (HasUser): retires the `GhostHasUser` ghost stub
-// — `(*MemStore).HasUser` is now its own proof in `memstore.go`, with the
-// same `LockP()` unfold/fold pattern used by `PutUser`. Uses full
-// `acc(s.LockP())` rather than the prior 1/2 fraction so the contract
-// composes uniformly with the other discharged store methods on a sequential
-// caller chain.
+// # What LockP() now carries
 //
-// Stream 3 Phase 4 sub-PR 3 (PutFollow + DeleteFollow): retires the
-// `GhostPutFollow` and `GhostDeleteFollow` ghost stubs. Both methods are
-// now their own proofs in `memstore.go`, sharing the same `LockP()`
-// predicate footprint (PutFollow inserts into `s.follows`; DeleteFollow
-// removes; both touch the same map field).
+// LockP() is no longer purely a permission token. It also carries THE APPEND
+// LOG INVARIANT:
 //
-// Stream 3 Phase 4 sub-PR 4 (PutTweet): retires the `GhostPutTweet` ghost
-// stub — `(*MemStore).PutTweet` is now its own proof in `memstore.go`. Same
-// `LockP()` unfold/fold pattern as PutUser/PutFollow under the write lock.
-// The slice append `s.byAuthor[t.Author] = append(...)` is quarantined into
-// the tiny `// @ trusted` `appendTweet` shim. Postcondition is framing-only;
-// F6 stays enforced at runtime by the explicit user-existence guard.
+//	for all positions i < j:  tweets[i].ID < tweets[j].ID
+//	                     and  tweets[i].CreatedAt <= tweets[j].CreatedAt
 //
-// Stream 3 Phase 4 sub-PR 5 (FollowSet): no ghost stub to retire (FollowSet
-// never had one — the read-only contract was carried directly by the
-// `// @ trusted` marker). `(*MemStore).FollowSet` is now its own proof in
-// `memstore.go`, with the same `LockP()` unfold/fold pattern under `RLock`
-// used by `HasUser`. The inner-map iteration over `s.follows[from]` is
-// quarantined into the tiny `// @ trusted` `iterFollows` shim — same
-// inner-map permission gap as `putFollowEdge` / `deleteFollowEdge`.
-// Postcondition is framing-only.
+// This is the monotonicity lemma from D9, stated as a datatype invariant
+// rather than as a comment. Putting it in the predicate is what turns F2 from
+// an assumption into a theorem:
 //
-// Stream 3 Phase 4 sub-PR 6 (HomeTimeline): retires the `GhostHomeTimeline`
-// ghost stub. `(*MemStore).HomeTimeline` is now its own proof in
-// `memstore.go` AT FRAMING LEVEL ONLY (`requires/ensures acc(s.LockP())`).
-// Two tiny `// @ trusted` shims quarantine the inner operations:
-// `gatherTimeline` (build the authors set from `follows[user]` and collect
-// per-author tweet slices in one consolidated helper), and `sortTimeline`
-// (the `sort.Slice` call with the F2 closure comparator). EXPLICIT
-// NON-DISCHARGE: the F1 visibility postcondition (every returned tweet's
-// author is in `{user} ∪ follows[user]`) and the F2 sort postcondition
-// (returned list is sorted by (created_at desc, id desc)) are NOT formally
-// verified here — both require quantifier reasoning out of scope for the
-// per-method discharge cadence of S3P4. F2 in particular is blocked on a
-// verified sort spec, tracked for the S3P6 stub-discharge follow-up stream.
-// F1 stays enforced at runtime by the `authors` map construction; F2 by
-// `sort.Slice` with the (CreatedAt desc, ID desc) less-function. Both are
-// exercised end-to-end by the conformance suite.
+//   - `New()` folds LockP() over a nil log, where the quantifier is vacuous.
+//   - `PutTweet` re-establishes it on every append. Its guard rejects any
+//     tweet whose id does not strictly exceed, or whose timestamp falls below,
+//     the current last entry. Gobra checks that this guard is exactly strong
+//     enough to restore the invariant — it is not taken on trust.
+//   - `HomeTimeline` consumes it to discharge an F2 POSTCONDITION.
+//
+// # F2 is proved, and no sort specification was needed
+//
+// `HomeTimeline` now carries
+//
+//	ensures forall a, b :: a < b < len(out) ==>
+//	          out[a].CreatedAt >  out[b].CreatedAt ||
+//	         (out[a].CreatedAt == out[b].CreatedAt && out[a].ID > out[b].ID)
+//
+// and Gobra discharges it. This is the obligation the upstream sidecar
+// recorded as unreachable: it said F2 "is blocked on a verified sort spec,
+// tracked for the S3P6 stub-discharge follow-up stream." That blocker is not
+// resolved so much as DELETED — the code performs no sort, so no sort
+// specification is owed. The proof is the backwards walk over a log the
+// invariant already orders. `sortTimeline` is gone and does not come back.
+//
+// # F1 is still NOT proved
+//
+// Stated plainly rather than left to inference. `HomeTimeline` filters by
+// `t.Author == user || s.follows[{user, t.Author}]`, and that visibility test
+// is NOT reflected in the postcondition. Expressing it needs the returned
+// elements to be related back to their source positions in `s.tweets` — a
+// ghost sequence of log indices threaded through the loop — which is a larger
+// change than retargeting this file. F1 remains enforced at runtime by the
+// filter and end-to-end by R0/R1/R2. What changed at R4 is F2 only.
+//
+// # Which trusted shims came back, and why
+//
+// The reshape retired six shims. Three of them stay retired; three had to be
+// reintroduced, and NOT for the reason the originals existed. Measured
+// against this Gobra build (1.1-SNAPSHOT, image sha256:2ef080cc):
+//
+//	putFollowEdge   RETIRED. A flat map write `s.follows[f] = true` verifies.
+//	gatherTimeline  RETIRED. The backwards indexed walk verifies.
+//	sortTimeline    RETIRED. There is no sort to specify.
+//
+//	deleteFollowEdge  BACK. Gobra has no model for the `delete` builtin at
+//	                  all — flat or nested, it reports "got unknown
+//	                  identifier delete".
+//	appendTweet       BACK. Gobra's `append` takes a permission as its first
+//	                  argument; Go's two-argument form is a type error, and
+//	                  the permission form is not valid Go.
+//	iterFollows       BACK. Gobra cannot verify `range` over a map — even an
+//	                  empty-bodied `for range m` under full permission fails.
+//
+// The first three were about nested permission, which flattening fixes. The
+// last three are front-end gaps in the verifier, which flattening cannot
+// touch. Each shim's own comment in memstore.go records the exact diagnostic.
 
 package store
 
-// LockP is the lock-invariant predicate for *MemStore. It abstracts the
-// resource the mutex `mu` protects: write permission to the three internal
-// maps. `mu` itself is a value-typed `sync.RWMutex`, and `stubs/sync` declares
-// no permission tokens on `RWMutex`, so no field-permission for `mu` is asserted
-// here. Mirrors the predicate body shapes in `clock.gobra` and `ids.gobra`.
+// LockP is the lock invariant for *MemStore: permission to the fields the
+// `mu` mutex protects, PLUS the append-log ordering invariant that F2 is
+// derived from. `mu` is a value-typed `sync.RWMutex` and `stubs/sync` declares
+// no permission tokens on it, so no field permission for `mu` is asserted
+// beyond `acc(&s.mu)`.
+//
+// The quantifier is the whole point. Without it the log's ordering would be a
+// property maintained by PutTweet's guard but visible to no other method, and
+// HomeTimeline could prove nothing about the order it returns.
 pred (s *MemStore) LockP() {
 	acc(&s.mu) &&
 	acc(&s.users) && acc(s.users) &&
 	acc(&s.follows) && acc(s.follows) &&
-	acc(&s.byAuthor) && acc(s.byAuthor)
+	acc(&s.tweets) && acc(s.tweets) &&
+	(forall i, j int :: 0 <= i && i < j && j < len(s.tweets) ==>
+		s.tweets[i].ID < s.tweets[j].ID && s.tweets[i].CreatedAt <= s.tweets[j].CreatedAt)
 }
-
-// (`GhostHomeTimeline` ghost stub retired by Stream 3 Phase 4 sub-PR 6 —
-// `(*MemStore).HomeTimeline` is now its own proof in `memstore.go`,
-// framing-only. F1 + F2 functional postconditions remain pending S3P6.)

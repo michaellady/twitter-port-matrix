@@ -18,8 +18,21 @@
     "gobra": {
       "kind": "docker",
       "image": "ghcr.io/viperproject/gobra",
-      "digest": "sha256:2ef080cc",
-      "status": "PENDING -- full digest to be resolved from the Go repo in Phase 1"
+      "digest": "sha256:2ef080ccd284945829501996e6d63ed2f1c94b7cf6a30d2b934272fb8a6df2c6",
+      "version": "v25.02",
+      "revision": "802e1cd0c41660cac2a9e3558a4f0de89ff1fb57",
+      "reports_itself_as": "Gobra 1.1-SNAPSHOT",
+      "image_created": "2025-03-11T11:38:45Z",
+      "status": "RESOLVED -- full digest read from the local image's RepoDigests; version and revision read from its own OCI labels, not from documentation",
+      "platform_note": "linux/amd64 only. On arm64 hosts docker emulates it and prints a platform-mismatch warning; verification results are unaffected.",
+      "required_env": {
+        "JAVA_TOOL_OPTIONS": "-XX:-UseContainerSupport"
+      },
+      "required_env_reason": "The JVM in this image crashes reading cgroup v2 container metrics. Disabling container support makes it size the heap from the host instead. Without it the run dies before Gobra starts.",
+      "host_mount": "$HOME/.viper must exist and be mounted at /root/.viper; create it with mkdir -p before the first run.",
+      "invocation": "docker run --rm -e JAVA_TOOL_OPTIONS=-XX:-UseContainerSupport -v $PWD:/work -v $HOME/.viper:/root/.viper IMAGE -m github.com/michaellady/twitter-port-matrix-impl-go -I /work -I /work/stubs --directory /work/internal/<pkg> --projectRoot /work --gobraDirectory /tmp",
+      "packages": ["clock", "ids", "dom", "store", "service"],
+      "stubs": "impls/go/stubs (errors, log, sort, sync) -- vendored from the upstream Go repo; -I /work/stubs masks Gobra's built-in sync spec, so both Mutex and RWMutex are re-declared there"
     },
     "tlc_container": {
       "kind": "docker",

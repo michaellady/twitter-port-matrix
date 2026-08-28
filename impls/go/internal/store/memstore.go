@@ -168,9 +168,36 @@ func (s *MemStore) PutFollow(f dom.Follow) (err error) {
 func (s *MemStore) DeleteFollow(from, to string) {
 	s.mu.Lock()
 	// @ unfold acc(s.LockP())
-	delete(s.follows, dom.Follow{From: from, To: to})
+	deleteFollowEdge(s.follows, dom.Follow{From: from, To: to})
 	// @ fold acc(s.LockP())
 	s.mu.Unlock()
+}
+
+// deleteFollowEdge quarantines the `delete` builtin.
+//
+// TRUSTED, AND THE FLAT RESHAPE DID NOT CHANGE THAT. Gobra 1.1-SNAPSHOT has
+// no model for Go's `delete` builtin at all: it reports
+// "got unknown identifier delete" on a SINGLE-LEVEL map exactly as it did on
+// a nested one. This was measured directly -- `delete(m, k)` on a plain
+// `map[dom.Follow]bool` is rejected with the same diagnostic.
+//
+// So this shim is NOT the nested-permission shim of the same name that the
+// reshape retired. That one was quarantining `edges[key] = true`-style inner
+// access. A flat map WRITE now verifies with no shim; a flat map DELETE still
+// cannot be written at all. The blocker is a missing builtin in the verifier's
+// front end, which no amount of reshaping the data can address.
+//
+// Trusted because the runtime semantic is the stdlib's: `delete(m, k)` removes
+// the entry if present and is a no-op otherwise -- exactly what the
+// postcondition states.
+//
+// @ trusted
+// @ requires acc(m)
+// @ ensures  acc(m)
+// @ ensures  !(k in domain(m))
+// @ decreases
+func deleteFollowEdge(m map[dom.Follow]bool, k dom.Follow) {
+	delete(m, k)
 }
 
 // Follows reports whether from follows to. A single-level lookup; this is the
@@ -230,10 +257,53 @@ func (s *MemStore) PutTweet(t dom.Tweet) (err error) {
 			return ErrNonMonotonic
 		}
 	}
-	s.tweets = append(s.tweets, t)
+	s.tweets = appendTweet(s.tweets, t)
 	// @ fold acc(s.LockP())
 	s.mu.Unlock()
 	return nil
+}
+
+// appendTweet quarantines the `append` builtin.
+//
+// TRUSTED, AND THE FLAT RESHAPE DID NOT CHANGE THAT EITHER. Gobra models
+// `append` with a DIFFERENT SIGNATURE from Go's: it wants a permission amount
+// as the first argument (`append(p, slice, elems...)`), and rejects Go's
+// two-argument form with
+//
+//	"append expects first argument of type perm followed by a slice ...
+//	 but got []Tweet, Tweet".
+//
+// The permission-first form is not valid Go, and this file has to compile
+// under `go build` as well as verify, so the call cannot be written in a way
+// that satisfies both. Measured on a flat `[]int` field: same error.
+//
+// Like deleteFollowEdge above, this is not the shim the reshape retired. The
+// old appendTweet was quarantining a per-author inner-slice permission gap
+// (`byAuthor[author] = append(byAuthor[author], t)`); that gap is genuinely
+// gone. What remains is purely the builtin's signature mismatch, which is a
+// property of the tool, not of the data shape.
+//
+// Trusted because the runtime semantic is the stdlib's: `append` returns a
+// slice one element longer with `t` last, reallocating if capacity is
+// exceeded.
+//
+// The postcondition is a FULL functional spec of `append`, not just a length
+// clause. It has to be: PutTweet must re-establish LockP()'s append-log
+// invariant after the call, and that is only possible if the shim promises
+// the existing elements are preserved in place and `t` lands last. A
+// length-only postcondition would leave the invariant unprovable and would
+// have forced F2 back into the trusted surface. This is the one place where
+// widening a trusted shim's contract buys a proof rather than hiding one.
+//
+// @ trusted
+// @ requires acc(xs)
+// @ ensures  acc(res)
+// @ ensures  len(res) == len(xs) + 1
+// @ ensures  forall k int :: 0 <= k && k < len(xs) ==> res[k] == old(xs[k])
+// @ ensures  res[len(xs)] == t
+// @ decreases
+func appendTweet(xs []dom.Tweet, t dom.Tweet) (res []dom.Tweet) {
+	return append(xs, t)
 }
 
 // FollowSet returns the handles that from follows.
@@ -249,14 +319,44 @@ func (s *MemStore) FollowSet(from string) (out map[string]bool) {
 	out = map[string]bool{}
 	s.mu.RLock()
 	// @ unfold acc(s.LockP())
-	for e := range s.follows {
+	iterFollows(s.follows, from, out)
+	// @ fold acc(s.LockP())
+	s.mu.RUnlock()
+	return out
+}
+
+// iterFollows quarantines the map `range`.
+//
+// TRUSTED, AND THE FLAT RESHAPE DID NOT CHANGE THAT. Gobra 1.1-SNAPSHOT
+// cannot verify a `range` over a map AT ALL. Measured directly: `for range m`
+// over a flat `map[dom.Follow]bool` with FULL permission and an EMPTY BODY is
+// still rejected with "Loop invariant is not well-formed", and supplying
+// explicit `invariant acc(m)` changes the diagnostic to "Loop invariant might
+// not be established" without fixing it. Half and full permission fail alike.
+// An indexed `for i := 0; i < len(xs); i++` loop over a SLICE verifies fine,
+// so this is specific to map iteration, not to loops.
+//
+// Again not the shim the reshape retired: the old iterFollows was
+// quarantining iteration over an INNER `map[string]bool` reached through
+// `s.follows[from]`. That inner level is gone. What is left is that the outer
+// iteration itself was never verifiable, which flattening does not address.
+//
+// Trusted because the runtime semantic is the stdlib's: iterate every entry
+// once, in unspecified order, and record the `To` end of each edge whose
+// `From` end matches. Order does not escape -- the result is a set.
+//
+// @ trusted
+// @ requires acc(m, 1/2)
+// @ requires acc(out)
+// @ ensures  acc(m, 1/2)
+// @ ensures  acc(out)
+// @ decreases
+func iterFollows(m map[dom.Follow]bool, from string, out map[string]bool) {
+	for e := range m {
 		if e.From == from {
 			out[e.To] = true
 		}
 	}
-	// @ fold acc(s.LockP())
-	s.mu.RUnlock()
-	return out
 }
 
 // HomeTimeline returns the page of tweets visible to user, newest first.
@@ -273,18 +373,63 @@ func (s *MemStore) FollowSet(from string) (out map[string]bool) {
 // further visible tweet exists below the returned page, which is what lets
 // the caller emit next_cursor: null to mean exactly "nothing remains".
 //
-// gatherTimeline and sortTimeline are both gone.
+// gatherTimeline and sortTimeline are both gone, and NEITHER COMES BACK.
+// There is no sort here, so no sort specification is owed; F2 is the
+// monotonicity lemma above applied to a backwards walk.
+//
+// NOTE ON THE BUFFER. The page is built by preallocating `limit` slots,
+// index-assigning into them and returning `buf[:n]`, rather than by appending
+// to a growing slice. That is a proof-shape choice, not a semantic one: the
+// elements, their order and `more` are identical either way. Gobra cannot
+// check Go's two-argument `append` (see appendTweet above), but it verifies
+// index-assignment and reslicing directly -- so writing the loop this way
+// keeps HomeTimeline, the F1/F2 carrier, entirely OUT of the trusted surface.
+// Spending a preallocation to avoid a trusted shim on the one method the
+// timeline properties live in is the right trade.
+//
+// F2 IS IN THE POSTCONDITION. The last `ensures` below is the ordering
+// property, and Gobra discharges it against this loop. The derivation is the
+// monotonicity lemma made mechanical:
+//
+//   - LockP() supplies "the log is ordered" (invariant 2 below re-states it
+//     inside the loop, where the predicate is unfolded).
+//   - Invariant 7 says everything collected so far came from a STRICTLY LATER
+//     log position than the one being examined, expressed as a fact about ids
+//     and timestamps rather than about positions.
+//   - So when `buf[n] = t` runs, every earlier entry beats `t` on
+//     (created_at, id), which is exactly invariant 6, the F2 relation.
+//
+// Nothing here is a sort and nothing here trusts one.
 //
 // @ requires acc(s.LockP())
 // @ requires limit > 0
 // @ ensures acc(s.LockP())
+// @ ensures acc(out)
 // @ ensures len(out) <= limit
+// @ ensures forall a, b int :: 0 <= a && a < b && b < len(out) ==>
+// @            (out[a].CreatedAt > out[b].CreatedAt ||
+// @             (out[a].CreatedAt == out[b].CreatedAt && out[a].ID > out[b].ID))
 func (s *MemStore) HomeTimeline(user string, limit int, cursor int64) (out []dom.Tweet, more bool) {
-	out = make([]dom.Tweet, 0, limit)
+	buf := make([]dom.Tweet, limit)
+	n := 0
 	s.mu.RLock()
 	// @ unfold acc(s.LockP())
-	// @ invariant acc(s.LockP())
-	// @ invariant len(out) <= limit
+	// @ invariant acc(&s.mu)
+	// @ invariant acc(&s.users) && acc(s.users)
+	// @ invariant acc(&s.follows) && acc(s.follows)
+	// @ invariant acc(&s.tweets) && acc(s.tweets)
+	// @ invariant forall p, q int :: 0 <= p && p < q && q < len(s.tweets) ==>
+	// @              s.tweets[p].ID < s.tweets[q].ID && s.tweets[p].CreatedAt <= s.tweets[q].CreatedAt
+	// @ invariant acc(buf)
+	// @ invariant len(buf) == limit
+	// @ invariant 0 <= n && n <= limit
+	// @ invariant -1 <= i && i < len(s.tweets)
+	// @ invariant forall a, b int :: 0 <= a && a < b && b < n ==>
+	// @              (buf[a].CreatedAt > buf[b].CreatedAt ||
+	// @               (buf[a].CreatedAt == buf[b].CreatedAt && buf[a].ID > buf[b].ID))
+	// @ invariant i >= 0 ==> forall a int :: 0 <= a && a < n ==>
+	// @              (buf[a].ID > s.tweets[i].ID && buf[a].CreatedAt >= s.tweets[i].CreatedAt)
+	// @ decreases i + 1
 	for i := len(s.tweets) - 1; i >= 0; i-- {
 		t := s.tweets[i]
 		if cursor > 0 && t.ID >= cursor {
@@ -293,15 +438,16 @@ func (s *MemStore) HomeTimeline(user string, limit int, cursor int64) (out []dom
 		if t.Author != user && !s.follows[dom.Follow{From: user, To: t.Author}] {
 			continue
 		}
-		if len(out) == limit {
+		if n == limit {
 			more = true
 			break
 		}
-		out = append(out, t)
+		buf[n] = t
+		n++
 	}
 	// @ fold acc(s.LockP())
 	s.mu.RUnlock()
-	return out, more
+	return buf[:n], more
 }
 
 // StoreSnapshot is the admin serialization format.
@@ -352,6 +498,21 @@ func (s *MemStore) Snapshot() StoreSnapshot {
 // The incoming tweet order is normalised to (created_at asc, id asc) so the
 // restored log satisfies the monotonicity lemma. This sort is a precondition
 // repair on untrusted input, not part of any read path.
+//
+// LOAD-BEARING TRUST ASSUMPTION, RECORDED RATHER THAN PAPERED OVER. Now that
+// LockP() carries the append-log invariant and F2 is proved from it, this
+// method is the one way that invariant can be broken without Gobra noticing.
+// It is `// @ trusted` and carries no LockP() contract, so the verifier never
+// checks that the state it installs satisfies the invariant — and the sort it
+// performs is NOT sufficient to establish it. Ordering by (created_at, id)
+// leaves ids non-monotonic whenever the snapshot's ids disagree with its
+// timestamps: the input [{id:5, ts:0}, {id:3, ts:1}] sorts to itself, and
+// 5 < 3 is false, so `tweets[i].ID < tweets[j].ID` fails at i=0, j=1.
+//
+// Nothing in the observable API can reach this: `Replace` is admin-snapshot
+// only, and every log the verified write path builds goes through PutTweet's
+// checked guard. But F2's proof is conditional on snapshots being well-formed,
+// and that condition lives here, in trusted code, not in the proof.
 //
 // @ trusted
 // @ decreases

@@ -1,0 +1,74 @@
+Intentional-failure smoke sources for the R4 (Gobra) verify gate.
+
+DO NOT rename any of these to a .go/.gobra extension in normal work. The
+directory is named with a leading underscore so the Go toolchain ignores it;
+copy a snippet into place only to re-validate that the gate can fail, then
+revert.
+
+Standing rule 2 in GOAL.md: "No gate is trusted until it has been shown to
+fail." A green Gobra run means nothing on its own -- see finding F001, where a
+shipped conformance suite had no signal behind a field.
+
+------------------------------------------------------------------------------
+CANARY 0 -- the trivial one (mirrors the upstream Go repo's canary)
+------------------------------------------------------------------------------
+
+package _broken
+
+// @ ensures false
+// @ func GhostAlwaysFails()
+
+Proves only that Gobra is running and reads annotations at all.
+
+------------------------------------------------------------------------------
+CANARY A -- F2 ordering is load-bearing, not vacuous
+------------------------------------------------------------------------------
+
+In internal/store/memstore.go, on (*MemStore).HomeTimeline, flip the F2
+postcondition's comparison direction from descending to ascending:
+
+    // @ ensures forall a, b int :: 0 <= a && a < b && b < len(out) ==>
+    // @            (out[a].CreatedAt < out[b].CreatedAt ||
+    // @             (out[a].CreatedAt == out[b].CreatedAt && out[a].ID < out[b].ID))
+
+OBSERVED RESULT (gobra v25.02, sha256:2ef080cc), run 2026-08-28:
+
+    memstore.go:409:9: Postcondition might not hold.
+    Assertion forall a, b int :: 0 <= a && a < b && b < len(out) ==>
+    (out[a].CreatedAt < out[b].CreatedAt ||
+    (out[a].CreatedAt == out[b].CreatedAt && out[a].ID < out[b].ID))
+    might not hold.
+    Gobra has found 1 error(s)
+
+This is the canary that matters. A postcondition that a quantifier engine can
+satisfy in both directions would be proving nothing; this shows the ordering
+claim actually constrains the code.
+
+------------------------------------------------------------------------------
+CANARY B -- the PutTweet guard is what establishes the log invariant
+------------------------------------------------------------------------------
+
+In internal/store/memstore.go, delete the monotonicity guard from
+(*MemStore).PutTweet -- the whole block beginning:
+
+    if n := len(s.tweets); n > 0 {
+        last := s.tweets[n-1]
+        if t.ID <= last.ID || t.CreatedAt < last.CreatedAt {
+
+OBSERVED RESULT (same build), run 2026-08-28:
+
+    memstore.go:253:2: Fold might fail.
+    Assertion forall i, j int :: 0 <= i && i < j && j < len(s.tweets) ==>
+        s.tweets[i].ID < s.tweets[j].ID &&
+        s.tweets[i].CreatedAt <= s.tweets[j].CreatedAt
+    might not hold.
+    Gobra has found 1 error(s)
+
+Note WHERE this fails: at the `fold`, not at the append. That is the append-log
+invariant in LockP() refusing to be re-established. It is the mechanical form
+of decision D9's monotonicity lemma, and it demonstrates that F2 is derived
+from the guard rather than assumed alongside it.
+
+Both canaries were injected, observed red, and reverted; the store package was
+confirmed byte-identical to its pre-canary state and re-verified green (0
+errors) afterwards.

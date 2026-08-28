@@ -67,7 +67,8 @@ and reproducing it inside the rig would invalidate the measurement.
       `proof_append_tweet`, `proof_follow_insert`, `proof_follow_remove` —
       mirroring the six Go trusted shims deleted in S-03.
 
-- [~] **S-12** Retarget the Gobra sidecars (**R4**, Go) — *agent: gobra-r4*
+- [x] **S-12** Retarget the Gobra sidecars (**R4**, Go) — 242 obligations,
+      0 errors, all 5 packages. F2 now proved. Revises F007.
       *Gate:* Gobra green per package. Needs the full image digest resolved;
       `docker/pins.json` currently truncates it to `sha256:2ef080cc`.
 
