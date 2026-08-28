@@ -68,3 +68,51 @@ settle, run `mutate verify`, then measure.
 This is the one place in this project where the parallel-agent pattern does not
 apply, and the reason is not conflict — the lanes were in disjoint directories
 throughout — but that measurement requires a still subject.
+
+
+## Second occurrence, and what it changes
+
+The anchors drifted **again** between the first repointing and the sweep — four
+this time, not three, with `go/follow-precedence-flipped` newly broken by the
+refinement lane's edits to `service.go`.
+
+That is twice in one session, and it settles a question the first occurrence
+left open: this is not an artefact of unusually invasive work. **Any change to
+a verified implementation is likely to move at least one anchor**, because the
+anchors sit exactly where the interesting logic is — validation order, the
+timeline scan, the decode gate — which is also where proof work and contract
+fixes land.
+
+The repointing was made more robust rather than merely redone:
+
+| mutant | old anchor | new anchor |
+|---|---|---|
+| `follow-precedence-flipped` | 9 lines spanning the whole guard | 2 lines |
+| `timeline-scan-reversed` | the full loop header | 1 line |
+| `timeline-tiebreak-by-id-asc` | 3 lines incl. a ghost annotation | 2 lines, no annotations |
+| `unknown-json-fields-accepted` | 2 lines inside one gate | two 1–2 line edits, one per gate |
+
+Two rules fell out of doing it:
+
+**Anchor on the shortest text that is still unique.** The nine-line anchor
+broke because a comment was inserted *inside* it; the two-line replacement
+survives anything that does not touch those two statements. Uniqueness is
+checked mechanically before writing, so shortening is safe to push until it
+fails.
+
+**Never anchor on a ghost annotation.** `// @ fold acc(s.LockP())` lines move
+whenever proof work happens, which is precisely when the implementation is
+being changed by someone who is not thinking about the mutation catalogue.
+Anchor on executable statements only.
+
+The `unknown-json-fields-accepted` case is the instructive one. Its single gate
+became two after F010 — a raw-key case-sensitivity pass *and*
+`DisallowUnknownFields` — so the one-line edit no longer expressed the defect
+it names. Repointing it to a single site would have produced a mutant that
+compiles, verifies, and silently under-injects: the raw-key check would still
+reject unknown fields, so R0 would kill it for the wrong reason. It now carries
+two edits, one per gate.
+
+**A mutant can rot into a weaker version of itself without ever failing
+`verify`.** Anchor validity and defect fidelity are different properties, and
+only the first is checked mechanically.

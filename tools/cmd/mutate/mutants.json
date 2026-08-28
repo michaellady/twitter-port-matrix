@@ -1,6 +1,5 @@
 {
   "note": "The semantic mutant catalogue. Every mutant is an anchored source edit that changes BEHAVIOUR, not syntax -- each family is drawn from a defect this project has actually seen (the R0 baseline, findings F001-F006, or a decision in spec/s_obs/DECISIONS.md). Ids name the DEFECT and are shared across corners, so `go/cursor-inclusive` and `rust/cursor-inclusive` are the same defect injected two ways and the kill table can compare them. Anchors are written as arrays of source lines so they can be read against the file they target; `mutate verify` asserts every one of them still matches exactly one site.",
-
   "families": {
     "id-alloc": "id allocation: the first id issued, and whether a rejected request consumes one (D2)",
     "precedence": "which error a request gets: the self-follow guard (F4) and existence-before-semantics (D4, finding F003)",
@@ -11,7 +10,6 @@
     "pagination": "cursor and limit arithmetic: fabricated next_cursor, duplication across pages, off-by-one on limit (D10)",
     "parsing": "request strictness: unknown JSON fields and repeated query parameters (D7, finding F006)"
   },
-
   "mutants": [
     {
       "id": "id-first-is-two",
@@ -21,8 +19,12 @@
       "edits": [
         {
           "file": "internal/ids/ids.go",
-          "anchor": ["\tg = &Generator{next: 1}"],
-          "replacement": ["\tg = &Generator{next: 2}"]
+          "anchor": [
+            "\tg = &Generator{next: 1}"
+          ],
+          "replacement": [
+            "\tg = &Generator{next: 2}"
+          ]
         }
       ]
     },
@@ -32,9 +34,21 @@
       "family": "id-alloc",
       "description": "an id is allocated before the duplicate-handle check, so a rejected registration burns one -- the exact defect visible in the R0 baseline as handle \"Alice\" arriving with id 5 after four rejections",
       "witness": [
-        {"method": "POST", "path": "/users", "body": "{\"handle\":\"alice\"}"},
-        {"method": "POST", "path": "/users", "body": "{\"handle\":\"alice\"}"},
-        {"method": "POST", "path": "/users", "body": "{\"handle\":\"bob\"}"}
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        }
       ],
       "edits": [
         {
@@ -70,7 +84,9 @@
             "\t}",
             "\treturn Follow{From: from, To: to}, nil"
           ],
-          "replacement": ["\treturn Follow{From: from, To: to}, nil"]
+          "replacement": [
+            "\treturn Follow{From: from, To: to}, nil"
+          ]
         }
       ]
     },
@@ -84,27 +100,14 @@
           "file": "internal/service/service.go",
           "anchor": [
             "\t// @ unfold s.LockP()",
-            "\tif !s.st.HasUser(from) || !s.st.HasUser(to) {",
-            "\t\t// @ fold s.LockP()",
-            "\t\treturn store.ErrUnknownUser",
-            "\t}",
-            "\t// @ fold s.LockP()",
-            "\tf, derr := dom.NewFollow(from, to)",
-            "\tif derr != nil {",
-            "\t\treturn derr",
-            "\t}"
+            "\tif !s.st.HasUser(from) || !s.st.HasUser(to) {"
           ],
           "replacement": [
-            "\tf, derr := dom.NewFollow(from, to)",
-            "\tif derr != nil {",
-            "\t\treturn derr",
+            "\tif from == to {",
+            "\t\treturn dom.ErrSelfFollow",
             "\t}",
             "\t// @ unfold s.LockP()",
-            "\tif !s.st.HasUser(from) || !s.st.HasUser(to) {",
-            "\t\t// @ fold s.LockP()",
-            "\t\treturn store.ErrUnknownUser",
-            "\t}",
-            "\t// @ fold s.LockP()"
+            "\tif !s.st.HasUser(from) || !s.st.HasUser(to) {"
           ]
         }
       ]
@@ -117,8 +120,12 @@
       "edits": [
         {
           "file": "internal/store/memstore.go",
-          "anchor": ["\tfor i := len(s.tweets) - 1; i >= 0; i-- {"],
-          "replacement": ["\tfor i := 0; i < len(s.tweets); i++ {"]
+          "anchor": [
+            "\tfor ; i >= 0; i-- {"
+          ],
+          "replacement": [
+            "\tfor i = 0; i < len(s.tweets); i++ {"
+          ]
         }
       ]
     },
@@ -131,21 +138,15 @@
         {
           "file": "internal/store/memstore.go",
           "anchor": [
-            "\t// @ fold acc(s.LockP())",
             "\ts.mu.RUnlock()",
             "\treturn buf[:n], more"
           ],
           "replacement": [
-            "\t// @ fold acc(s.LockP())",
+            "\tfor a, b := 0, n-1; a < b; a, b = a+1, b-1 {",
+            "\t\tbuf[a], buf[b] = buf[b], buf[a]",
+            "\t}",
             "\ts.mu.RUnlock()",
-            "\tpage := buf[:n]",
-            "\tsort.SliceStable(page, func(i, j int) bool {",
-            "\t\tif page[i].CreatedAt != page[j].CreatedAt {",
-            "\t\t\treturn page[i].CreatedAt > page[j].CreatedAt",
-            "\t\t}",
-            "\t\treturn page[i].ID < page[j].ID",
-            "\t})",
-            "\treturn page, more"
+            "\treturn buf[:n], more"
           ]
         }
       ]
@@ -237,7 +238,9 @@
             "\t}",
             "\t// ENFORCE the monotonicity lemma's premises rather than assuming them."
           ],
-          "replacement": ["\t// ENFORCE the monotonicity lemma's premises rather than assuming them."]
+          "replacement": [
+            "\t// ENFORCE the monotonicity lemma's premises rather than assuming them."
+          ]
         }
       ]
     },
@@ -249,8 +252,12 @@
       "edits": [
         {
           "file": "internal/service/service.go",
-          "anchor": ["\t\tCreatedAt: nowLogical(s.clk),"],
-          "replacement": ["\t\tCreatedAt: 0,"]
+          "anchor": [
+            "\t\tCreatedAt: nowLogical(s.clk),"
+          ],
+          "replacement": [
+            "\t\tCreatedAt: 0,"
+          ]
         }
       ]
     },
@@ -262,8 +269,12 @@
       "edits": [
         {
           "file": "internal/clock/clock.go",
-          "anchor": ["\tl.now++"],
-          "replacement": ["\tl.now += 2"]
+          "anchor": [
+            "\tl.now++"
+          ],
+          "replacement": [
+            "\tl.now += 2"
+          ]
         }
       ]
     },
@@ -275,8 +286,12 @@
       "edits": [
         {
           "file": "internal/clock/clock.go",
-          "anchor": ["\tl.now++"],
-          "replacement": ["\tl.now--"]
+          "anchor": [
+            "\tl.now++"
+          ],
+          "replacement": [
+            "\tl.now--"
+          ]
         }
       ]
     },
@@ -288,7 +303,9 @@
       "edits": [
         {
           "file": "internal/httpshim/shim.go",
-          "anchor": ["\tif more && len(tw) > 0 {"],
+          "anchor": [
+            "\tif more && len(tw) > 0 {"
+          ],
           "replacement": [
             "\t_ = more // next_cursor no longer depends on whether anything remains",
             "\tif len(tw) > 0 {"
@@ -304,8 +321,12 @@
       "edits": [
         {
           "file": "internal/httpshim/shim.go",
-          "anchor": ["\t\tlast := tw[len(tw)-1].ID"],
-          "replacement": ["\t\tlast := tw[0].ID"]
+          "anchor": [
+            "\t\tlast := tw[len(tw)-1].ID"
+          ],
+          "replacement": [
+            "\t\tlast := tw[0].ID"
+          ]
         }
       ]
     },
@@ -317,8 +338,12 @@
       "edits": [
         {
           "file": "internal/store/memstore.go",
-          "anchor": ["\t\tif cursor > 0 && t.ID >= cursor {"],
-          "replacement": ["\t\tif cursor > 0 && t.ID > cursor {"]
+          "anchor": [
+            "\t\tif cursor > 0 && t.ID >= cursor {"
+          ],
+          "replacement": [
+            "\t\tif cursor > 0 && t.ID > cursor {"
+          ]
         }
       ]
     },
@@ -330,8 +355,12 @@
       "edits": [
         {
           "file": "internal/store/memstore.go",
-          "anchor": ["\tbuf := make([]dom.Tweet, limit)"],
-          "replacement": ["\tbuf := make([]dom.Tweet, limit+1)"]
+          "anchor": [
+            "\tbuf := make([]dom.Tweet, limit)"
+          ],
+          "replacement": [
+            "\tbuf := make([]dom.Tweet, limit+1)"
+          ]
         },
         {
           "file": "internal/store/memstore.go",
@@ -355,10 +384,22 @@
         {
           "file": "internal/httpshim/shim.go",
           "anchor": [
-            "\tdec := json.NewDecoder(r.Body)",
+            "\tfor k := range raw {",
+            "\t\tok := false"
+          ],
+          "replacement": [
+            "\tfor k := range raw {",
+            "\t\tok := true"
+          ]
+        },
+        {
+          "file": "internal/httpshim/shim.go",
+          "anchor": [
             "\tdec.DisallowUnknownFields()"
           ],
-          "replacement": ["\tdec := json.NewDecoder(r.Body)"]
+          "replacement": [
+            "\t_ = allowed // mutant: unknown fields accepted"
+          ]
         }
       ]
     },
@@ -376,11 +417,12 @@
             "\t\t\treturn",
             "\t\t}"
           ],
-          "replacement": ["\t\t_ = v // repeated parameters no longer rejected"]
+          "replacement": [
+            "\t\t_ = v // repeated parameters no longer rejected"
+          ]
         }
       ]
     },
-
     {
       "id": "id-first-is-two",
       "impl": "rust",
@@ -408,9 +450,21 @@
       "family": "id-alloc",
       "description": "an id is allocated before the duplicate-handle check, so a rejected registration burns one",
       "witness": [
-        {"method": "POST", "path": "/users", "body": "{\"handle\":\"alice\"}"},
-        {"method": "POST", "path": "/users", "body": "{\"handle\":\"alice\"}"},
-        {"method": "POST", "path": "/users", "body": "{\"handle\":\"bob\"}"}
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        }
       ],
       "edits": [
         {
@@ -444,7 +498,9 @@
             "            }",
             "            Ok(Follow { from, to })"
           ],
-          "replacement": ["            Ok(Follow { from, to })"]
+          "replacement": [
+            "            Ok(Follow { from, to })"
+          ]
         }
       ]
     },
@@ -568,7 +624,9 @@
             "        }",
             "        let t = Tweet {"
           ],
-          "replacement": ["        let t = Tweet {"]
+          "replacement": [
+            "        let t = Tweet {"
+          ]
         },
         {
           "file": "crates/store/src/lib.rs",
@@ -578,7 +636,9 @@
             "        }",
             "        // ENFORCE the monotonicity lemma's premises rather than assuming"
           ],
-          "replacement": ["        // ENFORCE the monotonicity lemma's premises rather than assuming"]
+          "replacement": [
+            "        // ENFORCE the monotonicity lemma's premises rather than assuming"
+          ]
         }
       ]
     },
@@ -590,8 +650,12 @@
       "edits": [
         {
           "file": "crates/service/src/lib.rs",
-          "anchor": ["            created_at: self.clk.now(),"],
-          "replacement": ["            created_at: 0,"]
+          "anchor": [
+            "            created_at: self.clk.now(),"
+          ],
+          "replacement": [
+            "            created_at: 0,"
+          ]
         }
       ]
     },
@@ -649,8 +713,12 @@
       "edits": [
         {
           "file": "crates/server/src/handlers.rs",
-          "anchor": ["    let next_cursor = if more { tw.last().map(|t| t.id) } else { None };"],
-          "replacement": ["    let next_cursor = tw.last().map(|t| t.id);"]
+          "anchor": [
+            "    let next_cursor = if more { tw.last().map(|t| t.id) } else { None };"
+          ],
+          "replacement": [
+            "    let next_cursor = tw.last().map(|t| t.id);"
+          ]
         }
       ]
     },
@@ -662,8 +730,12 @@
       "edits": [
         {
           "file": "crates/server/src/handlers.rs",
-          "anchor": ["    let next_cursor = if more { tw.last().map(|t| t.id) } else { None };"],
-          "replacement": ["    let next_cursor = if more { tw.first().map(|t| t.id) } else { None };"]
+          "anchor": [
+            "    let next_cursor = if more { tw.last().map(|t| t.id) } else { None };"
+          ],
+          "replacement": [
+            "    let next_cursor = if more { tw.first().map(|t| t.id) } else { None };"
+          ]
         }
       ]
     },
@@ -675,8 +747,12 @@
       "edits": [
         {
           "file": "crates/store/src/lib.rs",
-          "anchor": ["            if cursor > 0 && t.id >= cursor {"],
-          "replacement": ["            if cursor > 0 && t.id > cursor {"]
+          "anchor": [
+            "            if cursor > 0 && t.id >= cursor {"
+          ],
+          "replacement": [
+            "            if cursor > 0 && t.id > cursor {"
+          ]
         }
       ]
     },
@@ -711,7 +787,9 @@
             "#[serde(deny_unknown_fields)]",
             "struct CreateUserReq {"
           ],
-          "replacement": ["struct CreateUserReq {"]
+          "replacement": [
+            "struct CreateUserReq {"
+          ]
         },
         {
           "file": "crates/server/src/handlers.rs",
@@ -719,7 +797,9 @@
             "#[serde(deny_unknown_fields)]",
             "struct FollowReq {"
           ],
-          "replacement": ["struct FollowReq {"]
+          "replacement": [
+            "struct FollowReq {"
+          ]
         },
         {
           "file": "crates/server/src/handlers.rs",
@@ -727,7 +807,9 @@
             "#[serde(deny_unknown_fields)]",
             "struct TweetReq {"
           ],
-          "replacement": ["struct TweetReq {"]
+          "replacement": [
+            "struct TweetReq {"
+          ]
         }
       ]
     },
@@ -744,7 +826,9 @@
             "            return malformed(); // repeated parameter",
             "        }"
           ],
-          "replacement": ["        // repeated parameters no longer rejected"]
+          "replacement": [
+            "        // repeated parameters no longer rejected"
+          ]
         }
       ]
     }
