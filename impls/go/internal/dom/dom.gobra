@@ -1,0 +1,19 @@
+// Gobra contracts for domain types — F4.
+//
+// NewFollow refuses to construct a self-follow. This is the constructor
+// that the service layer uses; the type system + this contract together
+// make it impossible for a Follow{} value with a == b to enter the store.
+//
+// Stream 3 Phase 3: F4 is now discharged directly on the real
+// `NewFollow` in dom.go (no `// @ trusted` marker on it). The two ghost
+// stubs `GhostNewFollowOK` / `GhostNewFollowSelf` that previously sat
+// here as proof scaffolding have been retired — the real function is
+// now its own proof.
+//
+// Caller obligation: pass `isComparable(ErrSelfFollow)` as a
+// precondition. `ErrSelfFollow` is a package-level `var` of interface
+// type `error`, so Gobra cannot syntactically prove it is comparable
+// without help. The dynamic type (`selfFollowError`) is a unit-value
+// struct, so the assertion is trivially true at runtime.
+
+package dom

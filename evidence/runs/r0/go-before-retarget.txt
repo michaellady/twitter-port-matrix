@@ -1,0 +1,280 @@
+replay: R0 conformance -- impl=go (Go)
+        impl status: vendored, NOT yet retargeted to the S_obs contract
+        corpus=generated/conformance.jsonl (54 steps)
+========================================================================
+
+  DIFF  4 reject_duplicate_handle   [error code "duplicate_user", want "handle_taken"]
+       request  POST /users {"handle":"alice"}
+       expected 409 {"error":"handle_taken"}
+       got      409 {"error":"duplicate_user"}
+
+
+  DIFF  5 reject_uppercase_handle   [status 201, want 400]
+       request  POST /users {"handle":"Alice"}
+       expected 400 {"error":"invalid_handle"}
+       got      201 {"handle":"Alice","id":5}
+
+
+  DIFF  6 reject_empty_handle   [error code "empty_handle", want "invalid_handle"]
+       request  POST /users {"handle":""}
+       expected 400 {"error":"invalid_handle"}
+       got      400 {"error":"empty_handle"}
+
+
+  DIFF  7 reject_missing_handle_field   [error code "empty_handle", want "malformed_request"]
+       request  POST /users {}
+       expected 400 {"error":"malformed_request"}
+       got      400 {"error":"empty_handle"}
+
+
+  DIFF  8 reject_unknown_field   [status 201, want 400]
+       request  POST /users {"handle":"dave","x":1}
+       expected 400 {"error":"malformed_request"}
+       got      201 {"handle":"dave","id":6}
+
+
+  DIFF  9 reject_trailing_content   [status 409, want 400]
+       request  POST /users {"handle":"dave"} {}
+       expected 400 {"error":"malformed_request"}
+       got      409 {"error":"duplicate_user"}
+
+
+  DIFF 11 reject_self_follow_unknown_is_unknown_user   [error code "self_follow_forbidden", want "unknown_user"]
+       request  POST /follow {"from":"eve","to":"eve"}
+       expected 400 {"error":"unknown_user"}
+       got      400 {"error":"self_follow_forbidden"}
+
+
+  DIFF 13 reject_follow_invalid_syntax_before_existence   [error code "unknown_user", want "invalid_handle"]
+       request  POST /follow {"from":"EVE","to":"eve"}
+       expected 400 {"error":"invalid_handle"}
+       got      400 {"error":"unknown_user"}
+
+
+  DIFF 16 tick_to_one   [route absent]
+       request  POST /tick 
+       expected 200 {"clock":1}
+       got      404 404 page not found
+
+
+  DIFF 17 reject_tick_with_body   [route absent]
+       request  POST /tick {"n":1}
+       expected 400 {"error":"malformed_request"}
+       got      404 404 page not found
+
+
+  DIFF 18 bob_posts_first   [body differs]
+       request  POST /tweets {"author":"bob","text":"hello world"}
+       expected 201 {"id":1,"author":"bob","text":"hello world","created_at":1}
+       got      201 {"id":1,"author":"bob","text":"hello world","created_at":0}
+
+
+  DIFF 19 alice_timeline_sees_bob   [body differs]
+       request  GET /timeline?user=alice 
+       expected 200 {"tweets":[{"id":1,"author":"bob","text":"hello world","created_at":1}],"next_cursor":null}
+       got      200 {"tweets":[{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+
+
+  DIFF 22 carol_timeline_sees_older_bob_tweet   [body differs]
+       request  GET /timeline?user=carol 
+       expected 200 {"tweets":[{"id":1,"author":"bob","text":"hello world","created_at":1}],"next_cursor":null}
+       got      200 {"tweets":[{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+
+
+  DIFF 23 bob_posts_second_same_clock   [body differs]
+       request  POST /tweets {"author":"bob","text":"second"}
+       expected 201 {"id":2,"author":"bob","text":"second","created_at":1}
+       got      201 {"id":2,"author":"bob","text":"second","created_at":0}
+
+
+  DIFF 24 timeline_orders_by_id_when_clock_ties   [body differs]
+       request  GET /timeline?user=alice 
+       expected 200 {"tweets":[{"id":2,"author":"bob","text":"second","created_at":1},{"id":1,"author":"bob","text":"hello world","created_at":1}],"next_cursor":null}
+       got      200 {"tweets":[{"id":2,"author":"bob","text":"second","created_at":0},{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+
+
+  DIFF 25 tick_to_two   [route absent]
+       request  POST /tick 
+       expected 200 {"clock":2}
+       got      404 404 page not found
+
+
+  DIFF 26 carol_posts_at_later_clock   [body differs]
+       request  POST /tweets {"author":"carol","text":"carol here"}
+       expected 201 {"id":3,"author":"carol","text":"carol here","created_at":2}
+       got      201 {"id":3,"author":"carol","text":"carol here","created_at":0}
+
+
+  DIFF 28 timeline_orders_by_clock_across_authors   [body differs]
+       request  GET /timeline?user=alice 
+       expected 200 {"tweets":[{"id":3,"author":"carol","text":"carol here","created_at":2},{"id":2,"author":"bob","text":"second","created_at":1},{"id":1,"author":"bob","text":"hello world","created_at":1}],"next_cursor":null}
+       got      200 {"tweets":[{"id":3,"author":"carol","text":"carol here","created_at":0},{"id":2,"author":"bob","text":"second","created_at":0},{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+
+
+  DIFF 29 author_sees_own_tweets_without_following   [body differs]
+       request  GET /timeline?user=bob 
+       expected 200 {"tweets":[{"id":2,"author":"bob","text":"second","created_at":1},{"id":1,"author":"bob","text":"hello world","created_at":1}],"next_cursor":null}
+       got      200 {"tweets":[{"id":2,"author":"bob","text":"second","created_at":0},{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+
+
+  DIFF 31 reject_post_empty_text   [error code "empty_text", want "invalid_text"]
+       request  POST /tweets {"author":"bob","text":""}
+       expected 400 {"error":"invalid_text"}
+       got      400 {"error":"empty_text"}
+
+
+  DIFF 32 reject_post_overlong_text   [status 201, want 400]
+       request  POST /tweets {"author":"bob","text":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+       expected 400 {"error":"invalid_text"}
+       got      201 {"id":4,"author":"bob","text":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","created_at":0}
+
+
+  DIFF 36 alice_timeline_after_unfollow   [body differs]
+       request  GET /timeline?user=alice 
+       expected 200 {"tweets":[{"id":3,"author":"carol","text":"carol here","created_at":2}],"next_cursor":null}
+       got      200 {"tweets":[{"id":3,"author":"carol","text":"carol here","created_at":0}],"next_cursor":null}
+
+
+  DIFF 37 tick_to_three   [route absent]
+       request  POST /tick 
+       expected 200 {"clock":3}
+       got      404 404 page not found
+
+
+  DIFF 38 bob_posts_third   [body differs]
+       request  POST /tweets {"author":"bob","text":"third"}
+       expected 201 {"id":4,"author":"bob","text":"third","created_at":3}
+       got      201 {"id":5,"author":"bob","text":"third","created_at":0}
+
+
+  DIFF 39 tick_to_four   [route absent]
+       request  POST /tick 
+       expected 200 {"clock":4}
+       got      404 404 page not found
+
+
+  DIFF 40 bob_posts_fourth   [body differs]
+       request  POST /tweets {"author":"bob","text":"fourth"}
+       expected 201 {"id":5,"author":"bob","text":"fourth","created_at":4}
+       got      201 {"id":6,"author":"bob","text":"fourth","created_at":0}
+
+
+  DIFF 41 bob_timeline_limit_two_page_one   [body differs]
+       request  GET /timeline?user=bob&limit=2 
+       expected 200 {"tweets":[{"id":5,"author":"bob","text":"fourth","created_at":4},{"id":4,"author":"bob","text":"third","created_at":3}],"next_cursor":4}
+       got      200 {"tweets":[{"id":6,"author":"bob","text":"fourth","created_at":0},{"id":5,"author":"bob","text":"third","created_at":0}],"next_cursor":null}
+
+
+  DIFF 42 bob_timeline_limit_two_page_two   [body differs]
+       request  GET /timeline?user=bob&limit=2&cursor=3 
+       expected 200 {"tweets":[{"id":2,"author":"bob","text":"second","created_at":1},{"id":1,"author":"bob","text":"hello world","created_at":1}],"next_cursor":null}
+       got      200 {"tweets":[{"id":6,"author":"bob","text":"fourth","created_at":0},{"id":5,"author":"bob","text":"third","created_at":0}],"next_cursor":null}
+
+
+  DIFF 43 bob_timeline_limit_two_page_three   [body differs]
+       request  GET /timeline?user=bob&limit=2&cursor=1 
+       expected 200 {"tweets":[],"next_cursor":null}
+       got      200 {"tweets":[{"id":6,"author":"bob","text":"fourth","created_at":0},{"id":5,"author":"bob","text":"third","created_at":0}],"next_cursor":null}
+
+
+  DIFF 44 reject_limit_zero   [status 200, want 400]
+       request  GET /timeline?user=bob&limit=0 
+       expected 400 {"error":"invalid_limit"}
+       got      200 {"tweets":[{"id":6,"author":"bob","text":"fourth","created_at":0},{"id":5,"author":"bob","text":"third","created_at":0},{"id":4,"author":"bob","text":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","created_at":0},{"id":2,"author":"bob","text":"second","created_at":0},{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+
+
+  DIFF 45 reject_limit_over_max   [status 200, want 400]
+       request  GET /timeline?user=bob&limit=101 
+       expected 400 {"error":"invalid_limit"}
+       got      200 {"tweets":[{"id":6,"author":"bob","text":"fourth","created_at":0},{"id":5,"author":"bob","text":"third","created_at":0},{"id":4,"author":"bob","text":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","created_at":0},{"id":2,"author":"bob","text":"second","created_at":0},{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+
+
+  DIFF 47 reject_cursor_zero   [status 200, want 400]
+       request  GET /timeline?user=bob&cursor=0 
+       expected 400 {"error":"invalid_cursor"}
+       got      200 {"tweets":[{"id":6,"author":"bob","text":"fourth","created_at":0},{"id":5,"author":"bob","text":"third","created_at":0},{"id":4,"author":"bob","text":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","created_at":0},{"id":2,"author":"bob","text":"second","created_at":0},{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+
+
+  DIFF 48 reject_timeline_without_query   [error code "empty_user", want "malformed_request"]
+       request  GET /timeline 
+       expected 400 {"error":"malformed_request"}
+       got      400 {"error":"empty_user"}
+
+
+  DIFF 49 reject_timeline_unknown_param   [status 200, want 400]
+       request  GET /timeline?user=bob&bogus=1 
+       expected 400 {"error":"malformed_request"}
+       got      200 {"tweets":[{"id":6,"author":"bob","text":"fourth","created_at":0},{"id":5,"author":"bob","text":"third","created_at":0},{"id":4,"author":"bob","text":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","created_at":0},{"id":2,"author":"bob","text":"second","created_at":0},{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+
+
+  DIFF 50 reject_timeline_repeated_param   [status 200, want 400]
+       request  GET /timeline?user=bob&user=alice 
+       expected 400 {"error":"malformed_request"}
+       got      200 {"tweets":[{"id":6,"author":"bob","text":"fourth","created_at":0},{"id":5,"author":"bob","text":"third","created_at":0},{"id":4,"author":"bob","text":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","created_at":0},{"id":2,"author":"bob","text":"second","created_at":0},{"id":1,"author":"bob","text":"hello world","created_at":0}],"next_cursor":null}
+
+
+  DIFF 51 reject_timeline_unknown_user   [status 200, want 400]
+       request  GET /timeline?user=eve 
+       expected 400 {"error":"unknown_user"}
+       got      200 {"tweets":[],"next_cursor":null}
+
+
+  DIFF 52 reject_unknown_path   [error-shape mismatch]
+       request  GET /nope 
+       expected 404 {"error":"not_found"}
+       got      404 404 page not found
+
+
+  DIFF 53 reject_unknown_method   [method not allowed]
+       request  PATCH /users {"handle":"x"}
+       expected 404 {"error":"not_found"}
+       got      405 {"error":"method_not_allowed"}
+
+
+  DIFF 54 reject_malformed_json   [error code "invalid_json", want "malformed_request"]
+       request  POST /users {
+       expected 400 {"error":"malformed_request"}
+       got      400 {"error":"invalid_json"}
+
+
+========================================================================
+R0 result: 7/54 exact, 8 whitespace-only, 39 differ
+
+  gap by kind:
+     14  body differs
+      6  status 200, want 400
+      5  route absent
+      3  status 201, want 400
+      1  error code "duplicate_user", want "handle_taken"
+      1  error code "empty_handle", want "invalid_handle"
+      1  error code "empty_handle", want "malformed_request"
+      1  error code "empty_text", want "invalid_text"
+      1  error code "empty_user", want "malformed_request"
+      1  error code "invalid_json", want "malformed_request"
+      1  error code "self_follow_forbidden", want "unknown_user"
+      1  error code "unknown_user", want "invalid_handle"
+      1  error-shape mismatch
+      1  method not allowed
+      1  status 409, want 400
+
+  by property / decision:
+    * D1   0/2
+    * D10  1/7
+    * D2   3/4
+    * D3   0/3
+    * D4   1/2
+      D5   1/1
+    * D6   0/3
+    * D7   0/10
+    * D9   0/2
+    * F1   2/6
+    * F2   0/3
+      F3   3/3
+      F4   1/1
+    * F6   1/2
+    * F7   0/4
+    * F8   0/5
+      F9   3/3
+========================================================================
+R0 FAILED: 39 step(s) disagree with S_obs
+exit status 1

@@ -1,0 +1,44 @@
+// Gobra contracts for ID generation — F8.
+//
+// Each call to Next() returns a value strictly greater than the previous,
+// starting at 1. This guarantees global uniqueness and per-author
+// monotonicity (any subset of issued IDs is also strictly monotonic in
+// issue order).
+//
+// Stream 3 Phase 2a: introduce the LockP() permission predicate over the
+// Generator. Conceptually: "the mutex `mu` is initialized and protects the
+// `next` field." The actual mutex permission discipline is still bypassed
+// by `// @ trusted` on Next()/Peek()/Current()/SetCurrent() — that
+// discharge happens in Phase 2b. What this file does today is set up the
+// *shape* of the proof: callers can hold `acc(g.LockP(), _)` as a
+// permission token, and the constructors below in ids.go fold this
+// predicate after construction so it is available. Mirrors S3P1a on
+// `internal/clock`.
+
+package ids
+
+// LockP is the lock-invariant predicate for *Generator. It abstracts the
+// resource the mutex `mu` protects: write permission to `next`. Once Phase
+// 2b drops the `// @ trusted` markers on Next()/Peek()/Current()/
+// SetCurrent(), those methods will `unfold`/`fold` LockP() under the lock
+// to access `next` legally.
+//
+// Body deliberately minimal: only `acc(&g.next)`. The mutex itself
+// (`g.mu`) is a value-typed `sync.Mutex` field, and our `stubs/sync`
+// declares no permission tokens on `Mutex` — so there is nothing to
+// assert about `g.mu` here beyond the field-existence implied by `acc(g)`
+// at the call sites. This keeps Phase 2a a pure additive setup with no
+// stub surgery.
+pred (g *Generator) LockP() {
+	acc(&g.next)
+}
+
+// @ requires acc(g)
+// @ ensures acc(g) && result == old(g.next) && g.next == old(g.next) + 1
+// @ ensures result >= 1
+// @ func (g *Generator) GhostNext() (result int64)
+
+// @ requires acc(g, 1/2)
+// @ ensures acc(g, 1/2) && result == g.next && g.next == old(g.next)
+// @ pure
+// @ func (g *Generator) GhostPeek() (result int64)

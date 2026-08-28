@@ -1,0 +1,15 @@
+{
+  "note": "How to build and launch each implementation. The harness may ONLY drive an implementation through the observable HTTP API -- never through its internal state. See GOAL.md standing rule 2 and evidence/findings/F001.",
+  "impls": {
+    "go": {
+      "dir": "impls/go",
+      "language": "Go",
+      "build": ["go", "build", "-o", "{bin}", "./cmd/server"],
+      "run": ["{bin}"],
+      "addr_env": "ADDR",
+      "health_path": "/healthz",
+      "verifier": "Gobra",
+      "status": "vendored; R0 baseline 7/54 exact, 39 differ (see evidence/findings/F003) -- retargeting is step 1c"
+    }
+  }
+}

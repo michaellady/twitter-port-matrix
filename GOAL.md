@@ -71,10 +71,10 @@ The goal is met when all of these hold:
 
 ### Phase 1 — Go↔Rust rig
 
-- [ ] **1a** Vendor the Go implementation into `impls/go/` as its own module
-- [ ] **1b** `replay` — drive an implementation over HTTP with a corpus and
-      byte-compare. This is R0. Report the gap against the un-retargeted impl
-      before changing anything; the size of that gap is itself a measurement
+- [x] **1a** Vendor the Go implementation into `impls/go/` as its own module
+- [x] **1b** `replay` — drives an implementation over HTTP and byte-compares.
+      R0 baseline recorded: 7/54 exact, 8 whitespace-only, 39 differ. See
+      finding F003
 - [ ] **1c** Retarget Go to the `S_obs` contract: tick endpoint, error-code
       set, canonical encoding, pagination, sort-free timeline
 - [ ] **1d** Same for Rust in `impls/rust/`
@@ -103,15 +103,22 @@ The goal is met when all of these hold:
 ## STATE
 
 **Phase:** 1
-**Next step:** 1a — vendor the Go implementation
+**Next step:** 1c — retarget the Go implementation to the S_obs contract
 **Last updated:** 2026-08-28
 
 **Gates currently green:**
 `matrixctl doctor` · `matrixctl spec check` (4/4)
 
+**R0 status:** go 7/54 exact — baseline before retargeting, see F003
+
 **Blocked / waiting:** nothing
 
 **Notes for the next iteration:**
+- 1c has three roots to fix, in this order: add the tick route (unblocks F2,
+  F7, F8, D9 at once), make parsing strict (D7, 10 steps), align the
+  error-code vocabulary (7 renamings). Then the trailing newline (D8).
+- The Go impl chose the opposite error precedence to D4. Finding F003 — keep
+  it; it is the concrete form of the whole argument.
 - `eclipse-temurin` pull did not land. TLC runs on host JDK 17 with the jar
   pinned by sha256, which is the real determinism lever. Not worth chasing.
 - Docker already has `rust:1.95.0` and `crossbario/autobahn-testsuite` cached

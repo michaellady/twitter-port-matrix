@@ -1,0 +1,50 @@
+// Gobra contracts for the Logical clock — F7.
+//
+// These annotations are intended for verification with Gobra
+// (https://github.com/viperproject/gobra). They compile away under standard
+// `go build`. The discipline here is that Now() never decreases between
+// successive calls without an intervening Tick().
+//
+// Gobra's mutex specs are stubs that prove data-race freedom under partial
+// correctness only. Deadlock-freedom and starvation-freedom are out of scope.
+//
+// Stream 3 Phase 1a: introduce the LockP() permission predicate over the
+// Logical clock. Conceptually: "the mutex `mu` is initialized and protects
+// the `now` field." Callers can hold `acc(l.LockP())` as a permission
+// token, and the constructors in clock.go fold this predicate after
+// construction so it is available.
+//
+// Stream 3 Phase 1b: Now() and Tick() consume LockP() as a precondition,
+// `unfold` it to access `l.now` under the lock, then `fold` it back as a
+// postcondition. Both methods are no longer `// @ trusted` — the F7
+// obligation (Tick advances by exactly 1; Now reads the current value) is
+// now formally discharged by Gobra. The `sync.Mutex.Lock`/`Unlock` calls
+// remain trusted via stubs/sync/sync.gobra (wrapper style — only the
+// resource the mutex protects is reasoned about, not the mutex's own
+// concurrency semantics).
+
+package clock
+
+// LockP is the lock-invariant predicate for *Logical. It abstracts the
+// resource the mutex `mu` protects: write permission to `now`. Once Phase 1b
+// drops the `// @ trusted` markers on Now()/Tick(), those methods will
+// `unfold`/`fold` LockP() under the lock to access `now` legally.
+//
+// Body deliberately minimal: only `acc(&l.now)`. The mutex itself
+// (`l.mu`) is a value-typed `sync.Mutex` field, and our `stubs/sync` declares
+// no permission tokens on `Mutex` — so there is nothing to assert about
+// `l.mu` here beyond the field-existence implied by `acc(l)` at the call
+// sites. This keeps Phase 1a a pure additive setup with no stub surgery.
+pred (l *Logical) LockP() {
+	acc(&l.now)
+}
+
+// @ requires acc(l)
+// @ ensures acc(l) && result == old(l.now)
+// @ ensures l.now == old(l.now)
+// @ pure
+// @ func (l *Logical) GhostNow() (result int64)
+
+// @ requires acc(l)
+// @ ensures acc(l) && l.now == old(l.now) + 1
+// @ func (l *Logical) GhostTick()

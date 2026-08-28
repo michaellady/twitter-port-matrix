@@ -1,0 +1,62 @@
+// Gobra contracts for Service — F1, F2, F4.
+//
+// These contracts target the public service API; internal data-race freedom
+// (F5 Go-scope) is established at the store layer's contracts.
+//
+// Stream 3 Phase 5: introduce the `LockP()` permission predicate over
+// `*Service`. Same shape as `internal/clock/clock.gobra` (S3P1a),
+// `internal/ids/ids.gobra` (S3P2a), and `internal/store/memstore.gobra`
+// (S3P4 sub-PR 1): the predicate composes the per-component predicates of
+// the verified primitives Service holds. `New()` folds the predicate after
+// constructing the underlying clock / ids / store. The first production
+// methods to consume it are `Follow`, `HasUser`, `CreateUser`, and
+// `Tick`, which now carry in-line `requires acc(s.LockP()) /
+// ensures acc(s.LockP())` contracts instead of `// @ trusted`.
+//
+// Notable scope choice: the `clk` field is a `clock.Clock` interface, and
+// Gobra cannot fold the concrete `*clock.Logical.LockP()` predicate
+// through the interface. The composition predicate therefore only holds
+// `acc(&s.clk)` for the clock field (field-existence permission only —
+// no LockP fold). `Tick` performs a runtime type-assertion to
+// `*clock.Logical` and the assertion path is quarantined into the tiny
+// `// @ trusted` `tickLogical` shim helper because Gobra cannot fold the
+// concrete LockP() out of an interface dispatch — the asserted concrete
+// pointer's predicate state is not visible to the verifier through
+// the interface field. `PostTweet` and `HomeTimeline` keep their
+// `// @ trusted` markers in this sub-PR — `PostTweet` reads through the
+// interface to call `s.clk.Now()` (same interface-LockP() fold gap), and
+// `HomeTimeline` is a framing-only delegate to store but its postcondition
+// would force the F1+F2 quantifier work (already documented as out of
+// scope in S3P4 sub-PR 6 on `(*MemStore).HomeTimeline`).
+
+package service
+
+// LockP is the lock-invariant predicate for *Service. It composes the
+// component LockP() predicates of the verified primitives Service holds,
+// plus field-existence permission for the interface-typed `clk`.
+// Mirrors the predicate body shapes in `clock.gobra`, `ids.gobra`, and
+// `memstore.gobra`.
+pred (s *Service) LockP() {
+	acc(&s.clk) &&
+	acc(&s.idsTw) && acc(s.idsTw.LockP()) &&
+	acc(&s.idsUsr) && acc(s.idsUsr.LockP()) &&
+	acc(&s.st) && acc(s.st.LockP())
+}
+
+// Stream 3 Phase 5 sub-PR 2: `GhostPostTweet` retired — `(*Service).PostTweet`
+// is now its own proof in service.go (framing-only postcondition). The
+// success-path payload assertions below (`t.Author == author`, `t.Text == text`,
+// `t.ID >= 1`) would require composing the Service-level `LockP()` with the
+// inner `MemStore.LockP()` `unfolding`-clauses + per-author slice permission
+// (same nested-permission shape documented across the S3P4 store sub-PRs).
+// Both stay runtime-enforced by the explicit field assignments inside the
+// `dom.Tweet{...}` literal and the discharged `(*MemStore).PutTweet` body.
+
+// F1 + F2 are inherited from store.GhostHomeTimeline; service is a pass-through.
+// @ requires acc(s, 1/2)
+// @ ensures acc(s, 1/2)
+// @ ensures forall i, j int :: 0 <= i && i < j && j < len(result) ==> (
+//   result[i].CreatedAt > result[j].CreatedAt ||
+//   (result[i].CreatedAt == result[j].CreatedAt && result[i].ID > result[j].ID)
+// )
+// @ func (s *Service) GhostHomeTimeline(user string, limit int) (result []Tweet)
