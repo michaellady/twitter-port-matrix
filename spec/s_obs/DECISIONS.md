@@ -90,6 +90,28 @@ parameters, and repeated query parameters are all rejected with
 `malformed_request`. Lenient parsing is a classic source of cross-language
 divergence, so `S_obs` is strict.
 
+Field names are matched **case-sensitively**, and that requires saying because
+Go's `encoding/json` falls back to a case-insensitive match: under
+`DisallowUnknownFields` alone, `{"Handle":"alice"}` counts as a *known* field
+and is accepted. `S_obs` is written in Go and silently inherited that. Rust's
+`serde` is case-sensitive and rejected the same body, so the two corners
+disagreed in production while both passing every rung. See
+`evidence/findings/F010`.
+
+Numeric parameters (`limit`, `cursor`) use Go's `strconv.ParseInt` accept set,
+which is narrower than "digits": `05` is accepted, `+5` is rejected, and
+non-ASCII decimal digits such as `٥` are rejected. A port reaching for its
+language's natural integer parser will get at least one of these wrong.
+
+Length bounds are in **bytes**, not characters. `MaxHandleLen = 32` and
+`MaxTextLen = 280` count UTF-8 bytes, so a port using UTF-16 code units —
+Java and Kotlin's `String.length()` — accepts strings `S_obs` rejects.
+
+Each of the three above is a decision `S_obs` delegated to a Go library rather
+than one anybody wrote down. They are pinned here now; the remaining
+delegations (`url.ParseQuery`'s error conditions, `net/url` percent-decoding)
+are listed as open work in F010.
+
 **Known limitation, stated rather than hidden.** Duplicate JSON keys resolve
 last-wins. `tracegen` never emits duplicate keys, so no generated trace
 depends on this.
