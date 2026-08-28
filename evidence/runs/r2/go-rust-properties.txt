@@ -4,3 +4,11 @@ proptest: R2 properties and metamorphic relations
 
 [go]
 ------------------------------------------------------------------------
+  ok    follow-idempotent          F3: following twice equals following once 36.5s
+  ok    unfollow-idempotent        F3: unfollowing twice equals unfollowing once 21.7s
+  ok    follow-unfollow-restores   follow then unfollow returns the timeline to its start 22.1s
+  ok    pagination-partitions      D10: pages partition the timeline, no loss, no fabrication 22.0s
+  ok    timeline-ordered           F2: strictly descending (created_at, id) 21.9s
+  ok    visibility-follows-edges   F1: a tweet is visible iff self-authored or followed 23.9s
+  ok    post-prepends              a new tweet by a followed author appears first 40.6s
+  ok    clock-never-decreases      F7: created_at is non-decreasing across ticks 24.0s

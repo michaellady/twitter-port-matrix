@@ -558,10 +558,7 @@ mod verus_proof {
             ensures out == follow_edges(s).contains((from@, to@))
         {
             let g = s.inner.read().expect("store poisoned");
-            match g.follows.get(from) {
-                Some(set) => set.contains(to),
-                None => false,
-            }
+            g.follows.contains(&(from.clone(), to.clone()))
         }
 
         // Trusted shim around the lock-acquire + `entry().or_default().insert()`
@@ -582,7 +579,7 @@ mod verus_proof {
                 users_keys(s) == users_keys(old(s)),
         {
             let mut g = s.inner.write().expect("store poisoned");
-            g.follows.entry(from.clone()).or_default().insert(to.clone());
+            g.follows.insert((from.clone(), to.clone()));
         }
 
         // Trusted shim around the lock-acquire + `HashSet::remove` step
@@ -602,9 +599,7 @@ mod verus_proof {
                 users_keys(s) == users_keys(old(s)),
         {
             let mut g = s.inner.write().expect("store poisoned");
-            if let Some(set) = g.follows.get_mut(from) {
-                set.remove(to);
-            }
+            g.follows.remove(&(from.clone(), to.clone()));
         }
 
         // F3-idempotent / F9-rejecting discharge for `MemStore::put_follow`.
@@ -726,7 +721,7 @@ mod verus_proof {
                 follow_edges(s) == follow_edges(old(s)),
         {
             let mut g = s.inner.write().expect("store poisoned");
-            g.by_author.entry(t.author.clone()).or_default().push(t);
+            g.tweets.push(t);
         }
 
         // F6 (no-orphan-tweets) discharge for `MemStore::put_tweet`.
@@ -811,7 +806,11 @@ mod verus_proof {
         pub fn proof_follow_set(s: &MemStore, from: &String) -> (out: HashSet<String>)
         {
             let g = s.inner.read().expect("store poisoned");
-            g.follows.get(from).cloned().unwrap_or_default()
+            g.follows
+                .iter()
+                .filter(|(f, _)| f == from)
+                .map(|(_, t)| t.clone())
+                .collect()
         }
 
         // Verified wrapper for `MemStore::follow_set`. Body is a single
@@ -849,28 +848,19 @@ mod verus_proof {
         pub fn proof_home_timeline(s: &MemStore, user: &String, limit: usize) -> (out: Vec<Tweet>)
         {
             let g = s.inner.read().expect("store poisoned");
-            let mut authors: HashSet<&str> = HashSet::new();
-            authors.insert(user);
-            if let Some(set) = g.follows.get(user) {
-                for to in set {
-                    authors.insert(to.as_str());
+            let mut out: Vec<Tweet> = Vec::with_capacity(limit);
+            for t in g.tweets.iter().rev() {
+                if t.author != *user
+                    && !g.follows.contains(&(user.clone(), t.author.clone()))
+                {
+                    continue;
                 }
-            }
-            let mut collected: Vec<Tweet> = Vec::new();
-            for a in &authors {
-                if let Some(list) = g.by_author.get(*a) {
-                    collected.extend(list.iter().cloned());
+                if out.len() == limit {
+                    break;
                 }
+                out.push(t.clone());
             }
-            collected.sort_by(|a, b| {
-                b.created_at
-                    .cmp(&a.created_at)
-                    .then_with(|| b.id.cmp(&a.id))
-            });
-            if limit > 0 && collected.len() > limit {
-                collected.truncate(limit);
-            }
-            collected
+            out
         }
 
         // Verified wrapper for `MemStore::home_timeline`. Body is a single

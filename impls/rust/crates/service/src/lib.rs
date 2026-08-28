@@ -433,7 +433,8 @@ mod verus_proof {
                 Ok(()) => Ok(u),
                 Err(e) => Err(match e {
                     StoreError::UnknownUser => ServiceError::UnknownUser,
-                    StoreError::DuplicateUser => ServiceError::DuplicateUser,
+                    StoreError::HandleTaken => ServiceError::HandleTaken,
+                    StoreError::NonMonotonic => ServiceError::NonMonotonic,
                 }),
             }
         }
@@ -481,7 +482,7 @@ mod verus_proof {
             // Verus the bridge from the exec branch to the `handle@.len() == 0`
             // spec clauses above.
             if handle.as_str().is_empty() {
-                return Err(ServiceError::EmptyHandle);
+                return Err(ServiceError::InvalidHandle);
             }
             proof_service_put_user(s, handle)
         }
@@ -572,7 +573,8 @@ mod verus_proof {
                 Ok(()) => Ok(()),
                 Err(e) => Err(match e {
                     StoreError::UnknownUser => ServiceError::UnknownUser,
-                    StoreError::DuplicateUser => ServiceError::DuplicateUser,
+                    StoreError::HandleTaken => ServiceError::HandleTaken,
+                    StoreError::NonMonotonic => ServiceError::NonMonotonic,
                 }),
             }
         }
@@ -627,6 +629,8 @@ mod verus_proof {
                 Ok(f) => f,
                 Err(e) => return Err(match e {
                     DomainError::SelfFollow => ServiceError::SelfFollow,
+                    DomainError::InvalidHandle => ServiceError::InvalidHandle,
+                    DomainError::InvalidText => ServiceError::InvalidText,
                 }),
             };
             proof_service_put_follow(s, f)
@@ -713,7 +717,7 @@ mod verus_proof {
         #[verifier::external_body]
         pub fn proof_service_home_timeline(s: &Service, user: &String, limit: usize) -> (out: Vec<Tweet>)
         {
-            s.st.home_timeline(user.as_str(), limit)
+            s.st.home_timeline(user.as_str(), limit, 0).0
         }
 
         // R4 discharge — verified read-only wrapper for

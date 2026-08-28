@@ -40,7 +40,8 @@ Status: `[ ]` queued · `[~]` in progress · `[x]` done
       *Gate:* all renderings generated from one source; a `specgen` mutant
       must break at least one implementation's proof.
 
-- [ ] **S-11** Retarget the Verus proof module (**R4**, Rust)
+- [x] **S-11** Retarget the Verus proof module (**R4**, Rust) — 23 verified,
+      0 errors. Trusted-shim count unchanged; see finding F007.
       *Gate:* `cargo verus verify` green. The proofs still reference the old
       `HashMap<String, HashSet<String>>` / `by_author` shapes.
       *Expect:* several `external_body` shims become verifiable now the
