@@ -16,3 +16,15 @@ proptest: R2 properties and metamorphic relations
 
 [rust]
 ------------------------------------------------------------------------
+  ok    follow-idempotent          F3: following twice equals following once 10.8s
+  ok    unfollow-idempotent        F3: unfollowing twice equals unfollowing once 8.8s
+  ok    follow-unfollow-restores   follow then unfollow returns the timeline to its start 8.7s
+  ok    pagination-partitions      D10: pages partition the timeline, no loss, no fabrication 8.7s
+  ok    timeline-ordered           F2: strictly descending (created_at, id) 8.8s
+  ok    visibility-follows-edges   F1: a tweet is visible iff self-authored or followed 8.8s
+  ok    post-prepends              a new tweet by a followed author appears first 8.8s
+  ok    clock-never-decreases      F7: created_at is non-decreasing across ticks 18.3s
+  ok    reads-are-pure             a GET never changes what the next GET returns 10.0s
+
+========================================================================
+R2 PASSED: every relation holds on every generated state
