@@ -87,8 +87,8 @@ and reproducing it inside the rig would invalidate the measurement.
       **This is the deliverable.** Fan-out story: run as a workflow.
 
 ## Phase 2 — Java corner
-- [~] **S-16** Toolchain: Maven/Gradle on host; OpenJML + JBMC digest-pinned — *agent: java-corner*
-- [~] **S-17** Java implementation + JSONL adapter (`java-oracle/` pattern) — *agent: java-corner*
+- [x] **S-16** Toolchain: no build tool installed — plain javac on JDK 17
+- [x] **S-17** Java implementation — R0 54/54, 4/4 canaries, R1 clean
 - [ ] **S-18** Java ↔ Rust and Java ↔ Go ports
 
 ## Phase 3 — Kotlin corner

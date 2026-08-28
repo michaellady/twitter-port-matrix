@@ -163,6 +163,23 @@ func (g *gen) hostile() Request {
 		{Method: "GET", Path: "/nope"},
 		{Method: "PATCH", Path: "/users", Body: `{"handle":"x"}`},
 		{Method: "DELETE", Path: "/tweets", Body: `{}`},
+
+		// Request shapes added after the Java corner cross-checked S_obs by
+		// hand and found four Go divergences that 100,000 generated requests
+		// had not touched. R1's coverage is bounded by this alphabet, not by
+		// the request count -- see evidence/findings/F008.
+		{Method: "POST", Path: "/users?x=1", Body: `{"handle":"` + h + `"}`},
+		{Method: "POST", Path: "/tweets?limit=1", Body: `{"author":"` + h + `","text":"a"}`},
+		{Method: "POST", Path: "/%75sers", Body: `{"handle":"` + h + `"}`},
+		{Method: "GET", Path: "/%74imeline?user=" + h},
+		{Method: "POST", Path: "/tick", Body: ` {} `},
+		{Method: "POST", Path: "/tick", Body: "\n"},
+		{Method: "GET", Path: "/timeline?user=" + h + "&limit=%zz"},
+		{Method: "GET", Path: "/timeline?user=" + h + "&cursor=%"},
+		{Method: "GET", Path: "/timeline?user=%7b" + h + "%7d"},
+		{Method: "GET", Path: "/timeline?user=" + h + "%7calice"},
+		{Method: "GET", Path: "/timeline?user=" + h + "&"},
+		{Method: "GET", Path: "/timeline?" + h},
 	}
 	return pool[g.r.Intn(len(pool))]
 }

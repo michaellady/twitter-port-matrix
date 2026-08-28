@@ -148,6 +148,22 @@ async fn not_found() -> impl IntoResponse {
     err(StatusCode::NOT_FOUND, "not_found")
 }
 
+/// Rejects a query string on a route that does not take one.
+///
+/// axum's Router matches on the path and ignores the query entirely, so
+/// POST /users?x=1 and POST /tweets?limit=1 reached their handlers. S_obs
+/// routes on (method, path) with NO query for every endpoint except
+/// /timeline, so those are not routes at all.
+///
+/// Found by widening the trace generator's alphabet, not by volume: 100,000
+/// generated requests never emitted a query on a POST path. See finding F008.
+fn reject_query(raw: &Option<String>) -> Option<axum::response::Response> {
+    match raw {
+        Some(q) if !q.is_empty() => Some(err(StatusCode::NOT_FOUND, "not_found").into_response()),
+        _ => None,
+    }
+}
+
 // -----------------------------------------------------------------------------
 // POST /users
 // -----------------------------------------------------------------------------
@@ -164,7 +180,14 @@ struct UserResp {
     id: i64,
 }
 
-async fn create_user(State(svc): State<Arc<Service>>, body: Bytes) -> impl IntoResponse {
+async fn create_user(
+    State(svc): State<Arc<Service>>,
+    RawQuery(rq): RawQuery,
+    body: Bytes,
+) -> impl IntoResponse {
+    if let Some(r) = reject_query(&rq) {
+        return r;
+    }
     let Some(req) = parse_strict::<CreateUserReq>(&body) else {
         return malformed();
     };
@@ -190,7 +213,14 @@ struct FollowReq {
     to: String,
 }
 
-async fn follow(State(svc): State<Arc<Service>>, body: Bytes) -> impl IntoResponse {
+async fn follow(
+    State(svc): State<Arc<Service>>,
+    RawQuery(rq): RawQuery,
+    body: Bytes,
+) -> impl IntoResponse {
+    if let Some(r) = reject_query(&rq) {
+        return r;
+    }
     let Some(req) = parse_strict::<FollowReq>(&body) else {
         return malformed();
     };
@@ -204,7 +234,14 @@ async fn follow(State(svc): State<Arc<Service>>, body: Bytes) -> impl IntoRespon
     }
 }
 
-async fn unfollow(State(svc): State<Arc<Service>>, body: Bytes) -> impl IntoResponse {
+async fn unfollow(
+    State(svc): State<Arc<Service>>,
+    RawQuery(rq): RawQuery,
+    body: Bytes,
+) -> impl IntoResponse {
+    if let Some(r) = reject_query(&rq) {
+        return r;
+    }
     let Some(req) = parse_strict::<FollowReq>(&body) else {
         return malformed();
     };
@@ -237,7 +274,14 @@ struct TweetResp {
     created_at: i64,
 }
 
-async fn post_tweet(State(svc): State<Arc<Service>>, body: Bytes) -> impl IntoResponse {
+async fn post_tweet(
+    State(svc): State<Arc<Service>>,
+    RawQuery(rq): RawQuery,
+    body: Bytes,
+) -> impl IntoResponse {
+    if let Some(r) = reject_query(&rq) {
+        return r;
+    }
     let Some(req) = parse_strict::<TweetReq>(&body) else {
         return malformed();
     };
@@ -270,9 +314,16 @@ struct ClockResp {
 /// created_at no sequence of its own requests could reach, and why both
 /// conformance harnesses resolved it by writing to the clock directly -- see
 /// evidence/findings/F001. One request now maps 1:1 onto one TLA+ Tick step.
-async fn tick(State(svc): State<Arc<Service>>, body: Bytes) -> impl IntoResponse {
+async fn tick(
+    State(svc): State<Arc<Service>>,
+    RawQuery(rq): RawQuery,
+    body: Bytes,
+) -> impl IntoResponse {
+    if let Some(r) = reject_query(&rq) {
+        return r;
+    }
+    // No trim: S_obs accepts exactly "" or "{}" (D3), so " {} " is malformed.
     let s = String::from_utf8_lossy(&body);
-    let s = s.trim();
     if !s.is_empty() && s != "{}" {
         return malformed();
     }
@@ -302,10 +353,18 @@ async fn timeline(
     let Some(raw) = raw.filter(|r| !r.is_empty()) else {
         return malformed();
     };
+    // A malformed percent-escape makes the whole query malformed. The first
+    // version of parse_query decoded "%zz" to the literal text and carried on,
+    // so ?limit=%zz surfaced as invalid_limit instead of malformed_request --
+    // a wrong answer that still looked like a rejection. Go's url.ParseQuery
+    // returns an error here and S_obs propagates it. (F008)
+    let Some(pairs) = parse_query(&raw) else {
+        return malformed();
+    };
     let mut user: Option<String> = None;
     let mut limit_raw: Option<String> = None;
     let mut cursor_raw: Option<String> = None;
-    for (k, v) in parse_query(&raw) {
+    for (k, v) in pairs {
         let slot = match k.as_str() {
             "user" => &mut user,
             "limit" => &mut limit_raw,
@@ -360,17 +419,23 @@ async fn timeline(
 /// Preserving repeated keys (rather than collapsing them) is required -- D7
 /// rejects them, and silently taking the first value is precisely where the Go
 /// and Rust implementations disagreed before retargeting (finding F006).
-fn parse_query(raw: &str) -> Vec<(String, String)> {
+fn parse_query(raw: &str) -> Option<Vec<(String, String)>> {
     raw.split('&')
         .filter(|p| !p.is_empty())
         .map(|pair| {
             let (k, v) = pair.split_once('=').unwrap_or((pair, ""));
-            (percent_decode(k), percent_decode(v))
+            Some((percent_decode(k)?, percent_decode(v)?))
         })
         .collect()
 }
 
-fn percent_decode(s: &str) -> String {
+/// Percent-decodes, returning None on a malformed escape.
+///
+/// Matches Go's url.ParseQuery: a '%' not followed by two hex digits, or a
+/// trailing '%', makes the query invalid rather than decoding to itself.
+/// Note the bound is `i + 2 < b.len()` in the original, which also silently
+/// mishandled an escape at the very end of the string.
+fn percent_decode(s: &str) -> Option<String> {
     let b = s.as_bytes();
     let mut out = Vec::with_capacity(b.len());
     let mut i = 0;
@@ -380,17 +445,13 @@ fn percent_decode(s: &str) -> String {
                 out.push(b' ');
                 i += 1;
             }
-            b'%' if i + 2 < b.len() => {
-                match u8::from_str_radix(&s[i + 1..i + 3], 16) {
-                    Ok(v) => {
-                        out.push(v);
-                        i += 3;
-                    }
-                    Err(_) => {
-                        out.push(b'%');
-                        i += 1;
-                    }
+            b'%' => {
+                if i + 2 >= b.len() {
+                    return None;
                 }
+                let v = u8::from_str_radix(&s[i + 1..i + 3], 16).ok()?;
+                out.push(v);
+                i += 3;
             }
             c => {
                 out.push(c);
@@ -398,5 +459,5 @@ fn percent_decode(s: &str) -> String {
             }
         }
     }
-    String::from_utf8_lossy(&out).into_owned()
+    Some(String::from_utf8_lossy(&out).into_owned())
 }

@@ -13,9 +13,9 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/michaellady/twitter-port-matrix-impl-go/internal/dom"
@@ -208,8 +208,7 @@ func writeErrFromDomain(w http.ResponseWriter, r *http.Request, err error) {
 }
 
 func (h *handlers) users(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeErr(w, http.StatusNotFound, "not_found")
+	if !exactRoute(w, r, http.MethodPost, "/users", false) {
 		return
 	}
 	var req struct {
@@ -228,10 +227,11 @@ func (h *handlers) users(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handlers) follow(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodPost, http.MethodDelete:
-	default:
+	if r.Method != http.MethodPost && r.Method != http.MethodDelete {
 		writeErr(w, http.StatusNotFound, "not_found")
+		return
+	}
+	if !exactRoute(w, r, r.Method, "/follow", false) {
 		return
 	}
 	var req struct {
@@ -256,8 +256,7 @@ func (h *handlers) follow(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handlers) tweets(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeErr(w, http.StatusNotFound, "not_found")
+	if !exactRoute(w, r, http.MethodPost, "/tweets", false) {
 		return
 	}
 	var req struct {
@@ -286,8 +285,7 @@ func (h *handlers) tweets(w http.ResponseWriter, r *http.Request) {
 // see evidence/findings/F001. One request now maps 1:1 onto one TLA+ Tick
 // step, so every timestamp in a trace is produced by the trace.
 func (h *handlers) tick(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		writeErr(w, http.StatusNotFound, "not_found")
+	if !exactRoute(w, r, http.MethodPost, "/tick", false) {
 		return
 	}
 	body, err := io.ReadAll(r.Body)
@@ -295,7 +293,9 @@ func (h *handlers) tick(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusBadRequest, "malformed_request")
 		return
 	}
-	if s := strings.TrimSpace(string(body)); s != "" && s != "{}" {
+	// No TrimSpace: S_obs accepts exactly "" or "{}" (D3), so " {} " is
+	// malformed. Trimming quietly widened the accept set. (F008)
+	if s := string(body); s != "" && s != "{}" {
 		writeErr(w, http.StatusBadRequest, "malformed_request")
 		return
 	}
@@ -304,15 +304,21 @@ func (h *handlers) tick(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handlers) timeline(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		writeErr(w, http.StatusNotFound, "not_found")
+	if !exactRoute(w, r, http.MethodGet, "/timeline", true) {
 		return
 	}
 	if r.URL.RawQuery == "" {
 		writeErr(w, http.StatusBadRequest, "malformed_request")
 		return
 	}
-	q := r.URL.Query()
+	// r.URL.Query() discards the error url.ParseQuery returns, so a malformed
+	// percent-escape silently dropped the parameter and the request was served
+	// with a default. Parse explicitly and reject. (F008)
+	q, qerr := url.ParseQuery(r.URL.RawQuery)
+	if qerr != nil {
+		writeErr(w, http.StatusBadRequest, "malformed_request")
+		return
+	}
 	// Unknown or repeated query parameters are rejected (D7).
 	for k, v := range q {
 		if k != "user" && k != "limit" && k != "cursor" {
@@ -376,4 +382,30 @@ func (h *handlers) timeline(w http.ResponseWriter, r *http.Request) {
 // notFound is the total-by-construction default route (S_obs D7).
 func (h *handlers) notFound(w http.ResponseWriter, r *http.Request) {
 	writeErr(w, http.StatusNotFound, "not_found")
+}
+
+// exactRoute enforces S_obs's routing, which net/http's ServeMux does not
+// implement and cannot be configured into.
+//
+// Two gaps, both found by widening the trace alphabet (finding F008):
+//
+//   - ServeMux matches on r.URL.Path, which is PERCENT-DECODED, so
+//     POST /%75sers reached the /users handler. S_obs compares the raw path,
+//     so that is not a route.
+//   - ServeMux ignores the query string entirely, so POST /users?x=1 reached
+//     the handler. S_obs routes on (method, path) with no query for every
+//     endpoint except /timeline.
+//
+// Returns false when the request is not this route, having already written
+// the not_found response.
+func exactRoute(w http.ResponseWriter, r *http.Request, method, path string, allowQuery bool) bool {
+	if r.URL.EscapedPath() != path || r.Method != method {
+		writeErr(w, http.StatusNotFound, "not_found")
+		return false
+	}
+	if !allowQuery && r.URL.RawQuery != "" {
+		writeErr(w, http.StatusNotFound, "not_found")
+		return false
+	}
+	return true
 }

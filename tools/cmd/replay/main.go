@@ -104,7 +104,14 @@ func main() {
 	if err != nil {
 		die("starting %s: %v", *implName, err)
 	}
-	defer h.stop()
+	// NOT `defer h.stop()`: every path out of this function goes through
+	// os.Exit, which does not run deferred calls. The old code leaked a
+	// server process on every single run -- five orphaned JVMs after one
+	// canary sweep. Stop explicitly before each exit instead.
+	exit := func(code int) {
+		h.stop()
+		os.Exit(code)
+	}
 
 	var mut *mutation
 	if *canary != "" {
@@ -125,12 +132,12 @@ func main() {
 		if code == 0 {
 			fmt.Printf("\nCANARY DID NOT FAIL: mutation %q left R0 green.\n"+
 				"R0 cannot detect this class of defect, so a passing R0 run proves nothing about it.\n", mut.name)
-			os.Exit(1)
+			exit(1)
 		}
 		fmt.Printf("\ncanary %q correctly rejected: R0 can fail.\n", mut.name)
-		os.Exit(0)
+		exit(0)
 	}
-	os.Exit(code)
+	exit(code)
 }
 
 func die(format string, a ...any) {
