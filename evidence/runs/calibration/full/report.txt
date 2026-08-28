@@ -1,0 +1,275 @@
+CALIBRATION -- per-rung mutation kill table
+==============================================================================
+corners   go, rust
+rungs     R0, R1, R2
+R1        20 traces x 200 steps, seed 1
+R2        6 rounds x 40 setup requests, seed 1
+probe     any (4 traces x 120 steps, plus the corpus and each mutant's witness)
+window    2026-08-28T18:19:38Z .. 2026-08-28T19:32:43Z
+
+==============================================================================
+KILL TABLE
+==============================================================================
+rung             live  killed  survived  unreached  equiv   kill%   kill%     wall
+                                                            reach    live         
+R0 corpus          36      36         0          0      0    100%    100%      57s
+R1 diff-fuzz       35      35         0          0      0    100%    100%    1465s
+R2 property        35      14        19          2      0     42%     40%    2495s
+
+  live       mutants that change observable behaviour. Equivalent ones are excluded
+             from every denominator: no rung can kill them, so counting them would
+             understate every rung for a reason that is not about the rung.
+  survived   the rung's own inputs DO elicit the difference and it passed anyway.
+             A gap in the rung.
+  unreached  live, but nothing in this rung's input source elicits the difference.
+             A gap in the inputs. F009 is the worked example.
+  kill%reach killed / (killed + survived) -- the rung's oracle.
+  kill%live  killed / every live mutant -- the rung as configured, inputs included.
+
+==============================================================================
+BY CORNER
+==============================================================================
+corner   rung             live  killed  survived  unreached  equiv     wall
+go       R0 corpus          18      18         0          0      0      42s
+go       R1 diff-fuzz       17      17         0          0      0    1244s
+go       R2 property        17       7         9          1      0    2024s
+rust     R0 corpus          18      18         0          0      0      15s
+rust     R1 diff-fuzz       18      18         0          0      0     221s
+rust     R2 property        18       7        10          1      0     471s
+
+==============================================================================
+COST -- and which cost it is
+==============================================================================
+Every rung relaunches the implementation: R0 once for the whole corpus, R1 once
+per trace, R2 once per property-round. A launch is a warm build check plus a
+process start plus a health wait, and that price differs by language. So raw
+seconds mix what the RUNG costs with what the LANGUAGE costs. Both are below.
+
+  corner   floor/launch of which build  samples           spread
+  go            4040 ms         479 ms        3     2663-5619 ms
+  rust          4853 ms          89 ms        3     3097-6358 ms
+
+  corner   rung            launches wall killed  wall clean  tool clean
+  go       R0 corpus              -       2.4s          -          -
+  go       R1 diff-fuzz           -      61.7s          -          -
+  go       R2 property           54      60.8s     127.1s   -91.0s *
+  rust     R0 corpus              -       0.8s          -          -
+  rust     R1 diff-fuzz           -      12.3s          -          -
+  rust     R2 property           54      17.4s      31.8s  -230.3s *
+
+  wall killed  mean wall for a mutant this rung caught. NOT comparable with the
+               clean column, and not reliably smaller either. R1 stops at its
+               first mismatch -- then shrinks, and every shrink attempt is
+               another server launch, so at low trace counts a kill can cost
+               several times a clean pass. The launch count of a kill depends
+               on the defect, so it is not corrected and no tool figure is
+               derived from it.
+  wall clean   mean wall for a full pass -- the worst case, and what a sweep of
+               a correct implementation actually costs.
+  tool clean   wall clean minus launches x measured floor. The rung's own cost
+               with process startup removed. Reported only where the launch
+               count is known from the configuration -- never inferred.
+  *            the correction came out at or below zero. Not an error and not
+               hidden: it means this rung's own work costs no more than the
+               servers it launches, so at this configuration the rung IS process
+               startup. Compare rungs by their launch counts, not their seconds.
+  Mutant setup (materialise + warm the build cache) is charged to no rung; see
+  the setups block in results.json.
+
+==============================================================================
+PER MUTANT
+==============================================================================
+mutant                             R0          R1          R2         
+go/id-first-is-two                 kill        kill        ERROR      
+go/id-burned-on-reject             kill        kill        SURVIVED   
+go/self-follow-guard-dropped       kill        ERROR       SURVIVED   
+go/follow-precedence-flipped       kill        kill        unreached  
+go/timeline-scan-reversed          kill        kill        kill       
+go/timeline-tiebreak-by-id-asc     kill        kill        kill       
+go/follow-toggles                  kill        kill        kill       
+go/unfollow-rejects-missing-edge   kill        kill        kill       
+go/orphan-author-accepted          kill        kill        SURVIVED   
+go/created-at-frozen               kill        kill        SURVIVED   
+go/tick-advances-by-two            kill        kill        SURVIVED   
+go/tick-goes-backwards             kill        kill        kill       
+go/next-cursor-always-emitted      kill        kill        SURVIVED   
+go/next-cursor-is-first-id         kill        kill        kill       
+go/cursor-inclusive                kill        kill        kill       
+go/limit-off-by-one                kill        kill        SURVIVED   
+go/unknown-json-fields-accepted    kill        kill        SURVIVED   
+go/repeated-query-param-accepted   kill        kill        SURVIVED   
+rust/id-first-is-two               kill        kill        SURVIVED   
+rust/id-burned-on-reject           kill        kill        SURVIVED   
+rust/self-follow-guard-dropped     kill        kill        SURVIVED   
+rust/follow-precedence-flipped     kill        kill        unreached  
+rust/timeline-scan-reversed        kill        kill        kill       
+rust/timeline-tiebreak-by-id-asc   kill        kill        kill       
+rust/follow-toggles                kill        kill        kill       
+rust/unfollow-rejects-missing-edge kill        kill        kill       
+rust/orphan-author-accepted        kill        kill        SURVIVED   
+rust/created-at-frozen             kill        kill        SURVIVED   
+rust/tick-advances-by-two          kill        kill        SURVIVED   
+rust/tick-goes-backwards           kill        kill        kill       
+rust/next-cursor-always-emitted    kill        kill        SURVIVED   
+rust/next-cursor-is-first-id       kill        kill        kill       
+rust/cursor-inclusive              kill        kill        kill       
+rust/limit-off-by-one              kill        kill        SURVIVED   
+rust/unknown-json-fields-accepted  kill        kill        SURVIVED   
+rust/repeated-query-param-accepted kill        kill        SURVIVED   
+
+==============================================================================
+REACHABILITY -- why each survivor survived
+==============================================================================
+  go/id-burned-on-reject         live
+      witness    differs at request 2
+      corpus     differs at request 10
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 78
+      seed=3     differs at request 48
+      seed=4     differs at request 31
+  go/self-follow-guard-dropped   live
+      corpus     differs at request 11
+      seed=1     differs at request 60
+      seed=2     differs at request 19
+      seed=3     differs at request 8
+      seed=4     differs at request 3
+  go/follow-precedence-flipped   live
+      corpus     differs at request 12
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+  go/orphan-author-accepted      live
+      corpus     differs at request 31
+      seed=1     differs at request 101
+      seed=2     differs at request 38
+      seed=3     differs at request 7
+      seed=4     differs at request 4
+  go/created-at-frozen           live
+      corpus     differs at request 19
+      seed=1     differs at request 20
+      seed=2     differs at request 16
+      seed=3     differs at request 26
+      seed=4     differs at request 8
+  go/tick-advances-by-two        live
+      corpus     differs at request 17
+      seed=1     differs at request 16
+      seed=2     differs at request 5
+      seed=3     differs at request 22
+      seed=4     differs at request 7
+  go/next-cursor-always-emitted  live
+      corpus     differs at request 20
+      seed=1     differs at request 11
+      seed=2     differs at request 14
+      seed=3     differs at request 5
+      seed=4     differs at request 38
+  go/limit-off-by-one            live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+  go/unknown-json-fields-accepted live
+      corpus     differs at request 7
+      seed=1     differs at request 9
+      seed=2     differs at request 86
+      seed=3     differs at request 15
+      seed=4     differs at request 15
+  go/repeated-query-param-accepted live
+      corpus     differs at request 51
+      seed=1     differs at request 66
+      seed=2     no difference in 120 requests
+      seed=3     differs at request 10
+      seed=4     no difference in 120 requests
+  rust/id-first-is-two           live
+      corpus     differs at request 0
+      seed=1     differs at request 0
+      seed=2     differs at request 0
+      seed=3     differs at request 0
+      seed=4     differs at request 0
+  rust/id-burned-on-reject       live
+      witness    differs at request 2
+      corpus     differs at request 10
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 78
+      seed=3     differs at request 48
+      seed=4     differs at request 31
+  rust/self-follow-guard-dropped live
+      corpus     differs at request 11
+      seed=1     differs at request 60
+      seed=2     differs at request 19
+      seed=3     differs at request 8
+      seed=4     differs at request 3
+  rust/follow-precedence-flipped live
+      corpus     differs at request 12
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+  rust/orphan-author-accepted    live
+      corpus     differs at request 31
+      seed=1     differs at request 101
+      seed=2     differs at request 38
+      seed=3     differs at request 7
+      seed=4     differs at request 4
+  rust/created-at-frozen         live
+      corpus     differs at request 19
+      seed=1     differs at request 20
+      seed=2     differs at request 16
+      seed=3     differs at request 26
+      seed=4     differs at request 8
+  rust/tick-advances-by-two      live
+      corpus     differs at request 17
+      seed=1     differs at request 16
+      seed=2     differs at request 5
+      seed=3     differs at request 22
+      seed=4     differs at request 7
+  rust/next-cursor-always-emitted live
+      corpus     differs at request 20
+      seed=1     differs at request 11
+      seed=2     differs at request 14
+      seed=3     differs at request 5
+      seed=4     differs at request 38
+  rust/limit-off-by-one          live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+  rust/unknown-json-fields-accepted live
+      corpus     differs at request 7
+      seed=1     differs at request 92
+      seed=2     differs at request 86
+      seed=3     differs at request 76
+      seed=4     differs at request 94
+  rust/repeated-query-param-accepted live
+      corpus     differs at request 51
+      seed=1     differs at request 66
+      seed=2     no difference in 120 requests
+      seed=3     differs at request 10
+      seed=4     no difference in 120 requests
+
+==============================================================================
+READ WITH CARE
+==============================================================================
+ 1. R0 killed EVERYTHING (36/36). Worth reading as a statement about the
+    catalogue as much as the rung: a mutant set this rung finds trivial cannot
+    distinguish it from a stronger one.
+ 2. R1 killed EVERYTHING (35/35). Worth reading as a statement about the
+    catalogue as much as the rung: a mutant set this rung finds trivial cannot
+    distinguish it from a stronger one.
+ 3. R1: 1 cell(s) errored. Those are missing measurements, not passes.
+ 4. R2: 1 cell(s) errored. Those are missing measurements, not passes.
+ 5. R2: 2 mutant(s) recorded as unreached on SAMPLED evidence. probe ran 4
+    trace(s) where this rung ran 20; unreached-by-tracegen is weaker evidence
+    than unreached-by-corpus, which is exact.
+ 6. R2 on go: the process floor (54 launches x measured floor) accounts for
+    the whole clean wall time -- the corrected figure is -91.0s, at or below
+    zero. This rung's seconds on this corner are process startup, not rung
+    work, so comparing its wall time against another corner's compares the two
+    languages' launch costs. Compare launch counts instead.
+ 7. R2 on rust: the process floor (54 launches x measured floor) accounts for
+    the whole clean wall time -- the corrected figure is -230.3s, at or below
+    zero. This rung's seconds on this corner are process startup, not rung
+    work, so comparing its wall time against another corner's compares the two
+    languages' launch costs. Compare launch counts instead.

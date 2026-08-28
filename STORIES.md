@@ -83,7 +83,7 @@ and reproducing it inside the rig would invalidate the measurement.
       tiebreak, idempotence, orphan-author accept, clock regression,
       pagination fabrication.
 
-- [~] **S-15** `calibrate` — per-rung kill table, both port directions
+- [x] **S-15** `calibrate` — per-rung kill table, both port directions
       **This is the deliverable.** Fan-out story: run as a workflow.
 
 ## Phase 2 — Java corner
