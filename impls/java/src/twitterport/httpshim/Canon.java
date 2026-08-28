@@ -17,8 +17,9 @@ import twitterport.dom.User;
  *       The order is part of the contract.
  *   R2  No insignificant whitespace.
  *   R3  Integers only. No floating point anywhere in the response surface.
- *   R4  Strings escape only what RFC 8259 requires, plus \b \f \n \r \t as short forms. No \u
- *       escaping of non-ASCII, no HTML escaping of &lt; &gt; &amp;.
+ *   R4  Strings escape only what RFC 8259 requires, plus the short forms for backspace, form
+ *       feed, newline, carriage return and tab. No escaping of non-ASCII, no HTML escaping of
+ *       &lt; &gt; &amp;.
  *   R5  null is written literally as null, never omitted.
  * </pre>
  *

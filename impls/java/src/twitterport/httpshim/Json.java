@@ -292,7 +292,7 @@ public final class Json {
         }
 
         /**
-         * Reads the four hex digits of a \\u escape, pairing surrogates. An unpaired surrogate
+         * Reads the four hex digits of a backslash-u escape, pairing surrogates. An unpaired one
          * becomes U+FFFD, which is what Go's decoder substitutes.
          */
         private String unicodeEscape() {

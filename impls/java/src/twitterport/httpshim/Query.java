@@ -84,6 +84,10 @@ public final class Query {
                 i += 2;
             } else if (c == '+') {
                 buf.write(' ');
+            } else if (c < 0x100) {
+                // The raw target reaches here byte-per-char (ISO-8859-1), exactly as Go's parser
+                // sees it, so a byte is written back as a byte rather than re-encoded.
+                buf.write(c);
             } else {
                 byte[] b = String.valueOf(c).getBytes(StandardCharsets.UTF_8);
                 buf.write(b, 0, b.length);
