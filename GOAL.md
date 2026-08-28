@@ -157,8 +157,12 @@ right instrument. Deferred by choice, not overlooked.
   shrinking them.
 - Orchestration decided: loop drives 1c–1h and Phases 2–3; workflows are
   called by the loop at 1i and Phase 4. See the Orchestration section.
-- `eclipse-temurin` pull did not land. TLC runs on host JDK 17 with the jar
-  pinned by sha256, which is the real determinism lever. Not worth chasing.
+- `eclipse-temurin:21-jre` is now pulled and digest-pinned in
+  `docker/pins.json`; TLC 2.19 launches inside it with the jar bind-mounted.
+  The gates still run TLC on host JDK 17 because the sha256-pinned jar is the
+  determinism lever, not the JVM. The container is available if a
+  reproducibility question ever needs it — and since the two JVMs differ (21
+  vs 17), a disagreement between them would itself be worth knowing.
 - Docker already has `rust:1.95.0` and `crossbario/autobahn-testsuite` cached
   from the WebSocket project.
 - Gobra's full image digest still needs resolving from the Go repo — the pin

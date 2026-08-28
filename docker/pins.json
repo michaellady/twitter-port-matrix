@@ -7,7 +7,7 @@
       "sha256": "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88",
       "version": "TLC2 2.19 of 08 August 2024 (rev: 5a47802)",
       "source": "https://github.com/tlaplus/tlaplus/releases/latest/download/tla2tools.jar",
-      "runs_on": "host JDK 17"
+      "runs_on": "host JDK 17.0.19, or eclipse-temurin:21-jre (see tlc_container)"
     },
     "verus": {
       "kind": "host-binary",
@@ -20,6 +20,13 @@
       "image": "ghcr.io/viperproject/gobra",
       "digest": "sha256:2ef080cc",
       "status": "PENDING -- full digest to be resolved from the Go repo in Phase 1"
+    },
+    "tlc_container": {
+      "kind": "docker",
+      "image": "eclipse-temurin:21-jre",
+      "digest": "sha256:7a65df4b22d2de92d4e04056e884f3b9122d70b21e2847fd66084278bd0ce037",
+      "verified": "TLC2 2.19 launches inside it; the jar is bind-mounted read-only",
+      "note": "Optional. The sha256-pinned jar is the determinism lever, not the JVM. Container JVM is 21, host is 17 -- TLC 2.19 runs on both, and a disagreement between them would itself be worth knowing."
     }
   }
 }
