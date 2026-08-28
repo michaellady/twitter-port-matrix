@@ -20,9 +20,11 @@ import java.util.Map;
  *
  * <ol>
  *   <li><b>Duplicate keys resolve last-wins.</b> Documented in D7 as a known limitation.
- *   <li><b>Field names match case-insensitively.</b> Go's decoder falls back to a case-insensitive
- *       match when no exact match exists, and {@code DisallowUnknownFields} therefore treats
- *       {@code {"Handle":"alice"}} as a <em>known</em> field, not an unknown one. D7 says unknown
+ *   <li><b>Field names match case-SENSITIVELY.</b> This corner originally emulated Go's
+ *   case-insensitive fallback because S_obs inherited it from encoding/json. That was a
+ *   Go-ism in the reference machine, not a design choice: Rust's serde rejected the same
+ *   bodies, so Go and Rust disagreed in production. S_obs is now case-sensitive and this
+ *   matches it. See evidence/findings/F010.<em>known</em> field, not an unknown one. D7 says unknown
  *       fields are rejected and says nothing about case, so the written contract and the reference
  *       implementation disagree here. This file follows the reference implementation, because
  *       {@code step.go} is the contract; see the report note on D7.
@@ -115,7 +117,7 @@ public final class Json {
             }
         }
         for (String f : fields) {
-            if (f.equalsIgnoreCase(key)) {
+            if (f.equals(key)) {
                 return f;
             }
         }

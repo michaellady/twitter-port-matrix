@@ -212,7 +212,7 @@ func TestPagination(t *testing.T) {
 			} `json:"tweets"`
 			NextCursor *int64 `json:"next_cursor"`
 		}
-		if !decodeStrict(resp.Body, &body) {
+		if !decodeStrict(resp.Body, &body, "tweets", "next_cursor") {
 			t.Fatalf("undecodable page: %s", resp.Body)
 		}
 		for _, tw := range body.Tweets {

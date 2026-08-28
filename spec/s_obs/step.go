@@ -66,13 +66,45 @@ func Step(s State, r Request) (Response, State) {
 //
 // Known limitation, documented rather than hidden: duplicate keys resolve
 // last-wins (Go's decoder behaviour). tracegen never emits duplicate keys.
-func decodeStrict(body string, dst any) bool {
+func decodeStrict(body string, dst any, allowed ...string) bool {
+	// Field names are matched CASE-SENSITIVELY, and that requires an explicit
+	// pass because Go's encoding/json will not do it.
+	//
+	// DisallowUnknownFields alone is not strictness: encoding/json falls back
+	// to a case-insensitive match, so {"Handle":"alice"} is a KNOWN field and
+	// is accepted. S_obs is written in Go, so without this the contract
+	// silently inherited a Go-specific decoding quirk -- and the Go corner
+	// then satisfied it for free while every other corner had to emulate it.
+	//
+	// Go accepted {"Handle":"zed"} with 201; Rust's serde, which is
+	// case-sensitive, returned 400. Both were "correct" against their reading
+	// of D7 and they disagreed observably. See evidence/findings/F010.
+	var raw map[string]json.RawMessage
+	d0 := json.NewDecoder(bytes.NewReader([]byte(body)))
+	if err := d0.Decode(&raw); err != nil {
+		return false
+	}
+	if _, err := d0.Token(); err != io.EOF {
+		return false
+	}
+	for k := range raw {
+		ok := false
+		for _, a := range allowed {
+			if k == a {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return false
+		}
+	}
+
 	dec := json.NewDecoder(bytes.NewReader([]byte(body)))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {
 		return false
 	}
-	// Reject trailing content.
 	if _, err := dec.Token(); err != io.EOF {
 		return false
 	}
@@ -136,7 +168,7 @@ type createUserBody struct {
 //  3. handle already taken
 func stepCreateUser(s State, body string) (Response, State) {
 	var b createUserBody
-	if !decodeStrict(body, &b) || b.Handle == nil {
+	if !decodeStrict(body, &b, "handle") || b.Handle == nil {
 		return malformed(s)
 	}
 	if !validHandle(*b.Handle) {
@@ -174,7 +206,7 @@ type edgeBody struct {
 // the follow set unchanged.
 func stepFollow(s State, body string) (Response, State) {
 	var b edgeBody
-	if !decodeStrict(body, &b) || b.From == nil || b.To == nil {
+	if !decodeStrict(body, &b, "from", "to") || b.From == nil || b.To == nil {
 		return malformed(s)
 	}
 	if !validHandle(*b.From) || !validHandle(*b.To) {
@@ -203,7 +235,7 @@ func stepFollow(s State, body string) (Response, State) {
 // Unfollow is idempotent (F3): removing an absent edge is 204.
 func stepUnfollow(s State, body string) (Response, State) {
 	var b edgeBody
-	if !decodeStrict(body, &b) || b.From == nil || b.To == nil {
+	if !decodeStrict(body, &b, "from", "to") || b.From == nil || b.To == nil {
 		return malformed(s)
 	}
 	if !validHandle(*b.From) || !validHandle(*b.To) {
@@ -235,7 +267,7 @@ type postTweetBody struct {
 // the monotonicity half of the timeline lemma below.
 func stepPostTweet(s State, body string) (Response, State) {
 	var b postTweetBody
-	if !decodeStrict(body, &b) || b.Author == nil || b.Text == nil {
+	if !decodeStrict(body, &b, "author", "text") || b.Author == nil || b.Text == nil {
 		return malformed(s)
 	}
 	if !validHandle(*b.Author) {

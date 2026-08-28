@@ -73,6 +73,11 @@ func scenarios() []scenario {
 	add("reject_empty_handle", post("/users", `{"handle":""}`), "D6")
 	add("reject_missing_handle_field", post("/users", `{}`), "D7")
 	add("reject_unknown_field", post("/users", `{"handle":"dave","x":1}`), "D7")
+	// Case-variant field names. Go's encoding/json matches case-INSENSITIVELY
+	// even under DisallowUnknownFields, so without this step an implementation
+	// using Go's decoder accepts {"Handle":...} and R0 cannot see it. Go and
+	// Rust disagreed here in production. See F010.
+	add("reject_case_variant_field", post("/users", `{"Handle":"dave"}`), "D7")
 	add("reject_trailing_content", post("/users", `{"handle":"dave"} {}`), "D7")
 	// The id after a run of rejections. Without this the corpus never
 	// registers another user once it has rejected one, so an implementation

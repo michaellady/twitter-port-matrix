@@ -10,6 +10,7 @@
 package httpshim
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -173,8 +174,39 @@ func writeErrFor(w http.ResponseWriter, r *http.Request, status int, code string
 //
 // Known limitation, stated rather than hidden: duplicate JSON keys resolve
 // last-wins, which is Go's decoder behaviour. No generated trace emits them.
-func decodeStrict(r *http.Request, dst any) bool {
-	dec := json.NewDecoder(r.Body)
+func decodeStrict(r *http.Request, dst any, allowed ...string) bool {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		return false
+	}
+	// Field names must match CASE-SENSITIVELY, and DisallowUnknownFields does
+	// not give that: encoding/json falls back to a case-insensitive match, so
+	// {"Handle":"alice"} counts as a KNOWN field and was accepted. Rust's
+	// serde is case-sensitive and rejected the same body -- a live
+	// cross-implementation divergence that R0 could not see because no corpus
+	// step used a case variant. See evidence/findings/F010.
+	var raw map[string]json.RawMessage
+	d0 := json.NewDecoder(bytes.NewReader(body))
+	if err := d0.Decode(&raw); err != nil {
+		return false
+	}
+	if _, err := d0.Token(); err != io.EOF {
+		return false
+	}
+	for k := range raw {
+		ok := false
+		for _, a := range allowed {
+			if k == a {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return false
+		}
+	}
+
+	dec := json.NewDecoder(bytes.NewReader(body))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {
 		return false
@@ -214,7 +246,7 @@ func (h *handlers) users(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Handle *string `json:"handle"`
 	}
-	if !decodeStrict(r, &req) || req.Handle == nil {
+	if !decodeStrict(r, &req, "handle") || req.Handle == nil {
 		writeErr(w, http.StatusBadRequest, "malformed_request")
 		return
 	}
@@ -238,7 +270,7 @@ func (h *handlers) follow(w http.ResponseWriter, r *http.Request) {
 		From *string `json:"from"`
 		To   *string `json:"to"`
 	}
-	if !decodeStrict(r, &req) || req.From == nil || req.To == nil {
+	if !decodeStrict(r, &req, "from", "to") || req.From == nil || req.To == nil {
 		writeErr(w, http.StatusBadRequest, "malformed_request")
 		return
 	}
@@ -263,7 +295,7 @@ func (h *handlers) tweets(w http.ResponseWriter, r *http.Request) {
 		Author *string `json:"author"`
 		Text   *string `json:"text"`
 	}
-	if !decodeStrict(r, &req) || req.Author == nil || req.Text == nil {
+	if !decodeStrict(r, &req, "author", "text") || req.Author == nil || req.Text == nil {
 		writeErr(w, http.StatusBadRequest, "malformed_request")
 		return
 	}
