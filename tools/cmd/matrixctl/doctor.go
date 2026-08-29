@@ -11,10 +11,10 @@ import (
 )
 
 const (
-	tlaJarPath   = "docker/tlc/tla2tools.jar"
-	tlaJarSHA256 = "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
-	verusPath    = "/Users/mikelady/.verus/verus-arm64-macos/verus"
-	sobsImport   = "twitter-port-matrix/spec/s_obs"
+	tlaJarPath       = "docker/tlc/tla2tools.jar"
+	tlaJarSHA256     = "936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88"
+	defaultVerusPath = "/Users/mikelady/.verus/verus-arm64-macos/verus"
+	sobsImport       = "twitter-port-matrix/spec/s_obs"
 )
 
 type check struct {
@@ -68,7 +68,21 @@ func checkCmd(name string, fatal bool, argv ...string) check {
 	return check{name: name, detail: line, ok: true, fatal: fatal}
 }
 
+// verusBinary resolves the Verus binary. Hardcoding an absolute macOS path
+// made this repository unrunnable anywhere else; VERUS_PATH overrides it so a
+// Linux container can point at its own build.
+func verusBinary() string {
+	if p := os.Getenv("VERUS_PATH"); p != "" {
+		return p
+	}
+	if p, err := exec.LookPath("verus"); err == nil {
+		return p
+	}
+	return defaultVerusPath
+}
+
 func checkVerus() check {
+	verusPath := verusBinary()
 	if _, err := os.Stat(verusPath); err != nil {
 		return check{name: "verus", detail: "absent at " + verusPath + " (needed from Phase 1)", fatal: false}
 	}

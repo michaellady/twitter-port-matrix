@@ -1,0 +1,17 @@
+{
+  "name": "twitter_port_matrix",
+  "build": { "dockerfile": "Dockerfile" },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": { "version": "latest" }
+  },
+  "remoteEnv": {
+    "VERUS_PATH": "/opt/verus/verus-x86-linux/verus"
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "comment": [
+    "docker-in-docker is required for the Gobra rung only. Everything else --",
+    "Go, Rust, Verus, TLC, javac, kotlinc, JBMC -- runs without it. If the host",
+    "cannot provide a nested daemon, the Go corner drops from R4 to R0-R2 and",
+    "matrixctl doctor will say so rather than failing silently."
+  ]
+}
