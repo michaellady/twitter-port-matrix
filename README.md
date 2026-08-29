@@ -1,49 +1,65 @@
 # twitter_port_matrix
 
-A 4x4 port matrix of maximally-verified Twitter clones -- Java, Kotlin, Rust,
-Go -- built to answer one question with numbers rather than intuition:
+Four implementations of one small Twitter-clone API — **Go, Rust, Java,
+Kotlin** — built against a single deterministic reference machine, then
+deliberately broken 72 different ways to measure **how much assurance each
+verification layer actually buys.**
 
-> **How strongly can a port from language A to language B be proven correct,
-> without changing the base app?**
+The apparatus is not the point. The point is the numbers, and the eighteen
+findings that came out of building it.
 
-This is a calibration rig, not a product. The output that justifies it is a
-per-rung mutation-kill table: for each verification layer, what fraction of
-injected semantic defects it catches and what it costs to run. That number
-transfers to the real work -- the `verified-java-to-rust-port` project, whose
-deductive rung is currently blocked and which is too large to find out cheaply
-whether closing it is worth the cost.
+```
+rung             live  killed  survived  unreached   kill%      wall
+R0 corpus          36      36         0          0    100%       57s
+R1 diff-fuzz       35      35         0          0    100%     1465s
+R2 property        35      14        19          2     42%     2495s
+```
 
-**Local only.** No remote, no `.github/` directory, no CI. The four source
-repositories under `~/dev/` are consumed read-only and are not modified.
+Start with **[evidence/FINDINGS.md](evidence/FINDINGS.md)** — the through-line
+across all eighteen — then
+**[evidence/CALIBRATION.md](evidence/CALIBRATION.md)** for the table above and
+what limits it.
 
-## The claim this repository is built to reach
+## The five findings worth your time
 
-`S_obs` (`spec/s_obs/`) is a **deterministic, total** reference machine over
-the observable API.
+**Three green rungs coexisted with four live defects.** R0 at 54/54
+byte-exact, R1 over 100,000 differential requests, R2's nine relations holding
+— and a 99-request hand-written cross-check found four real divergences. The
+generator had simply never emitted a query string on a POST path. Adding twelve
+shapes made R1 fail at step 8 of the first trace. **Volume is not coverage; a
+differential campaign's reach is bounded by its alphabet.** ([F008](evidence/findings/F008-volume-is-not-coverage.md))
 
-> If A refines `S_obs` and B refines `S_obs`, and `S_obs` is deterministic and
-> total on the request alphabet, then A and B are observationally equivalent on
-> every request sequence.
+**A conformance suite that could not fail.** The upstream corpus asserted a
+clock value no sequence of its own requests could reach — and both
+implementations' harnesses resolved that by *setting the clock to the expected
+answer before asserting on it*. The check was `assert(x == e)` immediately
+after `set(e)`. It passes for every possible clock rule. ([F001](evidence/findings/F001-self-fulfilling-clock-oracle.md))
 
-Port correctness then follows by transitivity **with zero changes to the base
-app**, because the base app's obligation was discharged against `S_obs` and
-never against the port.
+**Six obligations reported VERIFIED over unreachable code.** One
+undischargeable erased checkcast made everything downstream infeasible. An
+*injection* canary cannot detect this — the broken statement is downstream too.
+Only asserting the **negation** exposes it: a claim and its negation both
+verifying is the unique signature of a vacuous proof. ([F013](evidence/findings/F013-six-obligations-verified-because-nothing-reached-them.md))
 
-Determinism and totality are both load-bearing. Totality is what removes the
-hole through which two conforming implementations could legally differ on an
-unspecified input.
+**"23 verified, 0 errors" is one property proved.** Eleven of the 23 carry no
+postcondition at all; eleven more are conditional on assumed axioms about
+hand-written copies of the shipped code — and one of those copies is *false* of
+the code it stands for, falsified by an input already in the corpus. ([F016](evidence/findings/F016-twenty-three-verified-means-one-property-proved.md))
 
-## Layout
+**`"abc".equals("abc")` verifies as FALSE** on JBMC 6.11.0 — reproduced in
+plain Java. The Kotlin corner's ceiling turned out to be a tool defect, not a
+language one, and the same wall blocks the Java corner. ([F014](evidence/findings/F014-jbmc-cannot-compare-strings.md))
 
-| Path | What it is |
-|---|---|
-| `spec/s_obs/` | The reference machine. `step.go` is the whole contract. |
-| `spec/s_obs/DECISIONS.md` | Every question `twitter.tla` left open, and how it was closed. |
-| `spec/tla/` | `twitter.tla` vendored read-only at SHA `0b19aeb0`, digest-checked. |
-| `tools/cmd/` | The rig. Go binaries only. |
-| `generated/` | Committed, regenerated, byte-compared in the gate. |
-| `evidence/findings/` | What the rig found. |
-| `impls/` | The four implementations. Phase 1 onward. |
+## The pattern underneath
+
+Four of the eighteen are the same mistake in different clothes: **a count
+produced without the thing that would make it mean something.** Trusted shims
+grepped from a package the verifier could not parse; mutants "killed" because
+drifted anchors injected nothing; obligations verified over unreachable code; a
+contract discharged about a dead branch.
+
+And **not one of the eighteen was found by a gate reporting green.** Every one
+came from stepping outside it.
 
 ## Running it
 
@@ -55,36 +71,35 @@ go run ./tools/cmd/matrixctl doctor
 go run ./tools/cmd/matrixctl spec check
 ```
 
-`doctor` checks the toolchain, verifies the vendored spec still matches its
-pinned digest, and enforces that no implementation imports `S_obs`.
+`.devcontainer/` pins every tool to the build the findings were produced on —
+several findings *are* properties of a specific build. Nothing needs a Docker
+daemon at runtime. See [CLOUD.md](CLOUD.md).
 
-`spec check` is the Phase 0 gate. Four sub-gates: the corpus regenerates
-byte-for-byte, TLC finds no violation of F1-F9, every `S_obs` transition is a
-legal `twitter.tla` step, and -- critically -- a deliberately corrupted trace
-is **rejected**. That last one is not optional. Without it the third gate could
-be passing because it is incapable of failing.
+## Layout
 
-Takes about 90 seconds, nearly all of it TLC exploring 9M states.
+| | |
+|---|---|
+| `spec/s_obs/` | the deterministic, total reference machine — `step.go` is the contract |
+| `spec/s_obs/DECISIONS.md` | every question the TLA+ model left open, and how it was closed |
+| `impls/` | the four corners |
+| `tools/cmd/` | the rig: `replay` `diffrun` `proptest` `mutate` `calibrate` `tlclink` |
+| `evidence/` | findings, calibration, raw runs |
 
-## What it found in Phase 0
+## Provenance and honesty
 
-Two disagreements between the model and the implementations, in a project
-where four repositories, eighteen CI workflows, two deductive verifiers and a
-model checker were all green.
+Built as a scale model for a larger Java→Rust port, to price the verification
+ladder before committing to it there —
+[evidence/TRANSFER-to-websocket-port.md](evidence/TRANSFER-to-websocket-port.md)
+is the write-up.
 
-- **[F001](evidence/findings/F001-self-fulfilling-clock-oracle.md)** -- the
-  shared conformance oracle cannot falsify `created_at`. The corpus asserted a
-  clock value no sequence of its own requests could reach, and both
-  implementations' harnesses set the clock to the expected answer before asking
-  the question. That field had no R0 signal in either repo.
-- **[F002](evidence/findings/F002-tweet-id-origin-mismatch.md)** -- the model
-  starts tweet ids at 0, both implementations start at 1. Harmless in itself;
-  recorded because nothing in the existing artefact set could have told you
-  either way.
+`spec/tla/twitter.tla` is vendored read-only at SHA `0b19aeb0` from
+`michaellady/twitter-formal-spec`. The Go and Rust corners began as vendored
+copies of `twitter-golang-formal-verification` and
+`twitter-rust-formal-verification` and were then substantially rewritten; the
+Java and Kotlin corners were written here.
 
-Neither is a coding error. Both are the same structural gap: the model was
-checked, the code was checked, the corpus was checked against the code, and
-nothing checked the join.
-
-See [ASSURANCE.md](ASSURANCE.md) for the rung ladder and current status, and
-[TCB.md](TCB.md) for what is trusted rather than verified.
+Several findings correct claims made *earlier in this repository's own
+history*, including two of my own. Those corrections are kept in place rather
+than edited away — [F007](evidence/findings/F007-same-design-change-different-tcb-payoff.md)
+preserves its original wrong number in a collapsed block, because how it was
+wrong is more useful than the finding was.
