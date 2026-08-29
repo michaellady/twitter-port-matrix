@@ -9,12 +9,13 @@ go build ./... 2>&1 | tail -3
 ( cd impls/rust && cargo build --release -p server 2>&1 | tail -3 )
 
 echo
-echo "== pulling the pinned Gobra image (R4, Go corner) =="
-GOBRA=$(jq -r '.tools.gobra.image + "@" + .tools.gobra.digest' docker/pins.json 2>/dev/null)
-if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
-  docker pull "$GOBRA" || echo "  gobra pull FAILED -- the Go corner drops to R0-R2"
+echo "== gobra (jar, no daemon) =="
+if [ -f "${GOBRA_JAR:-/opt/gobra/gobra.jar}" ]; then
+  java -Xss128m -jar "${GOBRA_JAR:-/opt/gobra/gobra.jar}" --help >/dev/null 2>&1 \
+    && echo "  gobra jar runs; z3 = $(command -v z3 || echo MISSING)" \
+    || echo "  gobra jar present but did not start"
 else
-  echo "  no docker daemon -- Gobra (Go R4) unavailable; every other rung is fine"
+  echo "  GOBRA_JAR missing -- the Go corner drops to R0-R3"
 fi
 
 echo

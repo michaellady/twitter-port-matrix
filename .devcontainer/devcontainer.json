@@ -1,17 +1,17 @@
 {
   "name": "twitter_port_matrix",
-  "build": { "dockerfile": "Dockerfile" },
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": { "version": "latest" }
+  "build": {
+    "dockerfile": "Dockerfile"
   },
   "remoteEnv": {
-    "VERUS_PATH": "/opt/verus/verus-x86-linux/verus"
+    "VERUS_PATH": "/opt/verus/verus-x86-linux/verus",
+    "GOBRA_JAR": "/opt/gobra/gobra.jar"
   },
   "postCreateCommand": "bash .devcontainer/setup.sh",
   "comment": [
-    "docker-in-docker is required for the Gobra rung only. Everything else --",
-    "Go, Rust, Verus, TLC, javac, kotlinc, JBMC -- runs without it. If the host",
-    "cannot provide a nested daemon, the Go corner drops from R4 to R0-R2 and",
-    "matrixctl doctor will say so rather than failing silently."
+    "No docker-in-docker. Gobra is a fat jar; the image is only its distribution",
+    "channel, so the jar is lifted out at build time and every rung -- Go, Rust,",
+    "Verus, Gobra, TLC, javac, kotlinc, JBMC -- runs with no daemon at runtime.",
+    "This environment can reach every ceiling the macOS host can."
   ]
 }

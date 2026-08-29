@@ -41,6 +41,28 @@ short form 404s.
 `matrixctl doctor` reports Verus absent — a loud failure, not a silent one, and
 `VERUS_PATH` is an env var precisely so it can be corrected without a rebuild.
 
+## Gobra does not need Docker
+
+Gobra is a single 105 MB fat jar. The image entrypoint is literally
+`java -Xss128m -jar gobra.jar`, so it needs a JVM and a Z3 on `PATH` — not a
+container. Verified on the macOS host with no daemon involved:
+
+```
+Verifying package internal/store - store
+Gobra found no errors
+Gobra has found 0 error(s)          20.1s
+```
+
+against roughly 36s through the amd64 image under emulation on arm64.
+
+`viperproject/gobra` publishes no release assets, so the image is the only
+distribution channel — but that is a *build-time* concern. The Dockerfile lifts
+the jar out with a multi-stage `COPY --from`, and the runtime has no Docker
+dependency at all.
+
+**Consequence: this environment reaches every ceiling the macOS host does.**
+There is no degraded mode.
+
 ## What degrades, and where it degrades to
 
 | rung | needs | without it |
@@ -49,14 +71,12 @@ short form 404s.
 | R3 model check | JDK + the committed jar | — always available |
 | R4 Rust (Verus) | the Verus binary | — available |
 | R4 Kotlin/Java (JBMC) | CBMC package | — available |
-| **R4 Go (Gobra)** | **a Docker daemon** | **Go drops to R0–R2** |
+| R4 Go (Gobra) | JVM + Z3 on PATH | — available |
 
-Gobra is the only rung needing Docker. `devcontainer.json` requests
-docker-in-docker; where a host cannot provide a nested daemon, `setup.sh` says
-so and `matrixctl doctor` reports it rather than failing silently.
-
-One thing gets *better*: the Gobra image is `linux/amd64` and has been running
-under emulation on the macOS host. In an amd64 container it runs native.
+**Nothing needs a Docker daemon at runtime.** That was the original design and
+it was wrong: it cost an unnecessary `docker-in-docker` feature, and it made
+Gobra roughly twice as slow on this host by running an amd64 image under
+emulation.
 
 ## The host-specific thing that was fixed
 
