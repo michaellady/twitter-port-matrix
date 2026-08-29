@@ -842,6 +842,777 @@
           ]
         }
       ]
+    },
+    {
+      "id": "id-first-is-two",
+      "impl": "java",
+      "family": "id-alloc",
+      "description": "the id generator starts at 2, so every user and tweet id is off by one. TWO edits: the Go and Rust corners seed both sequences from one shared generator constructor, but this corner counts users and tweets in two independent fields, so a single-field edit would leave tweet ids correct and inject a lesser defect than the id names",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "    private long nextUserId = 1;"
+          ],
+          "replacement": [
+            "    private long nextUserId = 2;"
+          ]
+        },
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "    private long nextTweetId = 1;"
+          ],
+          "replacement": [
+            "    private long nextTweetId = 2;"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "id-burned-on-reject",
+      "impl": "java",
+      "family": "id-alloc",
+      "description": "an id is allocated before the duplicate-handle check, so a rejected registration burns one -- the exact defect visible in the R0 baseline as handle \"Alice\" arriving with id 5 after four rejections. Allocation is encapsulated inside Store.createUser in this corner rather than sitting in a generator the service calls, so expressing the defect takes two edits: split allocation out of insertion, then call it above the check",
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        }
+      ],
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "    public User createUser(String handle) {",
+            "        User u = new User(handle, nextUserId);",
+            "        nextUserId++;"
+          ],
+          "replacement": [
+            "    public long allocUserId() {",
+            "        long id = nextUserId;",
+            "        nextUserId++;",
+            "        return id;",
+            "    }",
+            "",
+            "    public User createUser(String handle, long id) {",
+            "        User u = new User(handle, id);"
+          ]
+        },
+        {
+          "file": "src/twitterport/service/Service.java",
+          "anchor": [
+            "        if (store.hasUser(handle)) {",
+            "            return Result.err(Dom.ERR_HANDLE_TAKEN);",
+            "        }",
+            "        return Result.ok(store.createUser(handle));"
+          ],
+          "replacement": [
+            "        long id = store.allocUserId();",
+            "        if (store.hasUser(handle)) {",
+            "            return Result.err(Dom.ERR_HANDLE_TAKEN);",
+            "        }",
+            "        return Result.ok(store.createUser(handle, id));"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "self-follow-guard-dropped",
+      "impl": "java",
+      "family": "precedence",
+      "description": "the self-follow guard is dropped, so follow(alice, alice) is a 204 and the self-edge enters the follow set -- F4 gone. ONE edit, and that is a finding rather than an omission: F4 is enforced at exactly one site in this corner. Dom has no follow constructor to guard and Store.addFollow does not inspect the edge, so the defence in depth F015 records for Go does not exist here and nothing masks this",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.java",
+          "anchor": [
+            "        if (from.equals(to)) {",
+            "            return Result.err(Dom.ERR_SELF_FOLLOW);",
+            "        }"
+          ],
+          "replacement": [
+            "        // mutant: F4 guard removed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "follow-precedence-flipped",
+      "impl": "java",
+      "family": "precedence",
+      "description": "the self-follow check runs before the existence check, so follow(eve, eve) with eve unknown answers self_follow_forbidden instead of unknown_user -- finding F003, which twitter.tla permits and S_obs D4 forbids. Inserted after the syntax check, not before it, so the mutant flips exactly one ordering pair and does not also move syntax behind semantics",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.java",
+          "anchor": [
+            "    public synchronized Result<Void> follow(String from, String to) {",
+            "        if (!Dom.validHandle(from) || !Dom.validHandle(to)) {",
+            "            return Result.err(Dom.ERR_INVALID_HANDLE);",
+            "        }"
+          ],
+          "replacement": [
+            "    public synchronized Result<Void> follow(String from, String to) {",
+            "        if (!Dom.validHandle(from) || !Dom.validHandle(to)) {",
+            "            return Result.err(Dom.ERR_INVALID_HANDLE);",
+            "        }",
+            "        if (from.equals(to)) {",
+            "            return Result.err(Dom.ERR_SELF_FOLLOW);",
+            "        }"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "timeline-scan-reversed",
+      "impl": "java",
+      "family": "ordering",
+      "description": "the append log is scanned oldest-first, so the timeline comes back in ascending (created_at, id) -- F2 inverted",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "        for (int i = log.size() - 1; i >= 0; i--) {"
+          ],
+          "replacement": [
+            "        for (int i = 0; i < log.size(); i++) {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "timeline-tiebreak-by-id-asc",
+      "impl": "java",
+      "family": "ordering",
+      "description": "a sort is reintroduced over the page that orders equal timestamps by ASCENDING id, so the order is right except where two tweets share a created_at -- the case D9's monotonicity lemma exists to settle, and the case a corpus without ties cannot see",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "        return new Page(page, next);"
+          ],
+          "replacement": [
+            "        page.sort((a, b) -> {",
+            "            int c = Long.compare(b.createdAt(), a.createdAt());",
+            "            return c != 0 ? c : Long.compare(a.id(), b.id());",
+            "        });",
+            "        return new Page(page, next);"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "follow-toggles",
+      "impl": "java",
+      "family": "idempotence",
+      "description": "addFollow toggles the edge instead of adding it, so following twice unfollows -- F3 broken in the direction a single-request corpus never exercises",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "        follows.add(new Edge(from, to));"
+          ],
+          "replacement": [
+            "        Edge e = new Edge(from, to);",
+            "        if (!follows.remove(e)) {",
+            "            follows.add(e);",
+            "        }"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unfollow-rejects-missing-edge",
+      "impl": "java",
+      "family": "idempotence",
+      "description": "unfollowing an edge that is not there answers unknown_user instead of 204, so DELETE stops being idempotent and D5's legal self-unfollow no-op becomes an error",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.java",
+          "anchor": [
+            "        store.removeFollow(from, to);"
+          ],
+          "replacement": [
+            "        if (!store.isFollowing(from, to)) {",
+            "            return Result.err(Dom.ERR_UNKNOWN_USER);",
+            "        }",
+            "        store.removeFollow(from, to);"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "orphan-author-accepted",
+      "impl": "java",
+      "family": "existence",
+      "description": "the author-existence check is removed, so a tweet can be posted by a handle that was never registered -- F6 gone, and the tweet is then invisible to every timeline because nobody can follow a non-user. ONE edit where Go and Rust need two: this corner's Store.appendTweet enforces only the monotonicity premises and never looks at the author, so F6 has a single enforcement site",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.java",
+          "anchor": [
+            "        if (!store.hasUser(author)) {",
+            "            return Result.err(Dom.ERR_UNKNOWN_USER);",
+            "        }"
+          ],
+          "replacement": [
+            "        // mutant: F6 author-existence check removed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "created-at-frozen",
+      "impl": "java",
+      "family": "clock",
+      "description": "every tweet is stamped created_at 0 regardless of the clock, which is precisely the field finding F001 showed had no falsifiable check behind it before POST /tick existed. The stamp is read in the store here rather than in the service, because this corner allocates the id and the timestamp at the same append site",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "        Tweet t = new Tweet(nextTweetId, author, text, clock);"
+          ],
+          "replacement": [
+            "        Tweet t = new Tweet(nextTweetId, author, text, 0);"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tick-advances-by-two",
+      "impl": "java",
+      "family": "clock",
+      "description": "tick advances the clock by 2, so one request no longer maps onto one TLA+ Tick step (D3)",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "        clock++;"
+          ],
+          "replacement": [
+            "        clock += 2;"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tick-goes-backwards",
+      "impl": "java",
+      "family": "clock",
+      "description": "tick decrements, so the logical clock regresses -- F7 violated at the source, and the store's monotonic-append guard then turns the next tweet into an internal_error",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "        clock++;"
+          ],
+          "replacement": [
+            "        clock--;"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-always-emitted",
+      "impl": "java",
+      "family": "pagination",
+      "description": "next_cursor is emitted even when nothing remains below the page, so null stops meaning \"nothing remains\" and a client paginates forever (D10). The arithmetic lives in the verified core here, not in the HTTP shim as it does in Go and Rust, so this mutant lands inside the part of the corner a verifier reads",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "        return new Page(page, next);"
+          ],
+          "replacement": [
+            "        if (next == null && !page.isEmpty()) {",
+            "            next = page.get(page.size() - 1).id();",
+            "        }",
+            "        return new Page(page, next);"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-is-first-id",
+      "impl": "java",
+      "family": "pagination",
+      "description": "next_cursor is the NEWEST id on the page rather than the oldest, so the following page re-serves the whole page -- pagination fabricates duplicates instead of partitioning",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "                next = page.get(page.size() - 1).id();"
+          ],
+          "replacement": [
+            "                next = page.get(0).id();"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cursor-inclusive",
+      "impl": "java",
+      "family": "pagination",
+      "description": "the cursor becomes inclusive, so the tweet the cursor names is served again on the next page -- one duplicate per page boundary, invisible unless a trace actually paginates",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "            if (cursor != null && t.id() >= cursor) {"
+          ],
+          "replacement": [
+            "            if (cursor != null && t.id() > cursor) {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "limit-off-by-one",
+      "impl": "java",
+      "family": "pagination",
+      "description": "a page carries limit+1 tweets, breaking D10; only observable when a page actually fills. No buffer widening is needed here because the page is a growable list, so unlike the Go rendering the defect cannot degenerate into an index panic",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "            if ((long) page.size() == limit) {"
+          ],
+          "replacement": [
+            "            if ((long) page.size() == limit + 1) {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unknown-json-fields-accepted",
+      "impl": "java",
+      "family": "parsing",
+      "description": "the strict decoder stops rejecting unknown JSON fields and silently skips them, so {\"handle\":\"a\",\"x\":1} is accepted -- D7's lenient-parsing divergence, which accounted for ten of the 54 R0 baseline failures. Skipping rather than renaming matters: an unknown field carrying a number would otherwise still be rejected by the string-type check one line below, which is exactly the under-injection F011 describes",
+      "edits": [
+        {
+          "file": "src/twitterport/httpshim/Json.java",
+          "anchor": [
+            "            String field = matchField(o.keys.get(i), fields);",
+            "            if (field == null) {",
+            "                return null;"
+          ],
+          "replacement": [
+            "            String field = matchField(o.keys.get(i), fields);",
+            "            if (field == null) {",
+            "                continue;"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "repeated-query-param-accepted",
+      "impl": "java",
+      "family": "parsing",
+      "description": "a repeated query parameter is accepted and the first value silently wins, so ?user=bob&user=alice returns bob's timeline -- exactly the cross-implementation divergence recorded in finding F006. The unknown-key arm of the same loop is left standing, because that is a different property of D7",
+      "edits": [
+        {
+          "file": "src/twitterport/httpshim/Server.java",
+          "anchor": [
+            "            if (e.getValue().size() != 1) {",
+            "                return malformed();",
+            "            }"
+          ],
+          "replacement": [
+            "            // repeated parameters no longer rejected"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "id-first-is-two",
+      "impl": "kotlin",
+      "family": "id-alloc",
+      "description": "the id generator starts at 2, so every user and tweet id is off by one. TWO edits, for the same reason as the Java corner: users and tweets are counted in two independent fields, not seeded from one shared generator",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "    private var nextUserId = 1L"
+          ],
+          "replacement": [
+            "    private var nextUserId = 2L"
+          ]
+        },
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "    private var nextTweetId = 1L"
+          ],
+          "replacement": [
+            "    private var nextTweetId = 2L"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "id-burned-on-reject",
+      "impl": "kotlin",
+      "family": "id-alloc",
+      "description": "an id is allocated before the duplicate-handle check, so a rejected registration burns one. Allocation is encapsulated inside Store.createUser in this corner, so the defect takes two edits: split allocation out of insertion, then call it above the check",
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        }
+      ],
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "    fun createUser(handle: String): User {",
+            "        val u = User(handle, nextUserId)",
+            "        nextUserId++"
+          ],
+          "replacement": [
+            "    fun allocUserId(): Long {",
+            "        val id = nextUserId",
+            "        nextUserId++",
+            "        return id",
+            "    }",
+            "",
+            "    fun createUser(handle: String, id: Long): User {",
+            "        val u = User(handle, id)"
+          ]
+        },
+        {
+          "file": "src/twitterport/service/Service.kt",
+          "anchor": [
+            "        if (store.hasUser(handle)) {",
+            "            return Outcome.Err(ERR_HANDLE_TAKEN)",
+            "        }",
+            "        return Outcome.Ok(store.createUser(handle))"
+          ],
+          "replacement": [
+            "        val id = store.allocUserId()",
+            "        if (store.hasUser(handle)) {",
+            "            return Outcome.Err(ERR_HANDLE_TAKEN)",
+            "        }",
+            "        return Outcome.Ok(store.createUser(handle, id))"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "self-follow-guard-dropped",
+      "impl": "kotlin",
+      "family": "precedence",
+      "description": "the self-follow guard is dropped, so follow(alice, alice) is a 204 and the self-edge enters the follow set -- F4 gone. ONE edit: F4 is enforced at exactly one site in this corner, since Model.kt's Edge is a data class with no constructor guard and Store.addFollow does not inspect the edge, so nothing masks this the way F015 records for Go",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.kt",
+          "anchor": [
+            "        if (from == to) {",
+            "            return Outcome.Err(ERR_SELF_FOLLOW)",
+            "        }"
+          ],
+          "replacement": [
+            "        // mutant: F4 guard removed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "follow-precedence-flipped",
+      "impl": "kotlin",
+      "family": "precedence",
+      "description": "the self-follow check runs before the existence check, so follow(eve, eve) with eve unknown answers self_follow_forbidden instead of unknown_user (finding F003, S_obs D4). Inserted after the syntax check so exactly one ordering pair flips",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.kt",
+          "anchor": [
+            "    fun follow(from: String, to: String): Outcome<Unit> {",
+            "        if (!validHandle(from) || !validHandle(to)) {",
+            "            return Outcome.Err(ERR_INVALID_HANDLE)",
+            "        }"
+          ],
+          "replacement": [
+            "    fun follow(from: String, to: String): Outcome<Unit> {",
+            "        if (!validHandle(from) || !validHandle(to)) {",
+            "            return Outcome.Err(ERR_INVALID_HANDLE)",
+            "        }",
+            "        if (from == to) {",
+            "            return Outcome.Err(ERR_SELF_FOLLOW)",
+            "        }"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "timeline-scan-reversed",
+      "impl": "kotlin",
+      "family": "ordering",
+      "description": "the append log is scanned oldest-first, so the timeline comes back in ascending (created_at, id) -- F2 inverted",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "        for (i in log.indices.reversed()) {"
+          ],
+          "replacement": [
+            "        for (i in log.indices) {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "timeline-tiebreak-by-id-asc",
+      "impl": "kotlin",
+      "family": "ordering",
+      "description": "a sort is reintroduced over the page that orders equal timestamps by ASCENDING id, so the order is right except where two tweets share a created_at. Store.kt's header asserts that no sortedBy/sortedWith/sortBy/sort call exists anywhere in this corner precisely because Kotlin makes an incidental sort a one-word edit; this mutant is that one word",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "        return Page(page, next)"
+          ],
+          "replacement": [
+            "        page.sortWith(compareByDescending<Tweet> { it.createdAt }.thenBy { it.id })",
+            "        return Page(page, next)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "follow-toggles",
+      "impl": "kotlin",
+      "family": "idempotence",
+      "description": "addFollow toggles the edge instead of adding it, so following twice unfollows -- F3 broken in the direction a single-request corpus never exercises",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "        follows.add(Edge(from, to))"
+          ],
+          "replacement": [
+            "        val e = Edge(from, to)",
+            "        if (!follows.remove(e)) {",
+            "            follows.add(e)",
+            "        }"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unfollow-rejects-missing-edge",
+      "impl": "kotlin",
+      "family": "idempotence",
+      "description": "unfollowing an edge that is not there answers unknown_user instead of 204, so DELETE stops being idempotent and D5's legal self-unfollow no-op becomes an error",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.kt",
+          "anchor": [
+            "        store.removeFollow(from, to)"
+          ],
+          "replacement": [
+            "        if (!store.isFollowing(from, to)) {",
+            "            return Outcome.Err(ERR_UNKNOWN_USER)",
+            "        }",
+            "        store.removeFollow(from, to)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "orphan-author-accepted",
+      "impl": "kotlin",
+      "family": "existence",
+      "description": "the author-existence check is removed, so a tweet can be posted by a handle that was never registered -- F6 gone. ONE edit where Go and Rust need two: appendTweet enforces only the monotonicity premises and never looks at the author, so F6 has a single enforcement site in this corner",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.kt",
+          "anchor": [
+            "        if (!store.hasUser(author)) {",
+            "            return Outcome.Err(ERR_UNKNOWN_USER)",
+            "        }"
+          ],
+          "replacement": [
+            "        // mutant: F6 author-existence check removed"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "created-at-frozen",
+      "impl": "kotlin",
+      "family": "clock",
+      "description": "every tweet is stamped created_at 0 regardless of the clock, which is precisely the field finding F001 showed had no falsifiable check behind it before POST /tick existed",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "        val t = Tweet(nextTweetId, author, text, clockValue)"
+          ],
+          "replacement": [
+            "        val t = Tweet(nextTweetId, author, text, 0L)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tick-advances-by-two",
+      "impl": "kotlin",
+      "family": "clock",
+      "description": "tick advances the clock by 2, so one request no longer maps onto one TLA+ Tick step (D3)",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "        clockValue++"
+          ],
+          "replacement": [
+            "        clockValue += 2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tick-goes-backwards",
+      "impl": "kotlin",
+      "family": "clock",
+      "description": "tick decrements, so the logical clock regresses -- F7 violated at the source, and the store's monotonic-append guard then turns the next tweet into an internal_error",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "        clockValue++"
+          ],
+          "replacement": [
+            "        clockValue--"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-always-emitted",
+      "impl": "kotlin",
+      "family": "pagination",
+      "description": "next_cursor is emitted even when nothing remains below the page, so null stops meaning \"nothing remains\" and a client paginates forever (D10). As in the Java corner the arithmetic sits in the verified core rather than in the HTTP shim",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "        return Page(page, next)"
+          ],
+          "replacement": [
+            "        if (next == null && page.isNotEmpty()) {",
+            "            next = page[page.size - 1].id",
+            "        }",
+            "        return Page(page, next)"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-is-first-id",
+      "impl": "kotlin",
+      "family": "pagination",
+      "description": "next_cursor is the NEWEST id on the page rather than the oldest, so the following page re-serves the whole page -- pagination fabricates duplicates instead of partitioning",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "                next = page[page.size - 1].id"
+          ],
+          "replacement": [
+            "                next = page[0].id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cursor-inclusive",
+      "impl": "kotlin",
+      "family": "pagination",
+      "description": "the cursor becomes inclusive, so the tweet the cursor names is served again on the next page -- one duplicate per page boundary, invisible unless a trace actually paginates",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "            if (cursor != null && t.id >= cursor) {"
+          ],
+          "replacement": [
+            "            if (cursor != null && t.id > cursor) {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "limit-off-by-one",
+      "impl": "kotlin",
+      "family": "pagination",
+      "description": "a page carries limit+1 tweets, breaking D10; only observable when a page actually fills",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "            if (page.size.toLong() == limit) {"
+          ],
+          "replacement": [
+            "            if (page.size.toLong() == limit + 1) {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unknown-json-fields-accepted",
+      "impl": "kotlin",
+      "family": "parsing",
+      "description": "the strict decoder stops rejecting unknown JSON fields and silently skips them, so {\"handle\":\"a\",\"x\":1} is accepted (D7). Skipping rather than renaming matters: an unknown field carrying a number would otherwise still be rejected by the string-type check two lines below, which is the under-injection F011 describes",
+      "edits": [
+        {
+          "file": "src/twitterport/httpshim/Json.kt",
+          "anchor": [
+            "        val field = matchField(v.keys[i], fields) ?: return null"
+          ],
+          "replacement": [
+            "        val field = matchField(v.keys[i], fields) ?: continue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "repeated-query-param-accepted",
+      "impl": "kotlin",
+      "family": "parsing",
+      "description": "a repeated query parameter is accepted and the first value silently wins, so ?user=bob&user=alice returns bob's timeline -- exactly the cross-implementation divergence recorded in finding F006. The unknown-key arm of the same loop is left standing, because that is a different property of D7",
+      "edits": [
+        {
+          "file": "src/twitterport/httpshim/Server.kt",
+          "anchor": [
+            "            if (v.size != 1) {",
+            "                return malformed()",
+            "            }"
+          ],
+          "replacement": [
+            "            // repeated parameters no longer rejected"
+          ]
+        }
+      ]
     }
   ]
 }
