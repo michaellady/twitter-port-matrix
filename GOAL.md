@@ -134,56 +134,59 @@ right instrument. Deferred by choice, not overlooked.
 
 ---
 
-## STATE
+## STATE — session ended here
 
-**Phase:** 1
-**Next step:** see `STORIES.md` — the ordered backlog. Currently S-06.
-**Last updated:** 2026-08-28
+**Published:** https://github.com/michaellady/twitter-port-matrix (public)
+**Stories:** 20 of 24 done · **Findings:** 18 · **Corners:** 4, all R0 56/56
 
-**Gates currently green:**
-`matrixctl doctor` · `matrixctl spec check` (4/4)
+### The deliverable exists
 
-**R0 status:** go **54/54** (was 7/54) · rust **54/54** (was 15/54). Both
-canaries verified: reintroducing the F003 precedence defect fails exactly one
-step in each, and reverting restores green.
+`evidence/CALIBRATION.md` — 36 mutants x 3 rungs, both original corners:
+R0 100% @ 57s · R1 100% @ 1465s · R2 42% @ 2495s. Caveat leads the document:
+the catalogue and the corpus both derive from `S_obs`, so the 100%s partly
+measure that alignment.
 
-Both corners now agree with S_obs byte-for-byte *and* with each other — but
-that agreement is now earned against an oracle neither produced, rather than
-inherited from a shared permissive spec. That is the F006 gap, closed.
+`evidence/FINDINGS.md` — the through-line across all 18.
+`evidence/TRANSFER-to-websocket-port.md` — the write-up this was built for.
 
-**Blocked / waiting:** nothing
+### Where each corner stands
 
-**Notes for the next iteration:**
-- 1c is done. The store's `// @ trusted` markers went 10 -> 4; the six that
-  went were putFollowEdge, deleteFollowEdge, appendTweet, iterFollows,
-  gatherTimeline and sortTimeline, all of which existed only because of the
-  nested map shapes. The four remaining are two error constructors and
-  Snapshot/Replace.
-- F005: enforcing the log invariant in PutTweet is what makes F2 genuinely
-  derived. Carry the same enforcement into the Rust corner in 1d — the lemma
-  has the same two premises there.
-- F006: Go and Rust diverge from S_obs on EXACTLY the same 39 steps, and on
-  30 of those they agree with each other. A Go<->Rust differential is blind to
-  77% of the gap. Two substantive cross-impl divergences did show up:
-  `POST /users {}` gives empty_handle vs invalid_json, and
-  `GET /timeline?user=bob&user=alice` gives Go a 200 with five tweets where
-  Rust returns 400. Neither contradicts twitter.tla.
-- Rust retarget mirrors the Go one: flat containers + append log in `store`,
-  ValidHandle/ValidText in `domain`, validation order + D4 + no id burn in
-  `service`, strict JSON + canonical bytes + tick route + cursor + catch-all
-  in `server`. Carry the F005 monotonic-append enforcement across.
-- WATCH OUT in 1d: three `str.replace` patches on service.go silently no-oped
-  because their anchors missed Gobra `// @ unfold` comment lines, and R0 still
-  climbed to 44/54 on shim changes alone. Assert on EVERY source patch.
-- Orchestration decided: loop drives 1c–1h and Phases 2–3; workflows are
-  called by the loop at 1i and Phase 4. See the Orchestration section.
-- `eclipse-temurin:21-jre` is now pulled and digest-pinned in
-  `docker/pins.json`; TLC 2.19 launches inside it with the jar bind-mounted.
-  The gates still run TLC on host JDK 17 because the sha256-pinned jar is the
-  determinism lever, not the JVM. The container is available if a
-  reproducibility question ever needs it — and since the two JVMs differ (21
-  vs 17), a disagreement between them would itself be worth knowing.
-- Docker already has `rust:1.95.0` and `crossbario/autobahn-testsuite` cached
-  from the WebSocket project.
-- Gobra's full image digest still needs resolving from the Go repo — the pin
-  in `docker/pins.json` is truncated to `sha256:2ef080cc`.
+| corner | R0 | R1 | R2 | R4 | limited by |
+|---|---|---|---|---|---|
+| Go | 56/56 | clean | pass | Gobra, ~43 load-bearing clauses | Gobra ghost-language limits |
+| Rust | 56/56 | clean | pass | Verus, **1 property** (F016) | `RwLock` has no vstd model |
+| Java | 56/56 | clean | pass | not attempted | JBMC string equality (F014) |
+| Kotlin | 56/56 | clean | pass | JBMC, 7 of 15 | same JBMC defect |
+
+### Highest-priority outstanding work
+
+1. **Fix the concurrency defect (F018).** Live, in the Go corner, now public.
+   Id allocation sits outside the store lock; under load the F005 guard turns a
+   race into HTTP 500 and a silently dropped tweet. Fix is to allocate and
+   append atomically. **I introduced this.**
+2. **Re-run the sweep across all four corners** — the catalogue is 72 mutants
+   now. F017 bounds what the R4/R5 rows can compare.
+3. **A second catalogue from a different source** than the contract —
+   production incidents, a fuzzer corpus, real defect history. This is what
+   would turn the table from an easy case into an informative one, and it is
+   the highest-value follow-up in either project.
+4. **Fix or delete the four drifted Verus twins.** One (`create_user_ensures`)
+   is actively false of shipped code; another encodes the pre-D4 defect.
+5. Remaining stories: S-10 specgen, S-18/S-21 the port matrix itself, S-24 the
+   adversarial refutation pass.
+
+### Things a future reader should not re-derive
+
+- Gobra needs **no Docker** — it is a fat jar; `java -Xss128m -jar gobra.jar`,
+  ~2x faster than the emulated amd64 image. `.devcontainer/` lifts it at build
+  time.
+- Gobra reports **one failing postcondition per method**; batch a negation
+  audit and it silently under-reports.
+- `mutate verify` must pass immediately before any sweep. Anchors drifted
+  twice in one session; a drifted anchor injects nothing and every rung
+  "kills" it.
+- Verus **caches**; `touch` the crate source or a run prints nothing and looks
+  like a pass.
+- The environment is pinned because several findings **are** properties of a
+  specific build (F014 is a CBMC 6.11.0 defect; F012's blocker is a property
+  of one vstd release).

@@ -1,5 +1,11 @@
 # Story queue
 
+> **Session ended at 20/24.** See `GOAL.md` STATE for where things stand and
+> what a future reader should not re-derive. The four open stories are listed
+> at the bottom; the highest-priority work is not one of them — it is fixing
+> the live concurrency defect in `evidence/findings/F018`.
+
+
 Ordered backlog. Work top to bottom; no timers, no waiting. A story is done
 when its gate passes and the gate has been shown capable of failing.
 

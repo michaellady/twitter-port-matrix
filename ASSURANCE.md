@@ -47,7 +47,7 @@ argued away.
 
 | Corner | R0-R3 | R4 | R5-core | R5-wire | Ceiling |
 |---|---|---|---|---|---|
-| Go | yes | Gobra, 133 verified | **partial** | no | **R5-core, partial** |
+| Go | yes | Gobra, **~43 load-bearing** | **partial** | no | **R5-core, partial** |
 | Rust | yes | Verus, **1 property** | **no** | no | **R4, one property (F4)** |
 | Java | yes | not attempted | unknown | no | **R3** |
 | Kotlin | yes | JBMC, bounded | no | no | **R3 + bounded (measured)** |
@@ -148,6 +148,20 @@ For a port B <- A with no changes to A:
 | + R4 both ends | "...and both independently satisfy F1-F9." Still not equivalence |
 | + R5 both ends | "**B and A are observationally equivalent**", modulo the TCB |
 | R5 on A only | "A is correct; B is only as good as R0-R2." The port itself is unproven |
+
+## A class the ladder cannot score at all
+
+Every rung derives from `S_obs`, which is a **sequential** state machine with no
+concurrency notion. So no rung can express an interleaving, and a concurrency
+defect is invisible to all of them regardless of inputs.
+
+This is not hypothetical: under 1,280 concurrent `POST /tweets` the Go corner
+returns HTTP 500 and silently drops tweets, because id allocation sits outside
+the lock protecting the log it orders. See `evidence/findings/F018`.
+
+F008 and F009 were about inputs the generator could not produce, and both were
+closed by widening the inputs. This one cannot be — `S_obs` would need a
+concurrency semantics, or a rung would have to exist that does not consult it.
 
 ## Current status
 
