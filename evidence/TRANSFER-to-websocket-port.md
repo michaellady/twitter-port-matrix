@@ -9,7 +9,36 @@ the patterns. This file is only the transfer.
 
 ---
 
-## First, the good news, because it is real and specific
+## Read this first: you already know most of it
+
+Nine methodology notes written by that project between 25 and 28 August are
+copied into `prior-art/`. Comparing them to `findings/` shows **four of this
+project's findings were already written down there, before the finding**:
+
+| this project | already recorded as | written |
+|---|---|---|
+| F013 negation canaries | `canary-gates-need-runner-inversion` | 27 Aug |
+| F015 enforcement reachability | `enforcement-is-a-reachability-property` | 26 Aug |
+| F008 alphabet bounds coverage | `corpus-invisible-boundaries-need-targeted-probes` | 28 Aug 03:06 |
+| F010 the oracle inherits host semantics | `reference-models-inherit-pinned-implementation-semantics` | 26 Aug |
+
+The last one to bite was the worst. That 03:06 note says, verbatim, that if
+regeneration leaves the corpus byte-identical then downstream passing results
+have not observed the changed contract. **Thirteen hours later this project hit
+exactly that, and derived it again from scratch.**
+
+So the useful framing of everything below is not *here is what we learned.* It
+is **here is the measured version of what you already know, and here is where
+it was written down and still not applied.** The second half is the more
+valuable one: an insight that is not reachable at the moment of the decision
+costs the same as one never written.
+
+Which makes the first recommendation a process one, not a technical one:
+**those insights need to be reachable from inside the work.** Nine notes in a
+directory nobody opens mid-task is where this project's four rediscoveries came
+from.
+
+## Then, the good news, because it is real and specific
 
 **Your oracle is structurally stronger than this project's was.**
 
