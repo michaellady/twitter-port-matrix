@@ -1,91 +1,145 @@
 #!/usr/bin/env bash
 # Setup script for a Claude Code cloud environment.
 #
-# Paste this into the Setup script field at claude.ai/code for this repo's
-# environment. It runs ONCE as root on Ubuntu 24.04 x86_64; the filesystem is
-# snapshotted afterwards, so later sessions reuse everything installed here.
+# Paste into the Setup script field at claude.ai/code. Runs ONCE as root on
+# Ubuntu 24.04 x86_64; the filesystem is snapshotted afterwards.
 #
-# NOTE ON .devcontainer/: cloud sessions do NOT read it. It remains in this
-# repo for plain-Docker and local use only. This script is the cloud path.
+# NOTE: .devcontainer/ is NOT read by cloud sessions. It exists for the plain
+# Docker path only. This script is the cloud path.
 #
-# Budget: the setup field allows roughly five minutes. Steps are ordered so the
-# cheapest, most load-bearing tools land first; if the budget is exceeded, the
-# tail of this script is what to move into a session-time step.
-set -euo pipefail
+# DESIGN NOTE — why this does not use `set -e` globally.
+# The first version did, and died at its first command: the base image ships
+# third-party PPAs (deadsnakes, ondrej/php) that the Trusted network allowlist
+# blocks with 403, so `apt-get update` exits nonzero over repositories this
+# project never uses. Aborting the whole install for that is wrong.
+#
+# Instead: every step is individually tolerant, and every tool is verified by
+# RUNNING IT rather than by trusting an installer's exit code. The script ends
+# with an inventory and a non-zero exit only if something load-bearing is
+# genuinely missing.
+set -uo pipefail
 
-log() { printf '\n=== %s ===\n' "$*"; }
+log()  { printf '\n=== %s ===\n' "$*"; }
+warn() { printf '  !! %s\n' "$*"; }
 
-# --- What the base image already provides -------------------------------
-# Go, Rust (rustc/cargo), Docker, OpenJDK 21, git, gh, jq, python3.
-# What it does NOT provide, and this project needs:
-#   JDK 17   -- the findings were produced on 17; Kotlin targets bytecode 17
-#   kotlinc  -- absent entirely
-#   Verus    -- absent; Rust deductive verifier
-#   CBMC     -- absent; provides jbmc, and F014 is a defect in 6.11.0 exactly
-#   Gobra    -- a jar, distributed only inside a container image
+# --- apt, made usable ---------------------------------------------------
+log "apt sources"
+# Disable third-party PPAs the allowlist blocks. Only the Ubuntu archive is
+# needed here (openjdk-17, unzip, and CBMC's dependencies).
+disabled=0
+for f in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+  [ -e "$f" ] || continue
+  if grep -qiE 'ppa\.launchpad|launchpadcontent' "$f" 2>/dev/null; then
+    mv "$f" "$f.disabled" && disabled=$((disabled+1))
+  fi
+done
+echo "  disabled $disabled third-party PPA source file(s) blocked by the allowlist"
+apt-get update -qq 2>&1 | grep -vE '^(Get|Hit|Ign)' | head -5 || true
 
-log "JDK 17 (findings were produced on 17, base image ships 21)"
-apt-get update -qq
-apt-get install -y -qq --no-install-recommends openjdk-17-jdk unzip >/dev/null
-# Do not switch the default java; leave 21 as-is and address 17 explicitly.
-export JAVA17_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-echo "JAVA17_HOME=$JAVA17_HOME" >> /etc/environment
+# --- JDK 17 (optional; base ships 21) -----------------------------------
+log "JDK 17"
+# The findings were produced on 17. Nothing in them depends on the JVM version
+# -- F014 is a CBMC defect and TLC's state count is deterministic -- so 21 is an
+# acceptable fallback. Recorded either way rather than assumed.
+JAVA17_HOME=""
+if apt-get install -y -qq --no-install-recommends openjdk-17-jdk >/dev/null 2>&1; then
+  JAVA17_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+fi
+if [ -n "$JAVA17_HOME" ] && [ -x "$JAVA17_HOME/bin/java" ]; then
+  echo "JAVA17_HOME=$JAVA17_HOME" >> /etc/environment
+  echo "  installed: $("$JAVA17_HOME/bin/java" -version 2>&1 | head -1)"
+else
+  warn "JDK 17 unavailable; falling back to the base JDK"
+  warn "$(java -version 2>&1 | head -1) -- acceptable, but note it in any result"
+fi
 
-log "CBMC 6.11.0 (jbmc) -- pinned; F014 IS a defect in this build"
-curl -fsSL -o /tmp/cbmc.deb \
-  "https://github.com/diffblue/cbmc/releases/download/cbmc-6.11.0/ubuntu-24.04-cbmc-6.11.0-Linux.deb"
-apt-get install -y -qq /tmp/cbmc.deb >/dev/null && rm -f /tmp/cbmc.deb
+apt-get install -y -qq --no-install-recommends unzip >/dev/null 2>&1 || true
+command -v unzip >/dev/null || warn "unzip missing -- Verus and Kotlin steps will fail"
 
-log "Verus 0.2026.04.24.f8e1704 + its bundled Z3"
-mkdir -p /opt/verus && cd /opt/verus
+# --- CBMC 6.11.0 (jbmc) -------------------------------------------------
+log "CBMC 6.11.0 -- pinned; F014 IS a defect in this exact build"
+if curl -fsSL --retry 2 -o /tmp/cbmc.deb \
+   "https://github.com/diffblue/cbmc/releases/download/cbmc-6.11.0/ubuntu-24.04-cbmc-6.11.0-Linux.deb"; then
+  apt-get install -y -qq /tmp/cbmc.deb >/dev/null 2>&1 || dpkg -i /tmp/cbmc.deb >/dev/null 2>&1 || true
+  rm -f /tmp/cbmc.deb
+fi
+command -v jbmc >/dev/null && echo "  $(jbmc --version 2>&1)" || warn "jbmc absent -> Java/Kotlin bounded rung unavailable"
+
+# --- Verus + bundled Z3 -------------------------------------------------
+log "Verus 0.2026.04.24.f8e1704"
 V=0.2026.04.24.f8e1704
-curl -fsSL -o v.zip \
-  "https://github.com/verus-lang/verus/releases/download/release%2F${V}/verus-${V}-x86-linux.zip"
-unzip -q v.zip && rm v.zip
-# The directory name inside the archive is not documented; resolve it rather
-# than assuming, because assuming it is exactly how the local Dockerfile broke.
-VERUS_BIN="$(find /opt/verus -maxdepth 3 -type f -name verus -perm -u+x | head -1)"
-if [ -z "$VERUS_BIN" ]; then echo "FATAL: verus binary not found after unzip"; exit 1; fi
-VERUS_DIR="$(dirname "$VERUS_BIN")"
-echo "VERUS_PATH=$VERUS_BIN"   >> /etc/environment
-echo "PATH=$VERUS_DIR:\$PATH"  >> /etc/environment
-ln -sf "$VERUS_BIN" /usr/local/bin/verus
-# Z3 ships beside Verus and Gobra needs one on PATH.
-[ -x "$VERUS_DIR/z3" ] && ln -sf "$VERUS_DIR/z3" /usr/local/bin/z3
+mkdir -p /opt/verus && cd /opt/verus
+if curl -fsSL --retry 2 -o v.zip \
+   "https://github.com/verus-lang/verus/releases/download/release%2F${V}/verus-${V}-x86-linux.zip"; then
+  unzip -q -o v.zip && rm -f v.zip
+fi
+# Resolve the binary rather than assuming the archive's directory name --
+# assuming it is exactly how the local Dockerfile broke.
+VERUS_BIN="$(find /opt/verus -maxdepth 3 -type f -name verus -perm -u+x 2>/dev/null | head -1)"
+if [ -n "$VERUS_BIN" ]; then
+  ln -sf "$VERUS_BIN" /usr/local/bin/verus
+  echo "VERUS_PATH=$VERUS_BIN" >> /etc/environment
+  Z3="$(dirname "$VERUS_BIN")/z3"
+  [ -x "$Z3" ] && ln -sf "$Z3" /usr/local/bin/z3
+  echo "  $(verus --version 2>&1 | grep -i version | head -1)"
+  echo "  z3: $(z3 --version 2>&1 || echo ABSENT)"
+else
+  warn "verus binary not found -> Rust R4 unavailable"
+fi
 
+# --- Kotlin -------------------------------------------------------------
 log "Kotlin 2.4.10"
-curl -fsSL -o /tmp/kotlin.zip \
-  "https://github.com/JetBrains/kotlin/releases/download/v2.4.10/kotlin-compiler-2.4.10.zip"
-unzip -q /tmp/kotlin.zip -d /opt && rm /tmp/kotlin.zip
-ln -sf /opt/kotlinc/bin/kotlinc /usr/local/bin/kotlinc
+if curl -fsSL --retry 2 -o /tmp/kotlin.zip \
+   "https://github.com/JetBrains/kotlin/releases/download/v2.4.10/kotlin-compiler-2.4.10.zip"; then
+  unzip -q -o /tmp/kotlin.zip -d /opt && rm -f /tmp/kotlin.zip
+  [ -x /opt/kotlinc/bin/kotlinc ] && ln -sf /opt/kotlinc/bin/kotlinc /usr/local/bin/kotlinc
+fi
+command -v kotlinc >/dev/null && echo "  $(kotlinc -version 2>&1 | head -1)" || warn "kotlinc absent -> Kotlin corner cannot build"
 
-log "Gobra jar, lifted out of its image (no daemon needed at run time)"
-# viperproject/gobra publishes no release assets, so the image is the only
-# distribution channel. Docker images pulled during setup are snapshotted, but
-# the jar is what matters -- extract it so the rung needs only a JVM and Z3.
+# --- Gobra jar, lifted from its image -----------------------------------
+log "Gobra jar (needs only a JVM and Z3 at run time)"
 GOBRA_IMG="ghcr.io/viperproject/gobra@sha256:2ef080ccd284945829501996e6d63ed2f1c94b7cf6a30d2b934272fb8a6df2c6"
 mkdir -p /opt/gobra
 if docker pull -q "$GOBRA_IMG" >/dev/null 2>&1; then
-  CID="$(docker create "$GOBRA_IMG")"
-  docker cp "$CID:/gobra/gobra.jar" /opt/gobra/gobra.jar
-  docker rm -f "$CID" >/dev/null
+  CID="$(docker create "$GOBRA_IMG" 2>/dev/null)"
+  if [ -n "$CID" ]; then
+    docker cp "$CID:/gobra/gobra.jar" /opt/gobra/gobra.jar >/dev/null 2>&1
+    docker rm -f "$CID" >/dev/null 2>&1
+  fi
+fi
+if [ -f /opt/gobra/gobra.jar ]; then
   echo "GOBRA_JAR=/opt/gobra/gobra.jar" >> /etc/environment
+  echo "  $(stat -c%s /opt/gobra/gobra.jar) bytes"
 else
-  echo "WARN: gobra image pull failed -- the Go corner will be limited to R0-R3."
-  echo "      Everything else is unaffected. Re-run this block in a session to fix."
+  warn "gobra jar absent -> Go R4 unavailable; every other rung is unaffected"
 fi
 
-log "Toolchain as installed"
-{
-  printf '  %-10s %s\n' go      "$(go version 2>&1 || echo ABSENT)"
-  printf '  %-10s %s\n' rustc   "$(rustc --version 2>&1 || echo ABSENT)"
-  printf '  %-10s %s\n' verus   "$(verus --version 2>&1 | grep -i version | head -1 || echo ABSENT)"
-  printf '  %-10s %s\n' z3      "$(z3 --version 2>&1 || echo ABSENT)"
-  printf '  %-10s %s\n' jbmc    "$(jbmc --version 2>&1 || echo ABSENT)"
-  printf '  %-10s %s\n' kotlinc "$(kotlinc -version 2>&1 | head -1 || echo ABSENT)"
-  printf '  %-10s %s\n' jdk17   "$([ -x "$JAVA17_HOME/bin/java" ] && "$JAVA17_HOME/bin/java" -version 2>&1 | head -1 || echo ABSENT)"
-  printf '  %-10s %s\n' gobra   "$([ -f /opt/gobra/gobra.jar ] && echo "$(stat -c%s /opt/gobra/gobra.jar) bytes" || echo ABSENT)"
-} 2>&1
+# --- Inventory, by running each tool ------------------------------------
+log "Inventory"
+missing=0
+check() { # name, command, rung-cost, fatal(0/1)
+  if out="$(eval "$2" 2>&1 | head -1)" && [ -n "$out" ]; then
+    printf '  ok    %-9s %s\n' "$1" "$out"
+  else
+    printf '  ABSENT %-8s -> %s\n' "$1" "$3"
+    [ "$4" = 1 ] && missing=$((missing+1))
+  fi
+}
+check go      "go version"                    "nothing runs"                  1
+check rustc   "rustc --version"               "Rust corner cannot build"      1
+check java    "java -version"                 "TLC and JVM corners unavailable" 1
+check kotlinc "kotlinc -version"              "Kotlin corner cannot build"    0
+check verus   "verus --version | grep -i ver" "Rust R4 unavailable"           0
+check z3      "z3 --version"                  "Verus and Gobra unavailable"   0
+check jbmc    "jbmc --version"                "Java/Kotlin bounded rung"      0
+[ -f /opt/gobra/gobra.jar ] \
+  && printf '  ok    %-9s %s bytes\n' gobra "$(stat -c%s /opt/gobra/gobra.jar)" \
+  || printf '  ABSENT %-8s -> Go R4 unavailable\n' gobra
 
-log "Setup complete"
-echo "Verify inside a session with:  go run ./tools/cmd/matrixctl doctor"
+log "Setup finished"
+if [ "$missing" -gt 0 ]; then
+  echo "FATAL: $missing load-bearing tool(s) missing; the environment cannot run the rig."
+  exit 1
+fi
+echo "Verify in a session with:  go run ./tools/cmd/matrixctl doctor"
+exit 0

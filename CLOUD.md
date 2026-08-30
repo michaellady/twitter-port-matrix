@@ -49,6 +49,25 @@ Installed by `cloud-setup.sh`, because the base lacks them:
 JBMC was observed at 11 GB RSS during the Kotlin work. Both fit, with less
 headroom than is comfortable for JBMC.
 
+### Known failure: blocked PPAs in the base image
+
+The first version of this script died at its first command. The base image
+ships third-party PPAs — `deadsnakes`, `ondrej/php` — that the Trusted network
+allowlist blocks with `403 Forbidden`, so `apt-get update` exits nonzero over
+repositories this project never uses, and `set -e` took the whole install down
+with it.
+
+The script now disables any `sources.list.d` entry pointing at Launchpad before
+updating, and does not use a global `set -e`. Each step is individually
+tolerant and **each tool is verified by running it**, not by trusting an
+installer's exit code. It exits nonzero only when something load-bearing (Go,
+Rust, a JVM) is genuinely absent.
+
+JDK 17 is now optional. The findings were produced on 17 and the base ships 21,
+but nothing in them depends on the JVM version — F014 is a CBMC defect and
+TLC's state count is deterministic — so the script falls back to 21 and says
+which it used rather than failing.
+
 ### One risk worth knowing before you paste it
 
 The setup field allows roughly **five minutes**. `cloud-setup.sh` downloads
