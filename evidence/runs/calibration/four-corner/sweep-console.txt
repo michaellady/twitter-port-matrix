@@ -279,3 +279,26 @@ rust/repeated-query-param-accepted 39e41851707f  parsing
   R0       killed        0.2s  R0 FAILED: 1 step(s) disagree with S_obs
   R1       killed        1.5s  R1 FAILED: at least one implementation diverges from S_obs
   R2       survived      7.4s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=3  (25.8s)
+
+java/id-first-is-two         61af145de0a0  id-alloc
+  guard    5/5 checks: java@id-first-is-two -> /tmp/calibrate-mutant-3842138773/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.2s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed        2.2s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     63.4s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (2.8s)
+
+java/id-burned-on-reject     8078a2a19795  id-alloc
+  guard    5/5 checks: java@id-burned-on-reject -> /tmp/calibrate-mutant-3077916147/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.2s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       55.6s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     59.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=2, seed=3, seed=4  (3.3s)
+
+java/self-follow-guard-dropped b933dff72869  precedence
+  guard    5/5 checks: java@self-follow-guard-dropped -> /tmp/calibrate-mutant-2529185120/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       28.8s  R1 FAILED: at least one implementation diverges from S_obs
