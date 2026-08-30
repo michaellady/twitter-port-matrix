@@ -65,6 +65,23 @@ if curl -fsSL --retry 2 -o /tmp/cbmc.deb \
 fi
 command -v jbmc >/dev/null && echo "  $(jbmc --version 2>&1)" || warn "jbmc absent -> Java/Kotlin bounded rung unavailable"
 
+# --- Rust 1.95.0 (Verus refuses to run on anything else) ----------------
+log "Rust toolchain 1.95.0"
+# The base image ships 1.94.1 and Verus 0.2026.04.24 is built against 1.95.0;
+# it installs fine and then refuses to run. Observed in a real cloud session:
+# "verus -- binary present but not runnable: it wants rust toolchain 1.95.0,
+# the box has 1.94.1". Installing the pinned toolchain is what makes Rust R4
+# reachable at all.
+if command -v rustup >/dev/null 2>&1; then
+  rustup toolchain install 1.95.0 --profile minimal -c clippy >/dev/null 2>&1 || true
+  rustup default 1.95.0 >/dev/null 2>&1 || true
+fi
+echo "  rustc: $(rustc --version 2>&1)"
+case "$(rustc --version 2>&1)" in
+  *1.95.0*) : ;;
+  *) warn "rustc is not 1.95.0 -- Verus will refuse to run, costing Rust R4" ;;
+esac
+
 # --- Verus + bundled Z3 -------------------------------------------------
 log "Verus 0.2026.04.24.f8e1704"
 V=0.2026.04.24.f8e1704
@@ -100,7 +117,13 @@ command -v kotlinc >/dev/null && echo "  $(kotlinc -version 2>&1 | head -1)" || 
 log "Gobra jar (needs only a JVM and Z3 at run time)"
 GOBRA_IMG="ghcr.io/viperproject/gobra@sha256:2ef080ccd284945829501996e6d63ed2f1c94b7cf6a30d2b934272fb8a6df2c6"
 mkdir -p /opt/gobra
-if docker pull -q "$GOBRA_IMG" >/dev/null 2>&1; then
+# The cloud docs list docker/dockerd/docker compose as pre-installed, but a
+# real session reported no daemon responding. Check rather than assume, and say
+# which rung the absence costs instead of failing silently.
+if ! docker info >/dev/null 2>&1; then
+  warn "no docker daemon (the base-image docs say otherwise) -> Go R4 unavailable"
+  warn "to recover it: extract gobra.jar elsewhere and host it, or run Gobra locally"
+elif docker pull -q "$GOBRA_IMG" >/dev/null 2>&1; then
   CID="$(docker create "$GOBRA_IMG" 2>/dev/null)"
   if [ -n "$CID" ]; then
     docker cp "$CID:/gobra/gobra.jar" /opt/gobra/gobra.jar >/dev/null 2>&1
