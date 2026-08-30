@@ -271,3 +271,11 @@ rust/unknown-json-fields-accepted ded0fb284be8  parsing
   R0       killed        0.1s  R0 FAILED: 2 step(s) disagree with S_obs
   R1       killed        1.4s  R1 FAILED: at least one implementation diverges from S_obs
   R2       survived      7.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (26.5s)
+
+rust/repeated-query-param-accepted 39e41851707f  parsing
+  guard    5/5 checks: rust@repeated-query-param-accepted -> /tmp/calibrate-mutant-3937389783/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.2s -- charged to no rung
+  R0       killed        0.2s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed        1.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.4s  R2 PASSED: every relation holds on every generated state
