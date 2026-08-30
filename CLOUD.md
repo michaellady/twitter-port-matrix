@@ -2,38 +2,69 @@
 
 ## Setup
 
-Three paths. All of them use `.devcontainer/`, which pins every tool to the
-build the findings were produced on.
+### Claude Code cloud sessions — the supported path
 
-### 1. GitHub Codespaces
+**`.devcontainer/` is not read by Claude cloud sessions.** That directory is a
+local / VS Code / Codespaces convention and is kept here only for the plain
+Docker path below. The cloud mechanism is a **setup script**.
 
-Codespaces is enabled on this repository. The `gh` CLI needs one extra scope
-first — a browser flow, so it cannot be scripted for you:
+1. Open the environment settings for this repo at
+   [claude.ai/code](https://claude.ai/code).
+2. Paste the contents of [`cloud-setup.sh`](cloud-setup.sh) into the
+   **Setup script** field.
+3. Leave network access at **Trusted** — the default allowlist already covers
+   `ghcr.io`, GitHub release assets, crates.io and apt, which is everything the
+   script fetches.
 
-```bash
-gh auth refresh -h github.com -s codespace
-```
+The script runs **once**, as root, on Ubuntu 24.04 x86_64. Anthropic snapshots
+the filesystem afterwards, so later sessions reuse everything it installed.
+Packages Claude installs *mid-session* do not persist; the repo is re-cloned
+fresh each time.
 
-```bash
-gh codespace create -R michaellady/twitter-port-matrix -m standardLinux32gb
-```
+`.claude/settings.json` additionally registers a `SessionStart` hook that runs
+[`.claude/session-start.sh`](.claude/session-start.sh) on every session, local
+and cloud. It installs nothing — it reports which rungs are reachable, so a
+session that cannot run Gobra says so in its first line rather than three
+commands later.
 
-```bash
-gh codespace ssh
-```
+### What the base image already has, and what it does not
 
-`standardLinux32gb` (4 cores, 16 GB RAM, 32 GB storage) is the smallest size
-that comfortably fits the work. RAM is the binding constraint, not cores: the
-R3 model check explores 8,989,719 distinct states, and JBMC has been seen to
-reach 11 GB on a nondeterministic `limit`. `basicLinux32gb` at 8 GB will run
-R0–R2 and Verus but will struggle with R3 and JBMC.
+Pre-installed: Go, Rust (`rustc`/`cargo`), Docker with a working daemon,
+**OpenJDK 21**, `git`, `gh`, `jq`, `python3`.
 
-Available sizes on this repo: `basicLinux32gb`, `standardLinux32gb`,
-`premiumLinux`, `largePremiumLinux`.
+Installed by `cloud-setup.sh`, because the base lacks them:
 
-### 2. Plain Docker, anywhere
+| tool | why |
+|---|---|
+| **JDK 17** | the findings were produced on 17; the base ships 21 |
+| **kotlinc 2.4.10** | absent entirely |
+| **Verus 0.2026.04.24** | absent; the Rust deductive rung |
+| **CBMC 6.11.0** | absent; provides `jbmc`, and F014 *is* a defect in this exact build |
+| **Gobra jar** | distributed only inside a container image, lifted out at setup |
 
-No Codespaces, no devcontainer tooling — just the image:
+### Resource fit
+
+4 vCPU, 16 GB RAM, 30 GB disk per session. RAM is the binding constraint and
+**16 GB is enough**: the R3 model check explores 8,989,719 distinct states, and
+JBMC was observed at 11 GB RSS during the Kotlin work. Both fit, with less
+headroom than is comfortable for JBMC.
+
+### One risk worth knowing before you paste it
+
+The setup field allows roughly **five minutes**. `cloud-setup.sh` downloads
+Verus (~100 MB), Kotlin (~100 MB), a CBMC package, and pulls a 669 MB image to
+extract a 105 MB jar. That may not fit the budget on a slow fetch.
+
+The script is ordered so the cheapest and most load-bearing tools land first,
+and the Gobra step is last and non-fatal — if the image pull fails it prints a
+warning and continues, leaving the Go corner at R0–R3 while everything else
+works. If the whole script times out, move the Gobra block to a session-time
+step; it is the only part that can be deferred without losing a rung entirely.
+
+**This has not been run yet.** The script is syntax-checked and every URL in it
+was probed, but no cloud session has executed it.
+
+### Plain Docker, anywhere (not the cloud path)
 
 ```bash
 git clone https://github.com/michaellady/twitter-port-matrix && cd twitter-port-matrix
@@ -47,33 +78,14 @@ docker build --platform linux/amd64 -f .devcontainer/Dockerfile -t tpm-env .
 docker run -it --rm -v "$PWD":/workspace -w /workspace tpm-env bash
 ```
 
-Then inside the container:
+`--platform linux/amd64` is required: the Verus asset is `x86-linux` and the
+CBMC package is an amd64 `.deb`.
 
-```bash
-bash .devcontainer/setup.sh
-```
-
-`--platform linux/amd64` is required on an arm64 host. The Verus asset is
-`x86-linux` and the CBMC package is an amd64 `.deb`, so the runtime stage pins
-`--platform=linux/amd64` in the Dockerfile too — an unpinned base builds on an
-amd64 cloud host and fails on an arm64 laptop.
-
-### 3. Bare metal
-
-If you would rather install directly, `.devcontainer/Dockerfile` is the
-shopping list with every version and URL. The one non-obvious item is Gobra:
-it is a fat jar inside `ghcr.io/viperproject/gobra`, which publishes no release
-assets, so it has to be lifted out of the image once and then runs standalone.
-
-## Verifying the environment is right
+### Verifying any environment
 
 ```bash
 go run ./tools/cmd/matrixctl doctor
 ```
-
-That checks every tool is present and at the pinned version, that the vendored
-TLA+ spec still matches its digest, and that no implementation imports `S_obs`.
-Then:
 
 ```bash
 go run ./tools/cmd/matrixctl spec check
@@ -81,10 +93,6 @@ go run ./tools/cmd/matrixctl spec check
 
 Four gates, roughly 90 seconds, most of it TLC. If both pass, the environment
 reproduces the findings.
-
-
-`.devcontainer/` describes the environment. This file says what survives the
-move and what does not.
 
 ## Why every version is pinned
 
