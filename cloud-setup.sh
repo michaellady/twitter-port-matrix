@@ -113,28 +113,39 @@ if curl -fsSL --retry 2 -o /tmp/kotlin.zip \
 fi
 command -v kotlinc >/dev/null && echo "  $(kotlinc -version 2>&1 | head -1)" || warn "kotlinc absent -> Kotlin corner cannot build"
 
-# --- Gobra jar, lifted from its image -----------------------------------
-log "Gobra jar (needs only a JVM and Z3 at run time)"
+# --- Gobra jar, pulled WITHOUT a docker daemon --------------------------
+log "Gobra jar (registry pull, no daemon required)"
+# The cloud docs list docker/dockerd as pre-installed; a real session had no
+# daemon responding, so the earlier docker-based extraction left /opt/gobra
+# empty and silently cost Go R4.
+#
+# A daemon was never actually necessary. crane speaks the registry HTTP API
+# directly, so the jar can be exported from the pinned digest with nothing but
+# network access -- and ghcr.io is on the Trusted allowlist. Verified to
+# produce a byte-identical jar: sha256 33d2dce5...0321, the same digest the
+# docker path produced.
 GOBRA_IMG="ghcr.io/viperproject/gobra@sha256:2ef080ccd284945829501996e6d63ed2f1c94b7cf6a30d2b934272fb8a6df2c6"
+GOBRA_SHA="33d2dce591af60c48e3b11af1bf7f41a31a70fb7578ecefe1728748b58f30321"
 mkdir -p /opt/gobra
-# The cloud docs list docker/dockerd/docker compose as pre-installed, but a
-# real session reported no daemon responding. Check rather than assume, and say
-# which rung the absence costs instead of failing silently.
-if ! docker info >/dev/null 2>&1; then
-  warn "no docker daemon (the base-image docs say otherwise) -> Go R4 unavailable"
-  warn "to recover it: extract gobra.jar elsewhere and host it, or run Gobra locally"
-elif docker pull -q "$GOBRA_IMG" >/dev/null 2>&1; then
-  CID="$(docker create "$GOBRA_IMG" 2>/dev/null)"
-  if [ -n "$CID" ]; then
-    docker cp "$CID:/gobra/gobra.jar" /opt/gobra/gobra.jar >/dev/null 2>&1
-    docker rm -f "$CID" >/dev/null 2>&1
+if go install github.com/google/go-containerregistry/cmd/crane@latest >/dev/null 2>&1; then
+  CRANE="$(go env GOPATH)/bin/crane"
+  if [ -x "$CRANE" ]; then
+    "$CRANE" export "$GOBRA_IMG" - 2>/dev/null | tar -xO gobra/gobra.jar > /opt/gobra/gobra.jar 2>/dev/null || true
   fi
 fi
-if [ -f /opt/gobra/gobra.jar ]; then
-  echo "GOBRA_JAR=/opt/gobra/gobra.jar" >> /etc/environment
-  echo "  $(stat -c%s /opt/gobra/gobra.jar) bytes"
+if [ -s /opt/gobra/gobra.jar ]; then
+  got="$(sha256sum /opt/gobra/gobra.jar | cut -d" " -f1)"
+  if [ "$got" = "$GOBRA_SHA" ]; then
+    echo "GOBRA_JAR=/opt/gobra/gobra.jar" >> /etc/environment
+    echo "  $(stat -c%s /opt/gobra/gobra.jar) bytes, sha256 matches the pin"
+  else
+    warn "gobra jar sha256 MISMATCH -- pinned $GOBRA_SHA, got $got"
+    warn "refusing to use it; Go R4 unavailable rather than unpinned"
+    rm -f /opt/gobra/gobra.jar
+  fi
 else
-  warn "gobra jar absent -> Go R4 unavailable; every other rung is unaffected"
+  rm -f /opt/gobra/gobra.jar
+  warn "gobra jar could not be fetched -> Go R4 unavailable"
 fi
 
 # --- Inventory, by running each tool ------------------------------------

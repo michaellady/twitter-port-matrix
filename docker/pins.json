@@ -16,13 +16,14 @@
       "note": "not on PATH by default; z3 4.12.5 ships alongside it"
     },
     "gobra": {
-      "kind": "jar-lifted-from-image",
+      "kind": "jar-pulled-from-registry",
       "image": "ghcr.io/viperproject/gobra",
       "digest": "sha256:2ef080ccd284945829501996e6d63ed2f1c94b7cf6a30d2b934272fb8a6df2c6",
       "version": "v25.02 (self-reports Gobra 1.1-SNAPSHOT)",
       "jar_sha256": "33d2dce591af60c48e3b11af1bf7f41a31a70fb7578ecefe1728748b58f30321",
       "runs_as": "java -Xss128m -jar gobra.jar",
-      "note": "Gobra needs a JVM and a Z3 on PATH, NOT a container. viperproject/gobra publishes no release assets, so the image is only a distribution channel; the jar is lifted out at build time. Native is ~2x faster than the amd64 image under emulation on arm64 (store package: 20s vs ~36s)."
+      "note": "Gobra needs a JVM and a Z3 on PATH, NOT a container. viperproject/gobra publishes no release assets, but the jar can be exported straight from the registry with crane -- no docker daemon required, verified byte-identical to the docker-extracted jar. This matters because the Claude cloud base image has no responding daemon despite docker being listed as pre-installed.",
+      "fetch": "crane export <digest> - | tar -xO gobra/gobra.jar"
     },
     "tlc_container": {
       "kind": "docker",
