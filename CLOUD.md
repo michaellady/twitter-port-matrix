@@ -1,5 +1,88 @@
 # Running this rig somewhere other than the machine it was built on
 
+## Setup
+
+Three paths. All of them use `.devcontainer/`, which pins every tool to the
+build the findings were produced on.
+
+### 1. GitHub Codespaces
+
+Codespaces is enabled on this repository. The `gh` CLI needs one extra scope
+first — a browser flow, so it cannot be scripted for you:
+
+```bash
+gh auth refresh -h github.com -s codespace
+```
+
+```bash
+gh codespace create -R michaellady/twitter-port-matrix -m standardLinux32gb
+```
+
+```bash
+gh codespace ssh
+```
+
+`standardLinux32gb` (4 cores, 16 GB RAM, 32 GB storage) is the smallest size
+that comfortably fits the work. RAM is the binding constraint, not cores: the
+R3 model check explores 8,989,719 distinct states, and JBMC has been seen to
+reach 11 GB on a nondeterministic `limit`. `basicLinux32gb` at 8 GB will run
+R0–R2 and Verus but will struggle with R3 and JBMC.
+
+Available sizes on this repo: `basicLinux32gb`, `standardLinux32gb`,
+`premiumLinux`, `largePremiumLinux`.
+
+### 2. Plain Docker, anywhere
+
+No Codespaces, no devcontainer tooling — just the image:
+
+```bash
+git clone https://github.com/michaellady/twitter-port-matrix && cd twitter-port-matrix
+```
+
+```bash
+docker build --platform linux/amd64 -f .devcontainer/Dockerfile -t tpm-env .
+```
+
+```bash
+docker run -it --rm -v "$PWD":/workspace -w /workspace tpm-env bash
+```
+
+Then inside the container:
+
+```bash
+bash .devcontainer/setup.sh
+```
+
+`--platform linux/amd64` is required on an arm64 host. The Verus asset is
+`x86-linux` and the CBMC package is an amd64 `.deb`, so the runtime stage pins
+`--platform=linux/amd64` in the Dockerfile too — an unpinned base builds on an
+amd64 cloud host and fails on an arm64 laptop.
+
+### 3. Bare metal
+
+If you would rather install directly, `.devcontainer/Dockerfile` is the
+shopping list with every version and URL. The one non-obvious item is Gobra:
+it is a fat jar inside `ghcr.io/viperproject/gobra`, which publishes no release
+assets, so it has to be lifted out of the image once and then runs standalone.
+
+## Verifying the environment is right
+
+```bash
+go run ./tools/cmd/matrixctl doctor
+```
+
+That checks every tool is present and at the pinned version, that the vendored
+TLA+ spec still matches its digest, and that no implementation imports `S_obs`.
+Then:
+
+```bash
+go run ./tools/cmd/matrixctl spec check
+```
+
+Four gates, roughly 90 seconds, most of it TLC. If both pass, the environment
+reproduces the findings.
+
+
 `.devcontainer/` describes the environment. This file says what survives the
 move and what does not.
 
