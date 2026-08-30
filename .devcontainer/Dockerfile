@@ -14,7 +14,11 @@
 # through the amd64 image under emulation.
 FROM ghcr.io/viperproject/gobra@sha256:2ef080ccd284945829501996e6d63ed2f1c94b7cf6a30d2b934272fb8a6df2c6 AS gobra
 
-FROM ubuntu:24.04
+# linux/amd64 is pinned explicitly, not inherited. The Verus asset is
+# x86-linux and the CBMC package is an amd64 .deb, so an unpinned base builds
+# fine on an amd64 cloud host and fails on an arm64 laptop -- a difference that
+# would only ever surface on someone else's machine.
+FROM --platform=linux/amd64 ubuntu:24.04
 
 ARG GO_VERSION=1.25.5
 ARG RUST_VERSION=1.95.0
