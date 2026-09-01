@@ -1,4 +1,4 @@
-# What fifteen findings have in common
+# What eighteen findings have in common
 
 An index, and an argument. The findings are in `evidence/findings/`; this file
 is for the patterns that only appear when you read them together — which is
@@ -25,6 +25,29 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F013 | six obligations verified over unreachable code | one undischargeable check made everything downstream vacuous |
 | F014 | JBMC cannot compare strings | `"abc".equals("abc")` verifies as FALSE |
 | F015 | redundant enforcement blinds mutation | F4 is guarded twice, so removing either guard tests nothing |
+| F016 | 23 verified means one property proved | 11 of 23 units carry no `ensures` at all; one real, non-vacuous, undelegated clause |
+| F017 | the same defect is not the same defect | a mutant catalogue does not transfer across corners as cleanly as its name suggests |
+| F018 | the oracle itself cannot express the bug | a sequential reference machine has no vocabulary for interleaving, so no rung derived from it can score a concurrency defect |
+
+---
+
+## Pattern 0 — the oracle bounds the ladder, not the rungs
+
+F018 is the one finding that is not about a rung being too narrow. It is about
+the **reference machine** being too narrow, which is a different and worse
+thing: a rung can be widened, and an oracle that cannot express a class of
+behaviour makes every rung derived from it blind to that class at once.
+
+`S_obs` is deterministic and sequential. Under concurrent load the Go corner
+dropped tweets behind an HTTP 500 while passing R0 56/56, R1 clean, R2, and R4
+with ~43 load-bearing clauses — and `go test -race` was silent too, because the
+defect was a lost update across correctly-locked components rather than a data
+race.
+
+**The rule.** Before reading a kill table, ask what the oracle can *say*. Every
+rung in it inherits that vocabulary, and no amount of climbing escapes it. The
+check that eventually caught F018 works precisely because it consults no
+reference machine: it counts durable records against accepted writes.
 
 ---
 
@@ -156,3 +179,11 @@ The specific transfer, stated plainly:
    deductive proof over state behind a lock, that is blocked today for a reason
    that has nothing to do with the port and will not be fixed by porting harder
    (F012).
+6. **A WebSocket server is concurrent and its oracle is not.** This is the
+   sharpest transfer of the three added since the first write-up. A pinned
+   Java jar replaying frames is a sequential oracle in exactly the sense F018
+   is about: however many frames it agrees on, it says nothing about two
+   connections interleaving, and neither does a race detector, which was silent
+   on F018 throughout. Budget a counting check that consults no oracle —
+   accepted writes against durable records — and expect it to be the only thing
+   that can see this class.

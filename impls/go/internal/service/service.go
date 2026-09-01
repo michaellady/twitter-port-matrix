@@ -13,6 +13,7 @@ package service
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/michaellady/twitter-port-matrix-impl-go/internal/clock"
 	"github.com/michaellady/twitter-port-matrix-impl-go/internal/dom"
@@ -35,9 +36,30 @@ var (
 func newErr(s string) (err error) { return errors.New(s) }
 
 // Service holds the verified core dependencies. All exported methods are
-// safe for concurrent use (delegate to MemStore's RWMutex + the clock and
-// ids generators' own locks).
+// safe for concurrent use.
+//
+// F018: the per-component locks are NOT sufficient on their own. Each of
+// `clock.Logical`, `ids.Generator` and `store.MemStore` protects its own
+// state, so every individual step is atomic -- and the compound operations
+// this layer builds out of them were not. `PostTweet` took an id, read the
+// clock, and appended, as three separately-atomic steps; two goroutines
+// holding ids 5 and 6 could reach the append in the opposite order, and
+// `MemStore.PutTweet`'s monotonicity guard rejected the one holding 5 for
+// being out of order relative to a tweet that only existed because it lost
+// the race. `ErrNonMonotonic` is not in `writeErrFromDomain`'s table, so the
+// client saw HTTP 500 and the tweet was gone.
+//
+// `wmu` closes that gap: it makes the ALLOCATE-then-WRITE sequences atomic as
+// a whole, which removes the interleaving rather than detecting it. It is
+// held by exactly the two methods that allocate an id -- `CreateUser` and
+// `PostTweet` -- and by nothing else, so reads and the two follow-edge
+// mutators are unaffected. Lock order is always `wmu` before any component
+// lock, and no component ever calls back into `Service`, so there is no
+// cycle to deadlock on.
 type Service struct {
+	// wmu serialises the compound allocate-then-write operations. See the
+	// type comment; F018 is the finding that made it necessary.
+	wmu    sync.Mutex
 	clk    clock.Clock
 	idsTw  *ids.Generator
 	idsUsr *ids.Generator
@@ -130,17 +152,23 @@ func (s *Service) CreateUser(handle string) (u dom.User, err error) {
 	if !dom.ValidHandle(handle) {
 		return dom.User{}, dom.ErrInvalidHandle
 	}
+	// F018. The existence check, the id allocation and the write are one
+	// atomic operation, not three. See the `Service` type comment.
+	s.wmu.Lock()
+	defer s.wmu.Unlock()
 	// @ unfold s.LockP()
 	// Reject a duplicate BEFORE consuming an id. The previous order allocated
 	// first and rejected second, so every rejected registration burned a user
 	// id -- visible in the R0 baseline as {"handle":"Alice","id":5} after four
 	// rejections. S_obs allocates only on success.
 	//
-	// Under concurrent registration of the same handle this check can still
-	// lose the race to PutUser and waste one id. PutUser stays authoritative
-	// for uniqueness, so only the id is lost, never the guarantee. S_obs has
-	// no concurrency notion, so R0 cannot see this; it is left for R1's
-	// concurrency exploration and recorded rather than hidden.
+	// Until F018 this check could still lose the race to PutUser under
+	// concurrent registration of the same handle, and the loser had already
+	// consumed an id by the time it found out. Uniqueness was never at risk --
+	// PutUser is authoritative -- but the id gap it left IS observable on the
+	// wire, and `S_obs`, which allocates only on success, cannot produce one.
+	// `wmu` removes the window; `internal/service/concurrency_test.go` is the
+	// regression test.
 	if s.st.HasUser(handle) {
 		// @ fold s.LockP()
 		return dom.User{}, store.ErrHandleTaken
@@ -370,6 +398,14 @@ func (s *Service) PostTweet(author, text string) (t dom.Tweet, err error) {
 	if !dom.ValidText(text) {
 		return dom.Tweet{}, dom.ErrInvalidText
 	}
+	// F018. Taking the id, reading the clock and appending are one atomic
+	// operation, not three. Both premises of the store's monotonicity lemma
+	// are about the ORDER OF APPENDS, and holding `wmu` across all three steps
+	// is what makes the order they are allocated in the order they land in.
+	// See the `Service` type comment; `internal/httpshim/concurrency_test.go`
+	// is the regression test.
+	s.wmu.Lock()
+	defer s.wmu.Unlock()
 	// @ unfold s.LockP()
 	if !s.st.HasUser(author) {
 		// @ fold s.LockP()

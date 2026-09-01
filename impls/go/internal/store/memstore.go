@@ -316,9 +316,20 @@ func (s *MemStore) Follows(from, to string) (result bool) {
 // S_obs's stepPostTweet has TWO outcomes: unknown author, or append. This
 // method has THREE: it also rejects an append that would break the log
 // invariant LockP() carries. Under the real composition that third branch is
-// unreachable, because ids come from a strictly-increasing generator (F8) and
-// timestamps from a non-decreasing clock (F7) -- but that is a fact about the
-// COMPOSITION, not about this method, and R5 is a per-function obligation.
+// unreachable, because `Service` allocates the id, reads the clock and calls
+// this method while holding `Service.wmu`, so appends land in the order their
+// ids were issued -- but that is a fact about the COMPOSITION, not about this
+// method, and R5 is a per-function obligation.
+//
+// F018: THAT REASONING USED TO BE WRONG, AND IT READ EXACTLY AS CONFIDENTLY.
+// It said the branch was unreachable because ids come from a
+// strictly-increasing generator (F8) and timestamps from a non-decreasing
+// clock (F7). Both premises are true and the conclusion did not follow: F8
+// guarantees ids are ALLOCATED in increasing order, not APPENDED in it, and
+// allocation was outside this lock. Under 1,280 concurrent POST /tweets the
+// guard fired 49 times, each one a tweet discarded behind an HTTP 500. The
+// composition now holds the sequence under one lock, which is what makes the
+// claim above true rather than merely plausible.
 // So the accept condition is stated with the guard in it. Discharging
 // "the guard never fires" is the service layer's obligation, and the state of
 // that obligation is recorded on Service.PostTweet.

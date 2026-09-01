@@ -14,6 +14,34 @@ claim is capped by the **weaker** of its two ends.
 | R5-wire | Refinement over `(method, path, body)` | none | A and B are observationally equivalent. **NOT REACHABLE — see below** |
 | R6 | Machine-checked agreement across the four `S_obs` renderings | — | Not reachable. See below |
 
+## What the ladder does not cover: concurrency
+
+Every rung above is derived from `S_obs`, and `S_obs` is a **deterministic
+sequential state machine**. It has no vocabulary for two requests being in
+flight at once, so no rung built on it can score a concurrency defect — not by
+widening the corpus (R0), the trace alphabet (R1) or the property set (R2), and
+not by proving harder (R4/R5), whose obligations quantify over a single-threaded
+`step_L`.
+
+That is not a hypothesis. F018 was a live defect that dropped tweets behind an
+HTTP 500 under concurrent load, on a corner passing R0 56/56, R1 clean, R2 pass
+and R4 with ~43 load-bearing clauses. Every rung slept through it, and so did
+`go test -race`, because the defect is a lost update across correctly-locked
+components rather than a data race.
+
+Closing this needs an oracle that is **not** `S_obs`. The one used here counts
+instead of comparing — *N concurrent accepted writes must produce N distinct
+durable records, and no accepted write may be reported as a server error* —
+which is checkable without a reference machine at all. It lives as a standing
+implementation-level check (`internal/httpshim/concurrency_test.go`,
+`internal/service/concurrency_test.go` in the Go corner) and deliberately
+**not** as a rung: the deliverable of this repository is a per-rung kill table,
+and a row whose oracle is a different thing entirely would be exactly the kind
+of number `evidence/FINDINGS.md` Pattern 1 warns about.
+
+The Go corner has this check. The other three corners do not, and that is an
+open gap rather than a claim that they are clean.
+
 ## R5's obligation
 
 For each implementation L, an abstraction function `abs_L : State_L -> State_S`

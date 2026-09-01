@@ -160,10 +160,15 @@ measure that alignment.
 
 ### Highest-priority outstanding work
 
-1. **Fix the concurrency defect (F018).** Live, in the Go corner, now public.
-   Id allocation sits outside the store lock; under load the F005 guard turns a
-   race into HTTP 500 and a silently dropped tweet. Fix is to allocate and
-   append atomically. **I introduced this.**
+1. ~~**Fix the concurrency defect (F018).**~~ **DONE.** `Service.wmu` now holds
+   the allocate-then-write sequence in `PostTweet` and `CreateUser` atomically,
+   so ids are appended in the order they are issued and the F005 guard is
+   unreachable in fact. Two regression tests ship with it, both measured
+   against the unfixed code first (20/20 and 28/40 detection). They are
+   **standing checks, not a rung** — `S_obs` is sequential and cannot express
+   the interleaving, so their oracle counts durable records instead of
+   comparing against a reference machine. The Go corner has them; the other
+   three do not, which is the next piece of this.
 2. **Re-run the sweep across all four corners** — the catalogue is 72 mutants
    now. F017 bounds what the R4/R5 rows can compare.
 3. **A second catalogue from a different source** than the contract —
@@ -187,6 +192,13 @@ measure that alignment.
   "kills" it.
 - Verus **caches**; `touch` the crate source or a run prints nothing and looks
   like a pass.
+- **The cloud environment reaches four of the five rungs, not five.** Verus
+  runs once `cloud-setup.sh` installs rustc 1.95.0, so Rust R4 is real there.
+  Gobra is not: `ghcr.io` resolves but its blob storage redirects to
+  `pkg-containers.githubusercontent.com`, which the Trusted allowlist refuses
+  with `403` on `CONNECT`, so the jar cannot be fetched by crane or by anything
+  else. Go R4 and with it all 31 discharged R5 clauses are unavailable there.
+  See `CLOUD.md`.
 - The environment is pinned because several findings **are** properties of a
   specific build (F014 is a CBMC 6.11.0 defect; F012's blocker is a property
   of one vstd release).
