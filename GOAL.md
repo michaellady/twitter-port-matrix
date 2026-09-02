@@ -140,10 +140,66 @@ right instrument. Deferred by choice, not overlooked.
 
 ## LOOP — how the matrix gets filled from here
 
-The goal is pursued by a **scheduled routine**: every two hours a fresh session
-starts, reads this file, does the next unchecked step, and stops. Nothing
-carries over between fires except what is committed, so this section is the
-whole contract.
+The goal was pursued by a **scheduled routine** — every two hours a fresh
+session read this file, did the next unchecked step, and stopped. **That is no
+longer how it works.** The routine is disabled and the remaining work runs as
+an explicit parallel queue, below. Everything after "### Definitions" still
+holds: the definitions, the standing rules, the one-iteration protocol and the
+loop log are what any agent working this repository reads, whether it was
+started by a schedule or by hand.
+
+### The parallel queue — replaces the scheduled loop, 2026-09-02 20:00 UTC
+
+**The two-hourly routine is DISABLED** (`trig_01RxsVmFWraT4T92EczcY3Y1`). One
+fire doing one step every two hours was the wrong shape once the remaining work
+turned out to be six mutually independent pieces. They now run **at the same
+time, each in its own cloud session on its own container**, which also removes
+the hazard that stopped a sweep earlier this evening: four cores shared between
+two verifiers made a 723 s result against a 720 s budget, and a timeout caused
+by load recorded as a solver result is a false finding.
+
+**What is left is bounded, and it is mostly the two proof columns.** Of 72
+cells: 36 behavioural cells are measured, 12 are `n/a` by design (all of R3),
+and the remaining 24 are the R4 and R5 columns. R4 is 2 measured, 4 pending, 6
+capped by Java. R5 is 12 capped, because Gobra on Go is the only R5 rung and no
+ordered pair has Go at both ends.
+
+| # | task | fills | branch | findings |
+|---|---|---|---|---|
+| 1 | Kotlin corner's 18-mutant R4 sweep | the 4 `pending` R4 cells | `claude/task-kotlin-r4-sweep` | F031–F033 |
+| 2 | Java obligation set + R4 rung | the 6 R4 cells capped by Java | `claude/task-java-obligations` | F034–F037 |
+| 3 | `dom.go` R4/R5 separation experiment | closes F028's open question | `claude/task-dom-separation` | F038–F040 |
+| 4 | Lift the Rust core out of `RwLock` | 2 R5 cells, or a demonstrated block | `claude/task-rust-r5-rwlock` | F041–F043 |
+| 5 | Kotlin R5 refinement rung feasibility | 2–4 R5 cells, or a demonstrated no | `claude/task-kotlin-r5` | F044–F046 |
+| 6 | Second catalogue from a non-contract source | bounds every published kill rate | `claude/task-second-catalogue` | F047–F050 |
+| 7 | Four-corner re-run, all rungs, per-judge | the whole table | *blocked on 1 and 2* | F051–F053 |
+| 8 | Integrate, recompute the census, update the PR | — | `claude/goal-loop` | — |
+
+Plus the HomeTimeline vacuity sweep (F029) running locally, which is why tasks
+1–6 are in the cloud rather than on this box.
+
+**Finding numbers are allocated in advance, per the table.** This is not
+bureaucracy: the last fan-out produced a five-way collision on F024 that cost a
+manual renumber across 30 references, and a renumbering regex then silently
+renamed a row that was not meant to move. An agent that needs more than its
+range stops at the last one and says so.
+
+**Task 7 is deliberately blocked.** Re-running the four-corner sweep before the
+Kotlin and Java R4 rows exist would regenerate the table missing exactly the
+columns being added.
+
+**Two tasks are allowed to come back "no".** Task 5 may find that JBMC cannot
+attribute a failure to a named refinement obligation, and task 4 may find the
+`RwLock` block is real. A demonstrated no is a better deliverable than a rung
+reporting numbers it cannot justify, and it would establish that R5 is
+structurally a Go-only rung on this rig — a sharper claim than "not built yet".
+
+**Task 6 is the one that could invalidate the others.** Every mutant in the
+catalogue is drawn from the contract, the R0 baseline or a finding this project
+already made, and the rungs are built from the contract too. If the independent
+catalogue's kill rates drop sharply at R4 and R5, every rate published here is
+bounded by that, and it is the most important result the project could produce.
+
 
 ### Definitions settled on 2026-09-02
 
