@@ -320,6 +320,103 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 20:45 (fan-out task `claude/task-java-obligations`)** — **The
+  Java corner has an obligation set, an R4 rung runs over it, and the R4 column
+  has no capped cell left.** `impls/java/verification/twitterport/verification/`
+  now carries `Obligations.java` and `Canaries.java`: the twin of the Kotlin
+  corner's fifteen obligations, in the same five groups, over this corner's own
+  classes. `tools/cmd/jbmc` drives both JVM corners (per-corner compiler,
+  `javac --release 17` for Java) and `"java"` is registered in R4's
+  `Drivers` alongside `"kotlin"` and `"rust"` — one rung ID, one column, four
+  drivers.
+  **1. F034 — the shared JBMC wall was an inference and is now a measurement.**
+  F014 concluded from a `javac` repro that "this wall is shared with the Java
+  corner", and `MATRIX.md` capped six R4 cells on the fact that
+  `impls/java` had no obligation set to test it with. Every obligation and every
+  canary was run BEFORE any `Blocked` reason was written down
+  (`evidence/runs/calibration/java-obligation-probe/goal-lines.txt`). The result
+  is identical, obligation for obligation: **7 decidable, 8 blocked, the same 8,
+  the same three reasons, 11 own assertion goals on each corner.** Two blockers
+  came out sharper than they were recorded: `getBytes` is unconstrained in
+  contents as well as length (`assert "alice".getBytes(UTF_8)[0] == 'a'` and its
+  negation are BOTH refuted), and the SAT wall is uncapped-kernel-verified at
+  13.9 GB RSS, not the 11 GB the Kotlin entry records.
+  **2. The gate, both ways, before the row.** Clean tree:
+  ```
+  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion
+  goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a
+  recorded JBMC 6.11.0 limit (F014), in no denominator   [47.4s]
+  ```
+  One line of `Dom.parseInt64` broken so a bare sign parses as zero:
+  ```
+  R4 FAILED: JBMC refuted 2 of 7 decidable obligation(s) (2 of 11 own assertion
+  goals FAILURE): o1a_oneCharAcceptSet, o1c_emptyAndBareSignRejected; 8
+  obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no
+  denominator   [40.9s]
+  ```
+  And the vacuity instrument firing on a real catalogue mutant,
+  `java/tick-goes-backwards`, where the enforced monotonicity guard throws and
+  makes the claim and its negation both verify:
+  ```
+  R4 UNDECIDED: 1 of 7 decidable obligation(s) could not be read
+  (c3_clockCanDecrease guards o3b_createdAtNonDecreasing and was NOT refuted
+  (VERIFIED); ...); nothing was decided about this tree   [48.6s]
+  ```
+  `calibrate` records that as an error cell, never a survival. Three outcomes
+  demonstrated, not one.
+  **3. F036 — the row is `0/15 = 0%`, and the zero decomposes.** Full sweep,
+  `evidence/runs/calibration/java-proof/`, 18 mutants, 812s:
+  `R4 proof  live 17  killed 0  survived 15  unreached 2  equiv 0  0/15 = 0%`.
+  Nine survivals are obligations JBMC cannot read; three are properties **no
+  obligation on either JVM corner states** (F3 idempotence, F6 author
+  existence); three are relational obligations a non-relational mutant slips
+  past (F023, now on its fourth corner); one is the vacuity above (F015 at the
+  proof rung). The sharpest fact in it: **three of the seven decidable
+  obligations are over `Dom.parseInt64`, and not one of the eighteen mutants
+  edits `Dom.java`.** An origin obligation and a tick obligation would kill two
+  of the survivals and are unblocked — deliberately not written, because the
+  value of this set this week is that the two JVM corners are twins.
+  **4. F035 — one decorative line costs a whole cell.** The obligation set is
+  compiled against the tree under test, so it is coupled to every signature it
+  *mentions*. `Obligations.kt` opens three timeline obligations with
+  `s.createUser("a")`, which `Store.timelinePage` never consults, and
+  `id-burned-on-reject` changes that signature: `kotlinc` reports five errors and
+  the cell becomes an error cell. Reproduced. The Java twin drops the call from
+  all six sites and **all 18 Java mutants then compile against the obligation
+  set**. The Kotlin fix is five deletions and was deliberately NOT made here —
+  its R4 sweep is running in another lane and changing the tree under a live
+  journal is worse than the bug.
+  **5. F037 — the vacuity gate is directional.** Both-verify is caught;
+  both-refute is not, and both-refute is what a nondeterministic library model
+  produces. `o2b_goodHandleIsValid` and `c14_goodHandleIsInvalid` are a strict
+  pair and BOTH are refuted on the clean tree today. Delete their `Blocked`
+  markers and the unmodified `impls/java` reports
+  `R4 FAILED: JBMC refuted 2 of 9 decidable obligation(s) … o2a_emptyIsInvalid,
+  o2b_goodHandleIsValid` — a false red with the verdict sentence and the exit
+  code agreeing (`java-r4-gate/f037-false-red.log`). What stands between the
+  rung and that today is a hand-maintained list, which is F030's shape in the
+  direction nobody checked. The fix needs a `Strict bool` on the canary record —
+  the witness canaries (`o1a`/`c10`) are *correctly* both-refuted — and it
+  changes shared verdict logic, so it is written up and not landed.
+  ```
+  census   was  38 measured, 18 capped,  4 pending, 12 n/a
+           now  42 measured, 12 capped,  6 pending, 12 n/a
+  ```
+  All 12 remaining capped cells are R5. Two `cap←java` cells became `pending`
+  rather than measured: `java ← kotlin` and `kotlin ← java` wait on the Kotlin
+  R4 sweep like the other four.
+  Also corrected in place, both inside `MATRIX.md` and both wrong before this
+  fire: the census said "Of the 18 capped, 6 carry †" when cell by cell there
+  were **8**, and the `†` paragraph still said the Go end's R4/R5 evidence "is a
+  gate, not a sweep — 5 of 18 … not yet known whether the two rows discriminate
+  at all" while the provenance table three sections below recorded `go-proof` as
+  a completed 18-mutant sweep with F028's answer to exactly that question.
+  **Next fire:** run the Kotlin R4 sweep — it now fills six `pending` cells
+  rather than four, and it is still the cheapest cell-filling move on the table.
+  Fix `Obligations.kt`'s five `s.createUser("a")` calls first or lose
+  `id-burned-on-reject` to F035. After that, F037's `Strict` canary flag is the
+  one gate this repository is missing in a direction it has never looked.
+
 - **2026-09-02 19:45 (parent session `session_01ExaVft3sZPUuETJXKVZK1J`, branch
   `claude/goal-loop`)** — **The Rust corner had no vacuity instrument at all,
   and the R4 column is no longer entirely capped.** Two results, plus one

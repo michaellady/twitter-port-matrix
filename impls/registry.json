@@ -64,7 +64,7 @@
         "ADDR": "{addr}"
       },
       "health_path": "/healthz",
-      "verifier": "OpenJML",
+      "verifier": "JBMC 6.11.0, bounded. ASSURANCE.md listed Java's R4 route as OpenJML/KeY; neither was ever attempted, and F014 established that the route that IS available -- JBMC over the compiled bytecode -- hits the same three defects the Kotlin corner hits, in the language those defects were reduced to. `impls/java/verification` now carries the twin of the Kotlin corner's obligation set, measured rather than assumed (F034): 7 of the 15 obligations are decidable and 8 carry a recorded JBMC limit, the same partition as Kotlin's. `calibrate -impls java -rungs R4` drives `tools/cmd/jbmc verify`, whose denominator is the 7 decidable obligations",
       "status": "written against the S_obs contract; R0 54/54 byte-exact, canary sweep 4/4 rejected. No build tool and no dependencies: plain javac against JDK 17, serving HTTP/1.1 on a raw ServerSocket (the JDK HttpServer is not total over the request target)"
     },
     "kotlin": {

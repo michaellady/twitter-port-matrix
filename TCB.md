@@ -13,8 +13,9 @@ this list.
 | Go toolchain | 1.25.5 | Compiles `S_obs` and the whole rig |
 | JDK | 17.0.19 | Runs TLC |
 | Gobra | ETH Zurich build, digest-pinned | Deductive verifier for the Go corner; R4 and R5 both read its verdict |
-| JBMC | 6.11.0 (cbmc-6.11.0) | Bounded model checker for the Kotlin corner's R4. **Trusted only where it is sound**: `String.equals` and `String.getBytes(Charset)` are known-wrong on this build (F014), so the 8 obligations that depend on them are excluded from the rung's denominator rather than believed. The version is pinned because the exclusion list is a property of this build |
-| OpenJML | not attempted | The Java corner has no deductive rung |
+| JBMC | 6.11.0 (cbmc-6.11.0) | Bounded model checker for **both JVM corners'** R4. **Trusted only where it is sound**: `String.equals` and `String.getBytes(Charset)` are known-wrong on this build (F014), so the 8 obligations that depend on them are excluded from each corner's denominator rather than believed. The exclusion list is now measured on both corners and comes out identical (F034). The version is pinned because that list is a property of this build |
+| javac | JDK 21, invoked with `--release 17` | Compiles the Java corner together with its obligations for JBMC. `--release` rather than `-target`, so the bytecode the checker reads does not depend on which JDK is first on PATH |
+| OpenJML / KeY | not attempted | Listed in `ASSURANCE.md` as the Java corner's R4 route and never tried. The Java corner's R4 is bounded (JBMC), not deductive; nothing here rests on a deductive Java verifier |
 
 Plus, for every corner, the usual floor: compiler, runtime, OS, CPU.
 

@@ -1,0 +1,257 @@
+Java corner -- per-obligation JBMC probe, verbatim goal lines
+=============================================================
+
+How this was produced (reproducible from the repository root):
+
+    C=<scratch>/classes; JUTIL=<scratch>/jutil
+    javac --release 17 -nowarn -d $C $(find impls/java/src impls/java/verification -name '*.java')
+    jbmc --classpath "$C:/usr/lib/core-models.jar:$JUTIL" twitterport.verification.<Class> \
+         --function 'twitterport.verification.<Class>.<fn>:<sig>' \
+         --unwind 30 --max-nondet-string-length 3 --java-assume-inputs-non-null
+
+$JUTIL is java.util extracted with `jimage extract` from
+/usr/lib/jvm/java-21-openjdk-amd64, exactly as tools/cmd/jbmc does it.
+jbmc 6.11.0 (cbmc-6.11.0), javac 21.0.10 with --release 17.
+
+Every obligation and every canary was run BEFORE any Blocked reason was written
+down, so the java table in tools/cmd/jbmc/obligations.go is a record of this run
+rather than a copy of the Kotlin corner's. These transcripts are from a re-run
+against the committed sources, so the line numbers below are the ones in
+impls/java/verification/twitterport/verification/.
+
+Only the entry point's OWN assertion goals are quoted. JBMC's inserted checks
+(null-pointer, divide-by-zero, "no uncaught exception") decide nothing, and
+neither do assertion goals inside java.lang, java.util or org.cprover -- a
+library goal says something about JBMC's model of the JDK, not about the port.
+That is the accounting tools/cmd/jbmc/run.go applies (goalLine, `own`), and it
+is applied here so the two agree.
+
+The four entries showing "SAT checker ran out of memory" were run under an
+artificial `ulimit -v 8000000`; see the uncapped section at the end, which is
+the evidence that actually establishes the wall.
+
+--- o1a_oneCharAcceptSet
+    [java::twitterport.verification.Obligations.o1a_oneCharAcceptSet:(Ljava/lang/String;)V.assertion.1] line 100 assertion at file twitterport/verification/Obligations.java line 100 function java::twitterport.verification.Obligations.o1a_oneCharAcceptSet:(Ljava/lang/String;)V bytecode-index 30: SUCCESS
+    VERIFICATION SUCCESSFUL
+    EXIT=0 WALL=8s
+
+--- o1b_twoCharAcceptSet
+    [java::twitterport.verification.Obligations.o1b_twoCharAcceptSet:(Ljava/lang/String;)V.assertion.1] line 111 assertion at file twitterport/verification/Obligations.java line 111 function java::twitterport.verification.Obligations.o1b_twoCharAcceptSet:(Ljava/lang/String;)V bytecode-index 48: SUCCESS
+    VERIFICATION SUCCESSFUL
+    EXIT=0 WALL=9s
+
+--- o1c_emptyAndBareSignRejected
+    [java::twitterport.verification.Obligations.o1c_emptyAndBareSignRejected:()V.assertion.1] line 116 assertion at file twitterport/verification/Obligations.java line 116 function java::twitterport.verification.Obligations.o1c_emptyAndBareSignRejected:()V bytecode-index 8: SUCCESS
+    [java::twitterport.verification.Obligations.o1c_emptyAndBareSignRejected:()V.assertion.2] line 117 assertion at file twitterport/verification/Obligations.java line 117 function java::twitterport.verification.Obligations.o1c_emptyAndBareSignRejected:()V bytecode-index 17: SUCCESS
+    [java::twitterport.verification.Obligations.o1c_emptyAndBareSignRejected:()V.assertion.3] line 118 assertion at file twitterport/verification/Obligations.java line 118 function java::twitterport.verification.Obligations.o1c_emptyAndBareSignRejected:()V bytecode-index 26: SUCCESS
+    VERIFICATION SUCCESSFUL
+    EXIT=0 WALL=1s
+
+--- o2a_emptyIsInvalid
+    [java::twitterport.verification.Obligations.o2a_emptyIsInvalid:()V.assertion.1] line 132 assertion at file twitterport/verification/Obligations.java line 132 function java::twitterport.verification.Obligations.o2a_emptyIsInvalid:()V bytecode-index 8: SUCCESS
+    [java::twitterport.verification.Obligations.o2a_emptyIsInvalid:()V.assertion.2] line 133 assertion at file twitterport/verification/Obligations.java line 133 function java::twitterport.verification.Obligations.o2a_emptyIsInvalid:()V bytecode-index 17: FAILURE
+    [java::twitterport.dom.Dom.validText:(Ljava/lang/String;)Z.unwind.0] line 66 unwinding assertion loop 0: SUCCESS
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- o2b_goodHandleIsValid
+    [java::twitterport.verification.Obligations.o2b_goodHandleIsValid:()V.assertion.1] line 138 assertion at file twitterport/verification/Obligations.java line 138 function java::twitterport.verification.Obligations.o2b_goodHandleIsValid:()V bytecode-index 8: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- o3a_idsStrictlyIncrease
+    [java::twitterport.verification.Obligations.o3a_idsStrictlyIncrease:()V.assertion.1] line 155 assertion at file twitterport/verification/Obligations.java line 155 function java::twitterport.verification.Obligations.o3a_idsStrictlyIncrease:()V bytecode-index 25: SUCCESS
+    VERIFICATION SUCCESSFUL
+    EXIT=0 WALL=1s
+
+--- o3b_createdAtNonDecreasing
+    [java::twitterport.verification.Obligations.o3b_createdAtNonDecreasing:(Z)V.assertion.1] line 170 assertion at file twitterport/verification/Obligations.java line 170 function java::twitterport.verification.Obligations.o3b_createdAtNonDecreasing:(Z)V bytecode-index 30: SUCCESS
+    [java::twitterport.verification.Obligations.o3b_createdAtNonDecreasing:(Z)V.assertion.2] line 171 assertion at file twitterport/verification/Obligations.java line 171 function java::twitterport.verification.Obligations.o3b_createdAtNonDecreasing:(Z)V bytecode-index 42: SUCCESS
+    VERIFICATION SUCCESSFUL
+    EXIT=0 WALL=2s
+
+--- o3c_lemmaOverThreeAppends
+    [java::twitterport.verification.Obligations.o3c_lemmaOverThreeAppends:(ZZ)V.assertion.1] line 186 assertion at file twitterport/verification/Obligations.java line 186 function java::twitterport.verification.Obligations.o3c_lemmaOverThreeAppends:(ZZ)V bytecode-index 46: SUCCESS
+    [java::twitterport.verification.Obligations.o3c_lemmaOverThreeAppends:(ZZ)V.assertion.2] line 187 assertion at file twitterport/verification/Obligations.java line 187 function java::twitterport.verification.Obligations.o3c_lemmaOverThreeAppends:(ZZ)V bytecode-index 64: SUCCESS
+    VERIFICATION SUCCESSFUL
+    EXIT=0 WALL=2s
+
+--- o4a_pageRespectsLimit
+    SAT checker ran out of memory
+    Out of memory
+    EXIT=6 WALL=31s
+
+--- o4b_cursorNullMeansExhausted
+    [java::twitterport.verification.Obligations.o4b_cursorNullMeansExhausted:()V.assertion.1] line 230 assertion at file twitterport/verification/Obligations.java line 230 function java::twitterport.verification.Obligations.o4b_cursorNullMeansExhausted:()V bytecode-index 28: SUCCESS
+    [java::twitterport.verification.Obligations.o4b_cursorNullMeansExhausted:()V.assertion.2] line 232 assertion at file twitterport/verification/Obligations.java line 232 function java::twitterport.verification.Obligations.o4b_cursorNullMeansExhausted:()V bytecode-index 43: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- o4c_pageIsNewestFirst
+    [java::twitterport.verification.Obligations.o4c_pageIsNewestFirst:()V.assertion.1] line 242 assertion at file twitterport/verification/Obligations.java line 242 function java::twitterport.verification.Obligations.o4c_pageIsNewestFirst:()V bytecode-index 33: FAILURE
+    [java::twitterport.verification.Obligations.o4c_pageIsNewestFirst:()V.assertion.2] line 243 assertion at file twitterport/verification/Obligations.java line 243 function java::twitterport.verification.Obligations.o4c_pageIsNewestFirst:()V bytecode-index 49: SUCCESS
+    [java::twitterport.verification.Obligations.o4c_pageIsNewestFirst:()V.assertion.3] line 244 assertion at file twitterport/verification/Obligations.java line 244 function java::twitterport.verification.Obligations.o4c_pageIsNewestFirst:()V bytecode-index 65: SUCCESS
+    [java::twitterport.verification.Obligations.o4c_pageIsNewestFirst:()V.assertion.4] line 245 assertion at file twitterport/verification/Obligations.java line 245 function java::twitterport.verification.Obligations.o4c_pageIsNewestFirst:()V bytecode-index 85: SUCCESS
+    VERIFICATION FAILED
+    EXIT=10 WALL=3s
+
+--- o5a_unknownBeatsSelfFollow
+    [java::twitterport.verification.Obligations.o5a_unknownBeatsSelfFollow:()V.assertion.1] line 259 assertion at file twitterport/verification/Obligations.java line 259 function java::twitterport.verification.Obligations.o5a_unknownBeatsSelfFollow:()V bytecode-index 20: FAILURE
+    [java::twitterport.dom.Dom.validHandle:(Ljava/lang/String;)Z.unwind.0] line 50 unwinding assertion loop 0: SUCCESS
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- o5b_knownSelfFollowIsForbidden
+    [java::twitterport.verification.Obligations.o5b_knownSelfFollowIsForbidden:()V.assertion.1] line 267 assertion at file twitterport/verification/Obligations.java line 267 function java::twitterport.verification.Obligations.o5b_knownSelfFollowIsForbidden:()V bytecode-index 26: FAILURE
+    [java::twitterport.dom.Dom.validHandle:(Ljava/lang/String;)Z.unwind.0] line 50 unwinding assertion loop 0: SUCCESS
+    VERIFICATION FAILED
+    EXIT=10 WALL=3s
+
+--- o5c_syntaxBeatsExistence
+    [java::twitterport.verification.Obligations.o5c_syntaxBeatsExistence:()V.assertion.1] line 273 assertion at file twitterport/verification/Obligations.java line 273 function java::twitterport.verification.Obligations.o5c_syntaxBeatsExistence:()V bytecode-index 20: SUCCESS
+    [java::twitterport.dom.Dom.validHandle:(Ljava/lang/String;)Z.unwind.0] line 50 unwinding assertion loop 0: SUCCESS
+    VERIFICATION FAILED
+    EXIT=10 WALL=3s
+
+--- o5d_rejectionBurnsNoId
+    SAT checker ran out of memory
+    Out of memory
+    EXIT=6 WALL=36s
+
+--- c10_nonDigitIsANumber
+    [java::twitterport.verification.Canaries.c10_nonDigitIsANumber:()V.assertion.1] line 149 assertion at file twitterport/verification/Canaries.java line 149 function java::twitterport.verification.Canaries.c10_nonDigitIsANumber:()V bytecode-index 8: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=1s
+
+--- c11_signThenSignIsANumber
+    [java::twitterport.verification.Canaries.c11_signThenSignIsANumber:()V.assertion.1] line 154 assertion at file twitterport/verification/Canaries.java line 154 function java::twitterport.verification.Canaries.c11_signThenSignIsANumber:()V bytecode-index 8: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=1s
+
+--- c12_thirdAppendDoesNotIncrease
+    [java::twitterport.verification.Canaries.c12_thirdAppendDoesNotIncrease:()V.assertion.1] line 167 assertion at file twitterport/verification/Canaries.java line 167 function java::twitterport.verification.Canaries.c12_thirdAppendDoesNotIncrease:()V bytecode-index 30: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- c13_cursorEmittedWhenExhausted
+    [java::twitterport.verification.Canaries.c13_cursorEmittedWhenExhausted:()V.assertion.1] line 186 assertion at file twitterport/verification/Canaries.java line 186 function java::twitterport.verification.Canaries.c13_cursorEmittedWhenExhausted:()V bytecode-index 28: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- c14_goodHandleIsInvalid
+    [java::twitterport.verification.Canaries.c14_goodHandleIsInvalid:()V.assertion.1] line 191 assertion at file twitterport/verification/Canaries.java line 191 function java::twitterport.verification.Canaries.c14_goodHandleIsInvalid:()V bytecode-index 8: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- c15_emptyTextIsValid
+    [java::twitterport.verification.Canaries.c15_emptyTextIsValid:()V.assertion.1] line 200 assertion at file twitterport/verification/Canaries.java line 200 function java::twitterport.verification.Canaries.c15_emptyTextIsValid:()V bytecode-index 8: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- c16_selfFollowBeatsUnknown
+    [java::twitterport.verification.Canaries.c16_selfFollowBeatsUnknown:()V.assertion.1] line 206 assertion at file twitterport/verification/Canaries.java line 206 function java::twitterport.verification.Canaries.c16_selfFollowBeatsUnknown:()V bytecode-index 20: FAILURE
+    [java::twitterport.dom.Dom.validHandle:(Ljava/lang/String;)Z.unwind.0] line 50 unwinding assertion loop 0: SUCCESS
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- c17_knownSelfFollowIsAllowed
+    [java::twitterport.verification.Canaries.c17_knownSelfFollowIsAllowed:()V.assertion.1] line 214 assertion at file twitterport/verification/Canaries.java line 214 function java::twitterport.verification.Canaries.c17_knownSelfFollowIsAllowed:()V bytecode-index 21: FAILURE
+    [java::twitterport.dom.Dom.validHandle:(Ljava/lang/String;)Z.unwind.0] line 50 unwinding assertion loop 0: SUCCESS
+    VERIFICATION FAILED
+    EXIT=10 WALL=3s
+
+--- c18_rejectionBurnsAnId
+    SAT checker ran out of memory
+    Out of memory
+    EXIT=6 WALL=34s
+
+--- c1_bareSignIsANumber
+    [java::twitterport.verification.Canaries.c1_bareSignIsANumber:()V.assertion.1] line 55 assertion at file twitterport/verification/Canaries.java line 55 function java::twitterport.verification.Canaries.c1_bareSignIsANumber:()V bytecode-index 8: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=1s
+
+--- c2_idsDoNotIncrease
+    [java::twitterport.verification.Canaries.c2_idsDoNotIncrease:()V.assertion.1] line 63 assertion at file twitterport/verification/Canaries.java line 63 function java::twitterport.verification.Canaries.c2_idsDoNotIncrease:()V bytecode-index 25: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- c3_clockCanDecrease
+    [java::twitterport.verification.Canaries.c3_clockCanDecrease:()V.assertion.1] line 72 assertion at file twitterport/verification/Canaries.java line 72 function java::twitterport.verification.Canaries.c3_clockCanDecrease:()V bytecode-index 28: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=1s
+
+--- c4_pageMayExceedLimit
+    SAT checker ran out of memory
+    Out of memory
+    EXIT=6 WALL=31s
+
+--- c5_timelineIsOldestFirst
+    [java::twitterport.verification.Canaries.c5_timelineIsOldestFirst:()V.assertion.1] line 95 assertion at file twitterport/verification/Canaries.java line 95 function java::twitterport.verification.Canaries.c5_timelineIsOldestFirst:()V bytecode-index 35: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=3s
+
+--- c6_domIsReachable
+    [java::twitterport.verification.Canaries.c6_domIsReachable:()V.assertion.1] line 112 assertion at file twitterport/verification/Canaries.java line 112 function java::twitterport.verification.Canaries.c6_domIsReachable:()V bytecode-index 8: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=1s
+
+--- c7_storeIsReachable
+    [java::twitterport.verification.Canaries.c7_storeIsReachable:()V.assertion.1] line 118 assertion at file twitterport/verification/Canaries.java line 118 function java::twitterport.verification.Canaries.c7_storeIsReachable:()V bytecode-index 19: FAILURE
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- c8_serviceIsReachable
+    [java::twitterport.verification.Canaries.c8_serviceIsReachable:()V.assertion.1] line 124 assertion at file twitterport/verification/Canaries.java line 124 function java::twitterport.verification.Canaries.c8_serviceIsReachable:()V bytecode-index 13: FAILURE
+    [java::twitterport.dom.Dom.validHandle:(Ljava/lang/String;)Z.unwind.0] line 50 unwinding assertion loop 0: SUCCESS
+    VERIFICATION FAILED
+    EXIT=10 WALL=2s
+
+--- c9_syntaxDoesNotBeatExistence
+    [java::twitterport.verification.Canaries.c9_syntaxDoesNotBeatExistence:()V.assertion.1] line 139 assertion at file twitterport/verification/Canaries.java line 139 function java::twitterport.verification.Canaries.c9_syntaxDoesNotBeatExistence:()V bytecode-index 20: FAILURE
+    [java::twitterport.dom.Dom.validHandle:(Ljava/lang/String;)Z.unwind.0] line 50 unwinding assertion loop 0: SUCCESS
+    VERIFICATION FAILED
+    EXIT=10 WALL=3s
+
+
+The two SAT-exhausting entry points, uncapped
+---------------------------------------------
+A `ulimit -v` proves only that a cap can be hit. Two of the four were re-run
+with NO cap at all on a 15 GB machine, and the kernel's own report is the
+evidence:
+
+    Memory cgroup out of memory: Killed process 2811 (jbmc)
+      total-vm:16420540kB, anon-rss:13951040kB, file-rss:4528kB
+
+    c4_pageMayExceedLimit   EXIT=137 WALL=228s   (uncapped, OOM-killed at 13.9 GB RSS)
+    o4a_pageRespectsLimit   EXIT=137 WALL=57s    (uncapped, OOM-killed)
+
+So satReason on this corner is a machine-level wall rather than an induced one.
+The Kotlin entry in tools/cmd/jbmc/obligations.go records 11 GB; this corner
+wants more.
+
+
+The getBytes defect, probed directly
+------------------------------------
+`assert X` and `assert !X` were each run as their own entry point over a
+standalone class compiled against impls/java's Dom. BOTH failing means the
+predicate is NONDETERMINISTIC -- the exact dual of the vacuity signature (both
+succeeding), and the reason a getBytes-blocked obligation must not be scored as
+a kill either. F037 is what that costs the rung as it stands.
+
+    vh_alice_true    assert Dom.validHandle("alice")                    -> FAILURE
+    vh_alice_false   assert !Dom.validHandle("alice")                   -> FAILURE
+    vh_EVE_true      assert Dom.validHandle("EVE")                      -> FAILURE
+    vh_EVE_false     assert !Dom.validHandle("EVE")                     -> SUCCESS
+    vh_empty_true    assert Dom.validHandle("")                         -> FAILURE
+    vh_empty_false   assert !Dom.validHandle("")                        -> SUCCESS
+    vt_empty_true    assert Dom.validText("")                           -> FAILURE
+    vt_empty_false   assert !Dom.validText("")                          -> FAILURE
+    len_alice        assert "alice".getBytes(UTF_8).length == 5         -> FAILURE
+    len_alice_not    assert "alice".getBytes(UTF_8).length != 5         -> FAILURE
+    byte0_alice      assert "alice".getBytes(UTF_8)[0] == (byte)'a'     -> FAILURE
+    byte0_alice_not  assert "alice".getBytes(UTF_8)[0] != (byte)'a'     -> FAILURE
+
+Read the last four rows first: the byte array `getBytes` returns has neither a
+determined length nor determined contents. Everything above follows from that.
+Why JBMC nonetheless decides `!validHandle("EVE")` and not `validHandle("alice")`
+is NOT pinned here and is not claimed -- the measurements are.

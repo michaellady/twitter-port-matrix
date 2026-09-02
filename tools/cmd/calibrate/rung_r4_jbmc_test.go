@@ -21,19 +21,17 @@ func r4Rung(t *testing.T) rung {
 // which binary runs; the column heading and the verdict sentence do not change.
 func TestR4DispatchesPerCorner(t *testing.T) {
 	r := r4Rung(t)
-	for _, impl := range []string{"go", "kotlin"} {
+	want := map[string]string{"go": "gobra", "rust": "verus", "kotlin": "jbmc", "java": "jbmc"}
+	for impl, tool := range want {
 		if !r.applies(impl) {
 			t.Fatalf("R4 does not apply to %s", impl)
 		}
+		if got := r.toolFor(impl); got != tool {
+			t.Errorf("tool for %s: got %q, want %q", impl, got, tool)
+		}
 	}
-	if r.applies("rust") {
-		t.Skip("another lane has added the Verus driver; this test only pins the two corners it knows")
-	}
-	if got := r.toolFor("go"); got != "gobra" {
-		t.Errorf("tool for go: got %q, want gobra", got)
-	}
-	if got := r.toolFor("kotlin"); got != "jbmc" {
-		t.Errorf("tool for kotlin: got %q, want jbmc", got)
+	if len(r.Impls) != len(want) {
+		t.Errorf("R4 claims %v; this test knows %d corners and must be extended with the fifth", r.Impls, len(want))
 	}
 	// A corner with no driver falls back to the rung's own fields, so the
 	// rungs that have only ever had one verifier are untouched.
@@ -86,6 +84,14 @@ func TestJBMCReadsExcludesTheTrustedShim(t *testing.T) {
 		{"src/twitterport/dom/Dom.kt", true},
 		{"src/twitterport/httpshim/Json.kt", false},
 		{"src/twitterport/httpshim/Server.kt", false},
+		// The Java corner's tree has the same shape down to the directory
+		// names, so one predicate answers for both. The extension is the only
+		// difference and no prefix tests it.
+		{"src/twitterport/store/Store.java", true},
+		{"src/twitterport/service/Service.java", true},
+		{"src/twitterport/dom/Dom.java", true},
+		{"src/twitterport/httpshim/Json.java", false},
+		{"src/twitterport/httpshim/Server.java", false},
 	}
 	for _, tc := range cases {
 		m := mutants.Mutant{Impl: "kotlin", ID: "x", Edits: []mutants.Edit{{File: tc.file}}}
@@ -97,26 +103,34 @@ func TestJBMCReadsExcludesTheTrustedShim(t *testing.T) {
 
 // The whole catalogue, so the ceiling this rung has before a single obligation
 // is written is a number rather than an impression.
-func TestKotlinCoverageCeilingIsMeasured(t *testing.T) {
+//
+// Both JVM corners, because the Java corner's ceiling is the thing its new R4
+// row is bounded by and a reader should not have to infer it from the Kotlin
+// row. They come out the same -- 16 of 18, the two httpshim mutants unreached
+// -- because the mutant catalogue carries the same 18 defects per corner.
+func TestJVMCoverageCeilingIsMeasured(t *testing.T) {
 	man, err := mutants.Load("../mutate/mutants.json")
 	if err != nil {
 		t.Skipf("catalogue not readable from here: %v", err)
 	}
-	total, covered := 0, 0
-	for _, m := range man.Mutants {
-		if m.Impl != "kotlin" {
-			continue
+	for _, impl := range []string{"kotlin", "java"} {
+		total, covered := 0, 0
+		for _, m := range man.Mutants {
+			if m.Impl != impl {
+				continue
+			}
+			total++
+			if jbmcReads(m) {
+				covered++
+			}
 		}
-		total++
-		if jbmcReads(m) {
-			covered++
+		if total == 0 {
+			t.Fatalf("no %s mutants in the catalogue", impl)
 		}
-	}
-	if total == 0 {
-		t.Fatal("no kotlin mutants in the catalogue")
-	}
-	if covered != total-2 {
-		t.Errorf("kotlin mutants covered by JBMC: got %d of %d, want %d (the two httpshim mutants are unreached)", covered, total, total-2)
+		if covered != total-2 {
+			t.Errorf("%s mutants covered by JBMC: got %d of %d, want %d (the two httpshim mutants are unreached)",
+				impl, covered, total, total-2)
+		}
 	}
 }
 
@@ -149,5 +163,26 @@ func TestCalibrateReadsTheJBMCVerdictSentences(t *testing.T) {
 	}
 	if _, err := r.verdict(&toolRun{Stdout: pass, ExitCode: 1}); err == nil {
 		t.Error("a PASSED sentence with exit 1 must be an error, not a pass")
+	}
+}
+
+// The Java corner's argv goes through the registry exactly as the Kotlin
+// corner's does, and carries the same budget rule. It is the same driver
+// value, so this is a check that the sharing was not undone rather than a
+// second copy of the Kotlin assertion.
+func TestJavaR4UsesTheSameDriverAsKotlin(t *testing.T) {
+	r := r4Rung(t)
+	cfg := Config{RungTimeout: (20 * time.Minute).String()}
+	kotlin := strings.Join(r.argsFor("kotlin")(cfg, "X", "/tmp/reg.json"), " ")
+	java := strings.Join(r.argsFor("java")(cfg, "X", "/tmp/reg.json"), " ")
+	if kotlin != java {
+		t.Errorf("the two JVM corners build different argv:\n  kotlin %s\n  java   %s", kotlin, java)
+	}
+	args := r.argsFor("java")(cfg, "java@timeline-scan-reversed", "/tmp/reg.json")
+	joined := strings.Join(args, " ")
+	for _, want := range []string{"verify", "-impl=java@timeline-scan-reversed", "-registry=/tmp/reg.json", "-budget="} {
+		if !strings.Contains(joined, want) {
+			t.Errorf("argv %v is missing %q", args, want)
+		}
 	}
 }

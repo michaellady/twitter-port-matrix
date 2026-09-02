@@ -340,6 +340,99 @@ func TestKotlinDenominatorMatchesF014(t *testing.T) {
 	}
 }
 
+// The Java corner's counts, measured on this corner rather than copied from
+// the Kotlin table. They came back identical -- the same 7 decidable and the
+// same 8 blocked, obligation for obligation -- which is F014's "this wall is
+// shared with the Java corner" turned from an inference into a measurement.
+// F034 records the run.
+func TestJavaDenominatorMatchesTheMeasuredProbe(t *testing.T) {
+	c := javaCorner
+	if got, want := len(c.decidable()), 7; got != want {
+		t.Errorf("decidable obligations: got %d, want %d (F034: 7 decidable, 8 blocked)", got, want)
+	}
+	if got, want := len(c.blocked()), 8; got != want {
+		t.Errorf("blocked obligations: got %d, want %d", got, want)
+	}
+	for _, o := range c.blocked() {
+		switch o.Blocked {
+		case equalsReason, getBytesReason, satReason:
+		default:
+			t.Errorf("%s is blocked for an unrecorded reason: %q", o.Fn, o.Blocked)
+		}
+	}
+	for _, o := range c.Obligations {
+		if o.Canary && o.Decidable() {
+			t.Errorf("%s is a canary and would be counted as an obligation", o.Fn)
+		}
+	}
+}
+
+// The two JVM corners are TWINS: same obligation names, same signatures, same
+// blocked reasons. That is what makes the two columns comparable at all -- if
+// the Java corner quietly dropped an obligation the Kotlin corner claims, the
+// two R4 cells would be measuring different questions while reading like the
+// same one. The twin property is cheap to state and impossible to keep by
+// hand, so it is stated here.
+func TestTheTwoJVMCornersAreTwins(t *testing.T) {
+	kt := map[string]obligation{}
+	for _, o := range kotlinCorner.Obligations {
+		kt[o.Fn] = o
+	}
+	for _, o := range javaCorner.Obligations {
+		k, ok := kt[o.Fn]
+		if !ok {
+			// The Java set is allowed to carry EXTRA canaries -- it guards
+			// every obligation, blocked ones included, which the Kotlin set
+			// does not (F025). It is not allowed to carry an extra or a
+			// differently-named obligation.
+			if !o.Canary {
+				t.Errorf("java claims obligation %s that the kotlin twin does not state", o.Fn)
+			}
+			continue
+		}
+		if o.Sig != k.Sig {
+			t.Errorf("%s: java signature %q, kotlin %q; the twins state different properties", o.Fn, o.Sig, k.Sig)
+		}
+		if o.Blocked != k.Blocked {
+			t.Errorf("%s: java blocked by %q, kotlin by %q", o.Fn, o.Blocked, k.Blocked)
+		}
+		if o.Canary != k.Canary || o.Guards != k.Guards {
+			t.Errorf("%s: java canary=%v guards=%q, kotlin canary=%v guards=%q", o.Fn, o.Canary, o.Guards, k.Canary, k.Guards)
+		}
+	}
+	for fn, k := range kt {
+		if k.Canary {
+			continue
+		}
+		found := false
+		for _, o := range javaCorner.Obligations {
+			if o.Fn == fn {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("kotlin states obligation %s and the java twin does not", fn)
+		}
+	}
+}
+
+// The Java corner guards EVERY obligation, not just the decidable ones. That
+// is F025's rule applied at the start: an audit indexed by the checks you
+// wrote cannot find the check you did not write, so the index is the claim.
+// The practical payoff is that a blocked obligation which later becomes
+// decidable -- a JBMC fix, a different bound -- can be claimed the same day it
+// is measured instead of being claimed unaudited.
+func TestJavaGuardsItsBlockedObligationsToo(t *testing.T) {
+	for _, o := range javaCorner.Obligations {
+		if o.Canary {
+			continue
+		}
+		if len(javaCorner.canariesFor(o.Fn)) == 0 {
+			t.Errorf("java obligation %s (blocked: %q) has no negation canary; every claim is indexed, not just the decidable ones", o.Fn, o.Blocked)
+		}
+	}
+}
+
 func TestCornerForAcceptsAMutantEntryName(t *testing.T) {
 	c, err := cornerFor("kotlin@tick-goes-backwards")
 	if err != nil {
@@ -348,7 +441,37 @@ func TestCornerForAcceptsAMutantEntryName(t *testing.T) {
 	if c.Name != "kotlin" {
 		t.Fatalf("corner: got %s", c.Name)
 	}
-	if _, err := cornerFor("java"); err == nil {
-		t.Fatal("expected an error for a corner with no obligation set; a row over an empty denominator is worse than no row")
+	// Same for the Java corner, which this rung drives since impls/java got an
+	// obligation set.
+	c, err = cornerFor("java@timeline-scan-reversed")
+	if err != nil {
+		t.Fatalf("cornerFor(java@...): %v", err)
+	}
+	if c.Name != "java" {
+		t.Fatalf("corner: got %s", c.Name)
+	}
+	if c.Compiler != compilerJavac {
+		t.Fatalf("java corner compiler: got %q, want %q", c.Compiler, compilerJavac)
+	}
+	// A corner with no obligation set still resolves to nothing. A row over an
+	// empty denominator is worse than no row.
+	if _, err := cornerFor("go"); err == nil {
+		t.Fatal("expected an error for a corner with no obligation set")
+	}
+}
+
+// The classpath is built by dropping empty entries, not by joining them. An
+// EMPTY element of a Java classpath means the current directory, so a Java
+// corner (which has no kotlin-stdlib.jar) joined naively would put the
+// process's working directory -- the repository root -- on the checker's
+// classpath.
+func TestClasspathDropsTheEmptyStdlib(t *testing.T) {
+	java := toolchain{Models: "/m/core-models.jar", JavaUtil: "/w/jutil"}
+	if got, want := java.Classpath("/w/classes"), "/w/classes:/m/core-models.jar:/w/jutil"; got != want {
+		t.Errorf("java classpath: got %q, want %q", got, want)
+	}
+	kotlin := toolchain{Stdlib: "/k/kotlin-stdlib.jar", Models: "/m/core-models.jar", JavaUtil: "/w/jutil"}
+	if got, want := kotlin.Classpath("/w/classes"), "/w/classes:/k/kotlin-stdlib.jar:/m/core-models.jar:/w/jutil"; got != want {
+		t.Errorf("kotlin classpath: got %q, want %q", got, want)
 	}
 }
