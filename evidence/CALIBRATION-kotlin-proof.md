@@ -436,6 +436,11 @@ That probe is **not a cell**: its tree is not the tree `calibrate`'s guard
 hashed. It answers what the rung would say, not what the rung said. F049 records
 the shared-compile-unit mechanism and names the repair, which is not made here.
 
+The F031 gate run over all 18 mutants on the decoupled tree — the run that
+reports `compile: 17/18 build clean` — is saved verbatim, with the liveness
+demonstration appended, in
+`evidence/runs/calibration/kotlin-mutate-verify-after-decoupling.log`.
+
 ## Do not read this run's wall column
 
 `kotlin-proof`'s cost figures were taken in one window on a box with nothing else

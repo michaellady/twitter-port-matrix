@@ -1,0 +1,72 @@
+mutate verify: 18 mutant(s)  [anchors + compile]
+               manifest=tools/cmd/mutate/mutants.json registry=impls/registry.json
+========================================================================
+
+kotlin  source impls/kotlin  base sha256:64f91610922e87b9
+       baseline builds clean (11.2s)
+  ok     kotlin/id-first-is-two                 src/twitterport/store/Store.kt:46 src/twitterport/store/Store.kt:47 sha256:58068ab4107f089c  21.0s +obl
+  FAIL   kotlin/id-burned-on-reject             implementation compiles, OBLIGATIONS do not
+         obligation build failed in /tmp/mutate-verify-4023602028/tree: exit status 1
+         | verification/Refinement.kt:104:22: error: no value passed for parameter 'id'.
+         |         s.createUser("a")
+         |                      ^^^^
+         | verification/Refinement.kt:197:22: error: no value passed for parameter 'id'.
+         |         s.createUser("a")
+         |                      ^^^^
+         The proof rung compiles the obligations against the tree under test,
+         so this mutant would reach it as an ERROR cell -- a missing
+         measurement, not a kill and not a survival (F031).
+  ok     kotlin/self-follow-guard-dropped       src/twitterport/service/Service.kt:75 sha256:fb7c7cd5b2e857af  21.4s +obl
+  ok     kotlin/follow-precedence-flipped       src/twitterport/service/Service.kt:65 sha256:bedd2bdac9bea689  21.0s +obl
+  ok     kotlin/timeline-scan-reversed          src/twitterport/store/Store.kt:145 sha256:0e011b545868b787  20.8s +obl
+  ok     kotlin/timeline-tiebreak-by-id-asc     src/twitterport/store/Store.kt:160 sha256:4bea45a143ca2236  20.8s +obl
+  ok     kotlin/follow-toggles                  src/twitterport/store/Store.kt:66  sha256:a5e714d5f04d96ef  22.7s +obl
+  ok     kotlin/unfollow-rejects-missing-edge   src/twitterport/service/Service.kt:100 sha256:5161354cdd7e0b12  21.9s +obl
+  ok     kotlin/orphan-author-accepted          src/twitterport/service/Service.kt:120 sha256:6502d7952e6d8217  21.2s +obl
+  ok     kotlin/created-at-frozen               src/twitterport/store/Store.kt:95  sha256:495db966c7dea95c  20.6s +obl
+  ok     kotlin/tick-advances-by-two            src/twitterport/store/Store.kt:81  sha256:9fad5d3309ce9ab6  21.4s +obl
+  ok     kotlin/tick-goes-backwards             src/twitterport/store/Store.kt:81  sha256:f4b076448218b718  20.8s +obl
+  ok     kotlin/next-cursor-always-emitted      src/twitterport/store/Store.kt:160 sha256:47570befd9c7fa1c  20.6s +obl
+  ok     kotlin/next-cursor-is-first-id         src/twitterport/store/Store.kt:155 sha256:28a7a370e36d9538  20.7s +obl
+  ok     kotlin/cursor-inclusive                src/twitterport/store/Store.kt:147 sha256:27e303446e8aad92  20.6s +obl
+  ok     kotlin/limit-off-by-one                src/twitterport/store/Store.kt:153 sha256:6bdedbead0407a18  21.4s +obl
+  ok     kotlin/unknown-json-fields-accepted    src/twitterport/httpshim/Json.kt:86 sha256:b95e14a509bcf66f  20.9s +obl
+  ok     kotlin/repeated-query-param-accepted   src/twitterport/httpshim/Server.kt:165 sha256:3d5a6dcbe243fe46  20.8s +obl
+
+========================================================================
+anchors: 18/18 match exactly one site
+compile: 17/18 build clean
+
+verify FAILED: 1 mutant(s): kotlin/id-burned-on-reject
+exit status 1
+
+--------------------------------------------------------------------------
+NOTE. `verify FAILED` above is the correct verdict, not an outstanding defect.
+
+The one mutant that does not build is `id-burned-on-reject`, and the two lines
+it names are `Refinement.kt`'s R5 clause 2 obligation and its negation canary.
+That clause is stated at `layer: "store"`, `op: "CreateUser"` in
+spec/refinement/obligations.json, so it has to CALL Store.createUser, and this
+mutant has to change that method's arity. Neither side can give way without
+weakening the obligation. F048.
+
+Before the five decorative call sites were removed from Obligations.kt (o4a,
+o4b, o4c) and Canaries.kt (c4, c5), the same command also named
+Obligations.kt:195 and Obligations.kt:208 on this mutant.
+
+GATE SHOWN LIVE (standing rule 2), by reverting one fix rather than trusting
+the red. Re-planting `s.createUser("a")` in o4a_pageRespectsLimit and running
+`mutate verify -impl kotlin -id id-burned-on-reject`:
+
+  FAIL   kotlin/id-burned-on-reject     implementation compiles, OBLIGATIONS do not
+         | verification/Obligations.kt:195:22: error: no value passed for parameter 'id'.
+         |         s.createUser("a")
+         |                      ^^^^
+         | verification/Refinement.kt:104:22: error: no value passed for parameter 'id'.
+         | verification/Refinement.kt:197:22: error: no value passed for parameter 'id'.
+
+The planted line reappears and the two kept lines stay, so the gate reads the
+obligation file per mutant rather than reporting a fixed answer. The call was
+then removed again, which is the state this log was produced in. That it
+reports `ok` on 17 of 18 is the other half: a gate that refused everything
+would be worth as little as one that refused nothing.
