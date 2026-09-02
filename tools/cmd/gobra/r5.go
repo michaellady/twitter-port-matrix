@@ -65,9 +65,11 @@ func cmdR5(args []string) error {
 	if err := readJSON(*canPath, &canaries); err != nil {
 		return fmt.Errorf("%w (run `gobra canary -out %s` first)", err, *canPath)
 	}
-	byText := map[string]canaryResult{}
+	// Keyed on (file, member, text): clause text alone is not unique, because
+	// the same framing clause is repeated across many members.
+	bySite := map[string]canaryResult{}
 	for _, c := range canaries {
-		byText[c.Clause.File+"\x00"+c.Clause.Text] = c
+		bySite[c.Clause.File+"\x00"+c.Clause.Member+"\x00"+c.Clause.Text] = c
 	}
 
 	type row struct {
@@ -100,7 +102,7 @@ func cmdR5(args []string) error {
 			refuted, vac, undecided, missing := 0, 0, 0, 0
 			var lines []string
 			for _, st := range s.Sites {
-				cr, ok := byText[st.File+"\x00"+st.Text]
+				cr, ok := bySite[st.File+"\x00"+st.Member+"\x00"+st.Text]
 				if !ok {
 					missing++
 					continue

@@ -81,3 +81,48 @@ func TestBlockClauses(t *testing.T) {
 		t.Errorf("span = %d-%d, want 3-4", got[1].StartLine, got[1].EndLine)
 	}
 }
+
+// A checkpoint key built from (file, text) collides: the same framing clause is
+// written verbatim on many members. Resuming a sweep then reuses one member's
+// verdict for another member's clause, which is how a run came to report two
+// timed-out HomeTimeline clauses as refutable.
+func TestKeyDistinguishesMembersWithIdenticalClauseText(t *testing.T) {
+	same := "s.AbsLogLen() == old(s.AbsLogLen())"
+	a := clause{File: "internal/store/memstore.go", Member: "(*MemStore).PutUser", Text: same}
+	b := clause{File: "internal/store/memstore.go", Member: "(*MemStore).HomeTimeline", Text: same}
+	if key(a) == key(b) {
+		t.Fatalf("key collides across members: %q", key(a))
+	}
+	c := clause{File: "internal/store/memstore.go", Member: "(*MemStore).PutUser", Text: same}
+	if key(a) != key(c) {
+		t.Errorf("key is not stable for the same clause: %q vs %q", key(a), key(c))
+	}
+}
+
+// The real contract inventory must contain such a collision, or the test above
+// is guarding against nothing. This reads the shipped sources rather than a
+// fixture so that it keeps meaning something as the contracts change.
+func TestRealClausesContainRepeatedText(t *testing.T) {
+	all, err := allClauses("../../../impls/go")
+	if err != nil {
+		t.Skipf("implementation not readable from here: %v", err)
+	}
+	byFileText := map[string]map[string]bool{}
+	for _, c := range all {
+		k := c.File + "\x00" + c.Text
+		if byFileText[k] == nil {
+			byFileText[k] = map[string]bool{}
+		}
+		byFileText[k][c.Member] = true
+	}
+	worst := 0
+	for _, members := range byFileText {
+		if len(members) > worst {
+			worst = len(members)
+		}
+	}
+	if worst < 2 {
+		t.Fatal("no clause text is shared across members; the collision guard is now vacuous")
+	}
+	t.Logf("most-repeated clause text appears on %d distinct members", worst)
+}

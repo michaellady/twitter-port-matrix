@@ -191,7 +191,15 @@ func matches(c clause, pat string) bool {
 // keeps the question local: a negated postcondition that also broke a caller
 // in another package would report an error there and be scored as refutable
 // for the wrong reason.
-func key(c clause) string { return c.File + ":" + c.Text }
+// key identifies a clause across runs.
+//
+// It must include the member. Framing clauses are repeated verbatim on many
+// methods -- `s.AbsLogLen() == old(s.AbsLogLen())` appears on six members of
+// memstore.go alone -- so a (file, text) key silently collides, and a resumed
+// sweep then reuses one member's verdict for another member's clause. That
+// produced a run reporting 86 refutable / 5 timed out when two of the
+// "refutable" rows were HomeTimeline clauses that had actually timed out.
+func key(c clause) string { return c.File + "\x00" + c.Member + "\x00" + c.Text }
 
 // readCheckpoint reloads a partial sweep. Each line is one finished canary;
 // a truncated final line from an interrupted run is dropped rather than
