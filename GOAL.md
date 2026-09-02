@@ -176,12 +176,12 @@ whole contract.
          in no denominator. Coverage is scored per mutant against the
          verification matrix (F022): a mutant confined to the trusted shim is
          *unreached*, not *survived*.
-   - [ ] **R5, Go/Gobra.** Same shape, but the kill has to be attributed to a
-         *refinement* clause rather than to any failing obligation: join
-         Gobra's `file:line` error sites against
-         `spec/refinement/clause-sites.json`, the way `gobra r5` already does
-         for the audit. A mutant both rungs notice is credited to both, which
-         is the per-judge attribution queue item 2 needs.
+   - [x] **R5, Go/Gobra.** `gobra r5verify` runs the same Gobra invocation and
+         attributes each failing obligation to a clause by line, joining
+         against `spec/refinement/clause-sites.json`. A kill counts for R5
+         only when the failure hits a refinement clause or the member whose
+         contract carries one; a failure elsewhere kills R4 alone. Verified by
+         canary in both directions, so the two rows are not aliases.
    - [ ] R4, Rust/Verus — needs the `cargo-verus` equivalent of
          `gobra verify`'s verdict line and budget first.
    - [ ] R4, Kotlin+Java/JBMC.
@@ -264,7 +264,7 @@ measure that alignment.
 
 | corner | R0 | R1 | R2 | R4 | limited by |
 |---|---|---|---|---|---|
-| Go | 56/56 | clean | pass | Gobra green; 91 functional clauses, reachability audit clean (0 of 33 unreachable), negation sweep in PR #3. **A `calibrate` rung since 2026-09-02**, ceiling 14 of 18 mutants (F022) | Gobra ghost-language limits; 5 HomeTimeline clauses undecidable within budget; the trusted shim is 4 of 18 mutants |
+| Go | 56/56 | clean | pass | Gobra green; 91 functional clauses, reachability audit clean (0 of 33 unreachable), negation sweep in PR #3. **R4 and R5 are both `calibrate` rungs since 2026-09-02**, ceiling 14 of 18 mutants (F022) | Gobra ghost-language limits; 5 HomeTimeline clauses undecidable within budget; the trusted shim is 4 of 18 mutants |
 | Rust | 56/56 | clean | pass | Verus, **1 property** (F016) | `RwLock` has no vstd model |
 | Java | 56/56 | clean | pass | not attempted | JBMC string equality (F014) |
 | Kotlin | 56/56 | clean | pass | JBMC, 7 of 15 | same JBMC defect |
@@ -274,6 +274,61 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 16:55 (worker session `session_01Mdy8cUZTbcq2fXuZ1BRi4X`, fire
+  16:13)** — **Queue item 1, second sub-step: DONE. R5 is a `calibrate` rung on
+  the Go corner.** `gobra r5verify` verifies one tree and attributes every
+  failing obligation to a clause by line, joining against
+  `clause-sites.json`; 47 of 47 recorded sites are located in a clean tree.
+  Gate, `-impls go -rungs R4,R5` over five mutants:
+  ```
+  go/tick-goes-backwards      R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (1 on the clause itself, 0 elsewhere in its member)
+  go/timeline-scan-reversed   R5 FAILED: ... (0 on the clause itself, 1 elsewhere in its member)
+  go/limit-off-by-one         R5 FAILED: ... (0 on the clause itself, 1 elsewhere in its member)
+  go/id-first-is-two          R5 PASSED: Gobra has found 0 error(s); no refinement clause failed
+  go/next-cursor-is-first-id  R5 PASSED: ...  -> unreached (trusted shim)
+  R4 proof        live 5  killed 3  survived 1  unreached 1   kill%reach 75%
+  R5 refinement   live 5  killed 3  survived 1  unreached 1   kill%reach 75%
+  ```
+  **A first attempt was wrong and has been corrected in place.** Attributing
+  only to `ensures` lines left 2 of 5 R5 cells UNDECIDED: what fails on the
+  memstore mutants is a **loop invariant** inside `(*MemStore).HomeTimeline`
+  (`memstore.go:580 Loop invariant might not be established`), and those
+  invariants are the machinery that proves the refinement postconditions —
+  one is commented "R5 (no fabrication)" in the source. Attribution is now by
+  clause *and* by member, which is the standard R4 already applies: a proof
+  rung's kill means the tree can no longer be verified. Only 1 of the 3 kills
+  lands on a clause line; the other 2 are the invariant path, so the
+  clause-only reading would have decided a third of them.
+  Canary (standing rule 2), in both directions, because R4 and R5 agreed on
+  all five mutants and agreement alone cannot distinguish a rung from an
+  alias:
+  ```
+  A. `// @ ensures false` on dom.ValidHandle (no R5 clause on that member)
+       R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [1m29.6s]
+       R5 PASSED: 1 failing obligation(s), none in a member carrying a refinement clause
+  B. `// @ ensures false` on clock.Tick (carries R5 clause 36)
+       R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause
+  ```
+  **F023 written**, the substantive result of this fire: `id-first-is-two`
+  shifts the id origin from 1 to 2, is live at request 0 of every input
+  source, and is killed by R0 and R1 while surviving R2, R4 **and** R5. Every
+  obligation on the generator is relational (`result >= 1`, counter advances
+  by one) and the origin is stated only in English. The ladder is not ordered;
+  `evidence/FINDINGS.md` gains Pattern 6 for it.
+  `go build`, `go vet`, `go test ./tools/...` clean; 8 new tests including one
+  that re-derives the R5 file list from `clause-sites.json` so it cannot go
+  stale.
+  **Next fire: the Go corner's full R4+R5 sweep**, all 18 mutants x 2 rungs,
+  `-out evidence/runs/calibration/go-proof -resume` (it journals per cell, so
+  a container restart resumes; budget roughly 50 minutes at ~85 s per cell).
+  This is queue item 2 narrowed to the one corner where both proof rungs
+  exist, and it answers the question this fire raised: **R4 and R5 agreed on
+  all five mutants, so it is not yet known whether the refinement row
+  discriminates at all.** Five is a gate, not a rate. Deliberately taken
+  before queue item 1's remaining sub-steps (Rust/Verus, then Kotlin/JBMC):
+  building a second verifier's plumbing while the first corner has no rate is
+  the wrong order. Do not skip the `-resume` flag, and do not add the Verus
+  rung in the same fire.
 - **2026-09-02 14:30 (worker session `session_01Mdy8cUZTbcq2fXuZ1BRi4X`, fires
   12:27 and 14:18)** — **Queue item 1, first sub-step: DONE. R4 is a
   `calibrate` rung on the Go corner.** `gobra verify` gained a verdict

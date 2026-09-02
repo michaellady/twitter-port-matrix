@@ -15,6 +15,8 @@
 //	clauses  list the specification clauses the canary sweep will target
 //	canary   negate each clause in turn and report refutable / VACUOUS
 //	r5       per-clause status for the R5 refinement obligation
+//	r5verify R5 as a calibrate rung: verify one tree and report whether a
+//	         REFINEMENT clause is what failed, as opposed to any obligation
 //	reach    per-member `ensures false` probe: is the exit reachable at all?
 //	audit    check each REFUTABLE verdict is backed by an error in its own member
 package main
@@ -40,6 +42,8 @@ func main() {
 		err = cmdCanary(os.Args[2:])
 	case "r5":
 		err = cmdR5(os.Args[2:])
+	case "r5verify":
+		err = cmdR5Verify(os.Args[2:])
 	case "reach":
 		err = cmdReach(os.Args[2:])
 	case "audit":
@@ -48,7 +52,7 @@ func main() {
 		usage()
 		os.Exit(2)
 	}
-	if errors.Is(err, errR4Failed) {
+	if errors.Is(err, errR4Failed) || errors.Is(err, errR5Undecided) {
 		// The verdict line is already on stdout; the exit code is its
 		// required counterpart, and nothing else needs saying.
 		os.Exit(1)
@@ -73,6 +77,11 @@ func usage() {
             record whether Gobra can refute it
   r5        per-clause status for the 42 R5 clauses, joined from the canary
             results rather than from what obligations.json records
+  r5verify  R5 as a calibrate rung. Verifies one tree (-registry + -impl
+            go@<mutant-id> points it at a mutant) and attributes each failing
+            obligation to a clause by line. Ends with "R5 FAILED" only when a
+            refinement clause is among them, "R5 PASSED" when none is, and
+            "R5 UNDECIDED" when the answer cannot be read off the run
   reach     probe each member with "ensures false". If it verifies, nothing
             reaches that exit and every obligation on it is vacuous -- the
             F013 shape. Cheaper and more complete than the per-clause sweep,

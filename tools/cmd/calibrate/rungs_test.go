@@ -1,6 +1,9 @@
 package main
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -138,4 +141,109 @@ func ids(rs []rung) []string {
 		out = append(out, r.ID)
 	}
 	return out
+}
+
+func r5() rung {
+	for _, r := range allRungs {
+		if r.ID == "R5" {
+			return r
+		}
+	}
+	panic("no R5 rung")
+}
+
+// R5's reach is narrower than R4's, and the list in rungs.go is a copy of
+// something the spec owns. Re-derive it here so a site added to a new file
+// fails this test instead of silently making that file's mutants look
+// unreached.
+func TestR5FilesMatchSites(t *testing.T) {
+	var sites struct {
+		Clauses map[string]struct {
+			Sites []struct {
+				File string `json:"file"`
+			} `json:"sites"`
+		} `json:"clauses"`
+	}
+	b, err := os.ReadFile(filepath.Join("..", "..", "..", "spec", "refinement", "clause-sites.json"))
+	if err != nil {
+		t.Skipf("clause-sites.json not readable from here: %v", err)
+	}
+	if err := json.Unmarshal(b, &sites); err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]bool{}
+	for _, cl := range sites.Clauses {
+		for _, s := range cl.Sites {
+			want[s.File] = true
+		}
+	}
+	got := map[string]bool{}
+	for _, f := range r5Files {
+		got[f] = true
+	}
+	for f := range want {
+		if !got[f] {
+			t.Errorf("%s carries an R5 site but is missing from r5Files; mutants there would be scored unreached", f)
+		}
+	}
+	for f := range got {
+		if !want[f] {
+			t.Errorf("r5Files lists %s, which carries no R5 site", f)
+		}
+	}
+}
+
+// R4 and R5 must not be the same row by construction. A mutant inside the
+// verified core but in a file no refinement clause sits on is fair game for
+// R4 and unreached by R5.
+func TestR5ReachIsNarrowerThanR4(t *testing.T) {
+	dom := mutants.Mutant{Edits: []mutants.Edit{{File: "internal/dom/dom.go"}}}
+	if !gobraReads(dom) {
+		t.Error("internal/dom is inside the verified core; R4 reads it")
+	}
+	if r5Reads(dom) {
+		t.Error("internal/dom carries no R5 clause site; R5 does not reach it")
+	}
+	store := mutants.Mutant{Edits: []mutants.Edit{{File: "internal/store/memstore.go"}}}
+	if !gobraReads(store) || !r5Reads(store) {
+		t.Error("memstore carries both")
+	}
+}
+
+func TestR5Verdict(t *testing.T) {
+	r := r5()
+	cases := []struct {
+		name   string
+		out    string
+		exit   int
+		killed bool
+		err    string
+	}{
+		{"clean", "R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [1m35.5s]\n", 0, false, ""},
+		{"failed elsewhere is not an R5 kill",
+			"R5 PASSED: 1 failing obligation(s), none of them a refinement clause   [1m2s]\n", 0, false, ""},
+		{"refinement clause failed",
+			"R5 FAILED: 1 of 1 failing obligation(s) are refinement clauses   [1m2s]\n", 1, true, ""},
+		{"undecided is no verdict",
+			"R5 UNDECIDED: no refinement clause failed, but 1 failing clause(s) sit on member(s)\n", 1, false, "no R5 verdict"},
+		{"pass but exit 1",
+			"R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [1m2s]\n", 1, false, "contradicts itself"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			killed, err := r.verdict(&toolRun{Stdout: c.out, ExitCode: c.exit})
+			if c.err == "" {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+				if killed != c.killed {
+					t.Fatalf("killed=%v, want %v", killed, c.killed)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), c.err) {
+				t.Fatalf("want error containing %q, got %v", c.err, err)
+			}
+		})
+	}
 }

@@ -149,6 +149,41 @@ var allRungs = []rung{
 		// known count, so the wall column is the rung's whole cost.
 		Launches: func(Config, string) (int, bool) { return 0, true },
 	},
+	{
+		// R5 is the same Gobra run asking a narrower question: is a
+		// REFINEMENT clause what broke? `gobra r5verify` attributes each
+		// failing obligation to a clause by line -- Gobra reports a failing
+		// postcondition at the postcondition's own line -- and joins it
+		// against spec/refinement/clause-sites.json.
+		//
+		// R5 is deliberately NOT credited with every R4 kill. A mutant that
+		// breaks some functional postcondition is killed by the proof; only
+		// one that breaks a clause carrying an S_obs refinement obligation is
+		// killed by the refinement layer. Crediting R5 with R4's kills would
+		// make the two rows identical by construction, which is the opposite
+		// of the per-judge attribution this table is for: a mutant both rungs
+		// notice gets credited to both, and a mutant only one notices
+		// separates them.
+		//
+		// The tool prints R5 UNDECIDED, and no verdict, in the two cases
+		// where the answer cannot be read off the run: an error outside every
+		// clause span, or a non-R5 clause failing on a member that also
+		// carries R5 sites (Gobra reports one failing postcondition per
+		// member, so the rest of that member's contract may not have been
+		// reached). calibrate records those as error cells.
+		ID: "R5", Label: "refinement", Tool: "gobra", Inputs: "contract",
+		Impls:  []string{"go"},
+		Covers: r5Reads,
+		Args: func(cfg Config, implName, regPath string) []string {
+			b := cfg.rungTimeout() - time.Minute
+			if b < time.Minute {
+				b = time.Minute
+			}
+			return []string{"r5verify", "-impl=" + implName, "-registry=" + regPath, "-budget=" + b.String()}
+		},
+		Pass: "R5 PASSED", Fail: "R5 FAILED",
+		Launches: func(Config, string) (int, bool) { return 0, true },
+	},
 }
 
 // gobraVerified is Gobra's verification matrix, exactly as TCB.md records it
@@ -165,8 +200,29 @@ var gobraVerified = []string{
 // gobraReads reports whether any edit of the mutant lands in a package Gobra
 // verifies. One covered edit is enough: the proof can notice that one.
 func gobraReads(m mutants.Mutant) bool {
+	return editsAny(m, gobraVerified)
+}
+
+// r5Files are the files carrying at least one R5 clause site. R5's reach is
+// narrower than R4's -- internal/dom carries obligations but no refinement
+// clause -- so a mutant confined to a file in the verified core that no
+// refinement clause sits on is unreached by R5 while being fair game for R4.
+//
+// This list is derived from spec/refinement/clause-sites.json and would go
+// stale silently if a site were added to a new file, so TestR5FilesMatchSites
+// re-derives it from that file and fails when the two disagree.
+var r5Files = []string{
+	"internal/clock/clock.go",
+	"internal/ids/ids.go",
+	"internal/service/service.go",
+	"internal/store/memstore.go",
+}
+
+func r5Reads(m mutants.Mutant) bool { return editsAny(m, r5Files) }
+
+func editsAny(m mutants.Mutant, prefixes []string) bool {
 	for _, e := range m.Edits {
-		for _, p := range gobraVerified {
+		for _, p := range prefixes {
 			if strings.HasPrefix(e.File, p) {
 				return true
 			}
