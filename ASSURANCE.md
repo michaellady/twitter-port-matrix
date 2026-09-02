@@ -78,7 +78,7 @@ argued away.
 | Go | yes | Gobra, **83 of 91 clauses refutable, 0 vacuous, 8 undecided** | **26 of 42 clauses** | no | **R5-core, partial** |
 | Rust | yes | Verus, **37 of 37 shipped clauses refutable, 0 vacuous** | **statable, partial: `abs` has a body; 17 clauses on 3 axes; no rung** | no | **R4 on 4 of 5 crates; R5-core has no rung** |
 | Java | yes | not attempted | unknown | no | **R3** |
-| Kotlin | yes | JBMC, bounded | no | no | **R3 + bounded (measured)** |
+| Kotlin | yes | JBMC, bounded | **5 of 42 clauses, bounded** | no | **R5-core, bounded and partial (measured)** |
 
 ### Why R5-wire is not reachable, in either corner
 
@@ -302,6 +302,25 @@ obligation costs what the obligation costs, negating a deductive one does not
 JVM bytecode and running JBMC for bounded model checking, plus kotest property
 tests. So any port with Kotlin at either end cannot exceed bounded and
 differential evidence, however strong the other end is.
+
+**That is a limit on the STRENGTH of this corner's R5, not on its existence.**
+The R5-core column above said `no` for this corner until it was measured rather
+than predicted, and the prediction was wrong for a reason worth naming: the
+obstacle was assumed to be JBMC's output — whether a failing goal can be traced
+back to a named refinement obligation — and it is not. JBMC reports one goal per
+`assert`, carrying the entry point, the assertion index, the file and the line,
+which is a finer join than the one the Go rung is built on. What was actually
+missing was an abstraction function, and three of its four axes turn out to be
+decidable here: log, users and clock. The follows axis is not
+(`HashSet.contains` reaches the F014 defect and JBMC answers FAILURE for the
+claim *and* for its negation), so clauses 7 and 9 are in neither the numerator
+nor the denominator. Five clauses — 1, 2, 11, 13 and 36 — are discharged and
+all five are refutable in the tree they are discharged over.
+
+Read the `5 of 42` against Go's `26 of 42` knowing it is a weaker 5: every
+clause is a **ground instance inside an unwinding bound**, where Gobra's are
+universally quantified. `evidence/findings/F046` states what the cell licenses
+and `F045` states what it cost this corner's shipped class.
 
 That asymmetry is a result the matrix is designed to surface, not a defect to
 engineer around.

@@ -89,6 +89,12 @@ type corner struct {
 	Pkg          string // the package the obligation classes live in
 	Obligations  []obligation
 	CoveredPaths []string // source prefixes the obligation entry points reach
+
+	// R5File is the obligation source file, relative to the implementation
+	// directory, that `r5verify` reads clause spans out of. It is empty for
+	// the R4 set, which needs no per-assert line join: R4's unit of answer is
+	// the whole entry point, R5's is the individual clause.
+	R5File string
 }
 
 // kotlinCorner mirrors impls/kotlin/verification/Obligations.kt and

@@ -1,0 +1,26 @@
+jbmc: refinement rung (R5) over the kotlin corner
+        tree    /tmp/claude-0/-home-user-twitter-port-matrix/2e91af5a-1222-5dd9-a24c-65ecbe9a372a/scratchpad/canary/u1-offbyone
+        jbmc    6.11.0 (cbmc-6.11.0)
+        kotlinc info: kotlinc-jvm 2.4.10 (JRE 21.0.10+7-Ubuntu-124.04)
+        bounds  --unwind 30 --max-nondet-string-length 3, budget 15m0s (6m0s per obligation)
+        compile src + verification in 11.7s
+R5 sites: 7 of 7 clause(s) in clause-sites-kotlin.json carry a Kotlin assertion; 17 site(s) located in this tree
+====================================================================================================
+clause obligation                        verdict    own assertion goals      wall      JBMC's own line
+----------------------------------------------------------------------------------------------------
+c01_absInitIsTheEmptyState         VERIFIED   4 ok, 0 failed           3.9s      VERIFICATION SUCCESSFUL
+c02_createUserAddsExactlyThatHandle VERIFIED   2 ok, 0 failed           4.8s      VERIFICATION SUCCESSFUL
+c11_appendAddsExactlyOneAtTheEnd   VERIFIED   4 ok, 0 failed           4.7s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+c13_logPrefixNeverRewritten        REFUTED    2 ok, 1 failed           8.2s      VERIFICATION FAILED
+c36_tickAdvancesByExactlyOne       VERIFIED   1 ok, 0 failed           4.7s      VERIFICATION SUCCESSFUL
+----------------------------------------------------------------------------------------------------
+negation canaries not run: 1 clause obligation(s) were refuted, which decides the tree on its own
+====================================================================================================
+  Refinement.kt:123 c13_logPrefixNeverRewritten        R5 clause 13 FAILED: s.absLogIdAt(0) == t0.id
+  twitterport.store.Store null-pointer-exception.3     FAILURE on no clause of any R5 entry point: not an own assertion goal
+decidable 5 clause obligation(s) covering R5 clause(s) 1, 2, 11, 13, 36
+blocked   2   (recorded JBMC 6.11.0 limits; in neither the numerator nor the denominator)
+    the follows axis of abs is undecidable: HashSet.contains(Edge) reduces to Edge.equals -> String.equals (F014), and JBMC answers FAILURE for the claim AND for its negation
+        c07_addFollowAddsExactlyThatEdge, c09_removeFollowRemovesExactlyThatEdge
+
+R5 FAILED: 1 of 2 failing obligation(s) hit a refinement clause (1 on the clause itself, 0 elsewhere in its member); 2 clause obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [43.4s]

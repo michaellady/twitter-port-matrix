@@ -39,6 +39,10 @@
 //	         decidable obligations, print JBMC's own goal counts, and end with
 //	         the R4 PASSED / R4 FAILED line calibrate reads (or R4 UNDECIDED,
 //	         and no verdict, when the budget ran out or a claim went vacuous)
+//	r5verify the same corner read a second way: run JBMC over the REFINEMENT
+//	         clause obligations in verification/Refinement.kt, attribute each
+//	         failing goal to a numbered clause of spec/refinement by line, and
+//	         end with the R5 PASSED / R5 FAILED line calibrate reads
 //	list     print the obligation table for a corner and what each is blocked by
 package main
 
@@ -57,13 +61,15 @@ func main() {
 	switch os.Args[1] {
 	case "verify":
 		err = cmdVerify(os.Args[2:])
+	case "r5verify":
+		err = cmdR5Verify(os.Args[2:])
 	case "list":
 		err = cmdList(os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)
 	}
-	if errors.Is(err, errR4Failed) {
+	if errors.Is(err, errR4Failed) || errors.Is(err, errR5Failed) {
 		// The verdict line is already on stdout; the exit code is its
 		// required counterpart, and calibrate insists the two agree.
 		os.Exit(1)
@@ -84,6 +90,13 @@ func usage() {
           obligation turned out vacuous, or when nothing decidable was left.
           With -registry, -impl is an entry name such as kotlin@<mutant-id>,
           which is how calibrate points it at a mutant tree.
+  r5verify  the same corner asked a NARROWER question: did a clause carrying an
+          S_obs refinement obligation stop holding? Runs JBMC over
+          verification/Refinement.kt and joins each failing goal against
+          spec/refinement/clause-sites-kotlin.json by line. The last line is
+          "R5 PASSED" or "R5 FAILED" (exit 1), or "R5 UNDECIDED" -- and no
+          verdict -- when a failing goal cannot be placed on any clause, when a
+          claim turned out vacuous, or when the -budget ran out.
   list    print the obligation table: which obligations this rung decides,
           which are blocked by a recorded JBMC limit, and which canary guards
           each claim.

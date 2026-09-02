@@ -192,15 +192,37 @@ var allRungs = []rung{
 		// notice gets credited to both, and a mutant only one notices
 		// separates them.
 		//
-		// The tool prints R5 UNDECIDED, and no verdict, in the two cases
-		// where the answer cannot be read off the run: an error outside every
-		// clause span, or a non-R5 clause failing on a member that also
-		// carries R5 sites (Gobra reports one failing postcondition per
-		// member, so the rest of that member's contract may not have been
-		// reached). calibrate records those as error cells.
+		// The tool prints R5 UNDECIDED, and no verdict, in exactly ONE case:
+		// an error it cannot place in any member of any contract file, so it
+		// is not known whether a refinement obligation is among the failures.
+		// calibrate records that as an error cell.
+		//
+		// This paragraph previously named a second undecided case -- "a
+		// non-R5 clause failing on a member that also carries R5 sites" --
+		// and stated the first over clause spans rather than member spans.
+		// Neither has been the tool's behaviour since its first run: both are
+		// attributed to the member and counted as a KILL, which r5rung.go's
+		// own header explains at length and TestAttribute pins. The comment
+		// was describing a version that no longer existed, in the file that
+		// tells calibrate what the rung means. Corrected here rather than
+		// quietly rewritten, because the failure mode -- prose and code
+		// stating different facts with nothing comparing them -- is the
+		// finding: evidence/findings/F044, and F020 before it.
+		//
+		// On the Kotlin corner the same rung is JBMC over the refinement
+		// clause obligations in verification/Refinement.kt. It is NOT the
+		// same instrument: it is bounded, its clauses are ground instances
+		// rather than universally quantified ones, and two of its seven
+		// clauses are undecidable by the F014 String defect and so are in
+		// neither the numerator nor the denominator. It answers the same
+		// question in the same words, and `jbmc r5verify` quotes its own
+		// counts in the verdict sentence. See rung_r5_jbmc.go.
 		ID: "R5", Label: "refinement", Tool: "gobra", Inputs: "contract",
-		Impls:  []string{"go"},
+		Impls:  []string{"go", "kotlin"},
 		Covers: r5Reads,
+		Drivers: map[string]driver{
+			"kotlin": jbmcKotlinR5,
+		},
 		Args: func(cfg Config, implName, regPath string) []string {
 			b := cfg.rungTimeout() - time.Minute
 			if b < time.Minute {

@@ -339,6 +339,66 @@ discharged but unaudited by a different route than the five above. Its canary
 | `Tick` | `now' == now + 1` | **D** at `(*Logical).Tick`; not forwarded through the `nowLogical` / `tickLogical` interface shims, which stay `// @ trusted` |
 | all | id counters | — §6 |
 
+### Kotlin — `impls/kotlin` (JBMC 6.11.0, bounded)
+
+Added 2026-09-02. This corner was recorded as reaching no R5 clause at all, and
+that was a prediction rather than a measurement. The prediction was wrong for a
+reason worth naming: the assumed obstacle was JBMC's *output* — whether a
+failing goal can be traced back to a named refinement obligation — and it is
+not one. JBMC emits one goal per `assert`, carrying the entry point, the
+assertion index, the file and the line, so the join is finer than the Gobra one
+above. What was actually missing was an **abstraction function**.
+
+`abs` here is `Store`'s R5 block, one projection per axis, and it is concrete
+for the same reason Go's is: an uninterpreted `abs` would make every clause an
+axiom. Three of the four axes are decidable and one is not:
+
+| axis | projection | JBMC |
+|---|---|---|
+| log | `absLogLen`, `absLogIdAt`, `absLogCreatedAtAt`, `absLogAuthorAt` | decidable |
+| users | `absUserCount`, `absHasUser` | decidable — but only over *interned literal* handles, see below |
+| clock | `clock()` | decidable |
+| follows | `absFollows` | **no.** `HashSet.contains(Edge)` → `Edge.equals` → `String.equals` → B7' below |
+
+**B7' — JBMC answers FAILURE for a follows-axis claim AND for its negation.**
+That is not vacuity: vacuity's signature is a claim and its negation both
+*verifying*. It is nondeterminism, because the broken `String.equals` intrinsic
+(F014) leaves `contains` returning an unconstrained boolean. Either answer would
+be an artefact of the defect, so clauses 7 and 9 are in neither the numerator
+nor the denominator (F022's accounting).
+
+| Operation | Clause | Status |
+|---|---|---|
+| `init` | 1 — `abs(init) == init_S` on log, users, follows and clock | **D** |
+| `createUser` | 2 — fresh handle ⇒ `AbsUsers' = AbsUsers ∪ {h}` | **D** |
+| `addFollow` | 7 — both ends known ⇒ `AbsFollows' = AbsFollows ∪ {e}` | — B7' |
+| `removeFollow` | 9 — `AbsFollows' = AbsFollows \ {e}` | — B7' |
+| `appendTweet` | 11 — accepted append ⇒ length +1, `t` last | **D** |
+| `appendTweet` | 13 — the existing log prefix is never rewritten | **D** |
+| `tick` | 36 — `now' == now + 1` | **D** |
+
+`D` here means the same two things it means above — JBMC reported every own
+assertion goal SUCCESS **and** the clause's negation canary was refuted in the
+same tree — and one thing less. **Every clause is a ground instance inside an
+unwinding bound.** Gobra's clause 2 holds for every handle; `c02` holds for the
+handle `"a"`. The users axis is decidable *because* of that: `containsKey`
+reaches `String.equals` only after `(k = e.key) == key` fails, and literals are
+interned, so it never fails. Over a nondeterministic handle this axis would be
+blocked like the follows axis.
+
+Run: **5 VERIFIED, 2 BLOCKED, 0 FAILED, 0 VACUOUS**
+(`evidence/runs/kotlin-r5-gate/00-clean.log`, and the gate beside it).
+
+`obligations.json` is deliberately **not** extended with these rows.
+`gobra r5` iterates that array by index and joins it against
+`clause-sites.json`, so appending seven Kotlin rows would change the Go corner's
+own printed totals from `26 VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED` to something
+with seven more UNATTEMPTED — a number about the Kotlin corner appearing inside
+a count of the Go corner. The Kotlin sites live in
+`spec/refinement/clause-sites-kotlin.json` instead, **keyed on the same clause
+numbers**, so "R5 clause 11" is one sentence with a status per corner rather
+than two sentences that happen to share an index.
+
 ### Rust — `impls/rust` (Verus 0.2026.04.24.f8e1704)
 
 | Clause | Status |
@@ -371,6 +431,12 @@ that it is not written down until something does. What is supported:
   for the timeline.
 - On the Rust corner: nothing at the refinement rung, and the R4 result is over
   hand-written twins rather than over the shipped code.
+- On the Kotlin corner, on the same decoded-operation alphabet, **at ground
+  instances inside an unwinding bound**: a real abstraction function with
+  concrete bodies on three of four axes, and five clauses discharged and shown
+  refutable. It is the weakest of the three kinds of evidence in this file and
+  it is not nothing, which is the distinction the R5 column previously could
+  not draw.
 
 A port's claim is capped by the weaker of its two ends. With Rust at "no
 abstraction function is definable", **every port with Rust at either end is

@@ -1,0 +1,33 @@
+jbmc: refinement rung (R5) over the kotlin corner
+        tree    /tmp/claude-0/-home-user-twitter-port-matrix/2e91af5a-1222-5dd9-a24c-65ecbe9a372a/scratchpad/canary/u2-vacuous
+        jbmc    6.11.0 (cbmc-6.11.0)
+        kotlinc info: kotlinc-jvm 2.4.10 (JRE 21.0.10+7-Ubuntu-124.04)
+        bounds  --unwind 30 --max-nondet-string-length 3, budget 15m0s (6m0s per obligation)
+        compile src + verification in 11s
+R5 sites: 7 of 7 clause(s) in clause-sites-kotlin.json carry a Kotlin assertion; 17 site(s) located in this tree
+====================================================================================================
+clause obligation                        verdict    own assertion goals      wall      JBMC's own line
+----------------------------------------------------------------------------------------------------
+c01_absInitIsTheEmptyState         VERIFIED   4 ok, 0 failed           3.7s      VERIFICATION SUCCESSFUL
+c02_createUserAddsExactlyThatHandle VERIFIED   2 ok, 0 failed           4.9s      VERIFICATION SUCCESSFUL
+c11_appendAddsExactlyOneAtTheEnd   VERIFIED   4 ok, 0 failed           4.2s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+c13_logPrefixNeverRewritten        VERIFIED   3 ok, 0 failed           4.4s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+c36_tickAdvancesByExactlyOne       VERIFIED   1 ok, 0 failed           4.2s      VERIFICATION SUCCESSFUL
+----------------------------------------------------------------------------------------------------
+negation canaries (F013): each MUST be refuted, or the clause it names is vacuous
+k01_absInitIsNotEmpty              refuted-ok 0 ok, 1 failed           4.3s      VERIFICATION FAILED
+k02_createUserDoesNotAddThatHandle refuted-ok 0 ok, 1 failed           5.4s      VERIFICATION FAILED
+k11_appendDoesNotAddOneAtTheEnd    VERIFIED   1 ok, 0 failed           4.6s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+k13_logPrefixIsRewritten           VERIFIED   1 ok, 0 failed           4.2s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+k36_tickDoesNotAdvanceByOne        refuted-ok 0 ok, 1 failed           4.9s      VERIFICATION FAILED
+====================================================================================================
+  twitterport.store.Store bad-dynamic-cast.2           FAILURE on no clause of any R5 entry point: not an own assertion goal
+  twitterport.store.Store bad-dynamic-cast.2           FAILURE on no clause of any R5 entry point: not an own assertion goal
+decidable 5 clause obligation(s) covering R5 clause(s) 1, 2, 11, 13, 36
+blocked   2   (recorded JBMC 6.11.0 limits; in neither the numerator nor the denominator)
+    the follows axis of abs is undecidable: HashSet.contains(Edge) reduces to Edge.equals -> String.equals (F014), and JBMC answers FAILURE for the claim AND for its negation
+        c07_addFollowAddsExactlyThatEdge, c09_removeFollowRemovesExactlyThatEdge
+  ! 2 failing goal(s) are not an own assertion of any R5 entry point, so it is not known whether a refinement obligation is among them
+
+R5 UNDECIDED: 2 failing goal(s) are not an own assertion of any R5 entry point, so it is not known whether a refinement obligation is among them; nothing was decided about this tree   [1m6.1s]
+jbmc: R5 UNDECIDED: 2 failing goal(s) are not an own assertion of any R5 entry point, so it is not known whether a refinement obligation is among them
