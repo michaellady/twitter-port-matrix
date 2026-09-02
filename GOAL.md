@@ -376,6 +376,76 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 22:48 (fan-out task, branch `claude/task-kotlin-obligation-coupling`)**
+  — **Five of the Kotlin corner's seven `Store.createUser` couplings are gone,
+  the cell they were blamed for is still an ERROR, and the reason is now known
+  exactly rather than suspected.** F031 predicted the repair would restore the
+  cell. It does not, and that is the finding.
+
+  Each of the seven sites was decided on what its property needs. Five needed
+  nothing — `timelinePage` never reads `userByHandle`, so registering `"a"`
+  changed no answer — and were deleted (`o4a`, `o4b`, `o4c`, `c4`, `c5`). Two
+  are `Refinement.kt`'s `c02`/`k02`, which carry **R5 clause 2**, recorded in
+  `spec/refinement/obligations.json` at `layer: "store"`, `op: "CreateUser"`,
+  site `(*MemStore).PutUser`. Routing those through the service would turn the
+  antecedent *fresh* into *valid and fresh* (the store accepts `"!"`, the
+  service rejects it), break the clause-site keying that makes a `go <- kotlin`
+  cell mean anything, and rewrite an obligation to accommodate a held-out
+  defect. They stay, and say why in place.
+
+  Gate (F031's own instrument), all 18:
+  ```
+  anchors: 18/18 match exactly one site
+  compile: 17/18 build clean
+
+  verify FAILED: 1 mutant(s): kotlin/id-burned-on-reject
+           | verification/Refinement.kt:104:22: error: no value passed for parameter 'id'.
+           | verification/Refinement.kt:197:22: error: no value passed for parameter 'id'.
+  ```
+  Before the removals the same command also named `Obligations.kt:195` and
+  `:208`. Shown live rather than trusted: re-planting one deleted call in `o4a`
+  made `verification/Obligations.kt:195` reappear, and 17 of 18 still build
+  clean, so it is a gate and not a blanket refusal. **`mutate verify -impl
+  kotlin` does not pass over all 18 and cannot be made to without weakening
+  clause 2. That is the honest outcome, not a shortfall.**
+
+  Sweep re-run because the edits change the compiled tree,
+  `-out evidence/runs/calibration/kotlin-proof-recovered`: **all 18 cells
+  unchanged** against `kotlin-proof/` — 0 killed / 14 survived / 2 unreached /
+  2 error, `0/14 = 0%`, every verdict line character for character, and
+  `tick-goes-backwards`'s F032 vacuity ERROR byte for byte. That is what step 2
+  required: the couplings had to go without changing what the rung measures.
+
+  **F048** — a contract *attached* to a method (Gobra's `// @ ensures` on
+  `PutUser`) survives that method's signature change because the edit that
+  changes the signature carries it; a contract that must *call* the method does
+  not. F045's missing ghost mode, billed a second time and in cells.
+  **F049** — the R4 cell is held by an obligation R4 never reads: R4 and R5
+  declare the same `SrcDirs`, so clause 2 is in R4's build. Measured, not
+  argued — delete `Refinement.kt` from the mutant tree and R4 returns
+  `R4 PASSED`, a **survival**, so reclaiming the cell would read `0/15 = 0%`:
+  the same zero over a bigger denominator (F024's shape). The obligation that
+  would have killed it, `o5d_rejectionBurnsNoId`, is one of the eight JBMC
+  blocks. Repair named — give each rung the source set it reads — and **not
+  made**: it changes what the F031 gate means for every JVM corner, and the
+  Kotlin R5 sweep that would show whether narrowing R5's build moves anything
+  has never been run.
+  **F050** — two container restarts interrupted the sweep; `-resume` produced
+  one `results.json` whose wall column was measured on three machines and
+  separates by machine (89.4–96.1 s vs 107.4–117.7 s, no overlap, identical
+  verdicts). The tempting reading — the removals made the rung faster — is
+  wrong: the three obligations edited are BLOCKED and never run. Do not quote
+  that run's seconds; `kotlin-proof`'s remain the citable ones.
+
+  `go build`, `go vet`, `go test ./tools/...` all pass.
+  **Next fire: the Kotlin R5 sweep**, `-impls kotlin -rungs R5 -out
+  evidence/runs/calibration/kotlin-refinement -resume`. It is the run the two
+  `pending` R5 cells wait on, and it is now also the run that decides F049: R5
+  will report its own ERROR on `id-burned-on-reject` for a reason that is
+  genuinely R5's, and the pair of columns is what shows the R4 loss was
+  borrowed. Do **not** narrow the rung builds before that sweep exists — there
+  would be no before-picture to compare against.
+
 - **2026-09-02 20:51 (fan-out task, branch `claude/task-kotlin-r4-sweep`)** —
   **The Kotlin corner's 18-mutant R4 sweep is done, the matrix has no `pending`
   cell left, and two proof rungs disagree for the first time.** F011 guard

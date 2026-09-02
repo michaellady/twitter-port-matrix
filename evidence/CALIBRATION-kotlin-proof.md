@@ -196,6 +196,12 @@ The mutant splits id allocation out of `Store.createUser`, changing its arity.
 `mutate verify` cleared it because the registry build compiles `src`; the rung
 compiles `src` **and** `verification`. Written up as **F031**.
 
+> **Superseded in part.** Five of those call sites were decoration and are gone
+> (F048); the cell is still an ERROR, and the error now names only the two sites
+> that are the property itself. See *"Re-measured after the obligation
+> decoupling"* at the end of this file for the current text and the 18-cell
+> comparison.
+
 **`kotlin/tick-goes-backwards` — the vacuity audit refused to read the tree.**
 
 ```
@@ -346,3 +352,102 @@ obligations, **R4 buys nothing that R0 does not already buy** — and that the
 reason is a tool defect (F014) rather than anything about Kotlin or about the
 port. `0/14` is the number; `8 of 15 obligations undecidable by
 `String.equals`' being unsound` is what the number means.
+
+---
+
+# Re-measured after the obligation decoupling — 18 of 18, nothing moved
+
+The five decorative `Store.createUser` calls F035 identified were removed from
+`Obligations.kt` (`o4a`, `o4b`, `o4c`) and `Canaries.kt` (`c4`, `c5`), and two
+were kept in `Refinement.kt` because they *are* R5 clause 2 (F048). That edits
+the tree the rung compiles, so the whole sweep was re-run rather than reasoned
+about:
+
+```
+go run ./tools/cmd/calibrate -impls kotlin -rungs R4 \
+    -out evidence/runs/calibration/kotlin-proof-recovered -resume
+```
+
+**Every one of the 18 cells is unchanged** — same outcome, and for the sixteen
+that produced one, the same verdict line character for character once the
+trailing wall-time bracket is removed:
+
+| | before (`kotlin-proof`) | after (`kotlin-proof-recovered`) |
+|---|---|---|
+| killed | 0 | 0 |
+| survived | 14 | 14 |
+| unreached | 2 | 2 |
+| error | 2 | 2 |
+| killed/reached | `0/14 = 0%` | `0/14 = 0%` |
+
+That is the result the edits had to produce. The obligations were decoupled from
+a signature; they were not allowed to change what the rung measures, and a moved
+cell would have meant they had. `tick-goes-backwards`, the F032 vacuity ERROR,
+reproduces byte for byte including its `VACUOUS 1` line.
+
+## What did change: the error text on `id-burned-on-reject`
+
+Before — four lines the compiler chose to print, across three files:
+
+```
+    | .../verification/Canaries.kt:73:22: error: no value passed for parameter 'id'.
+    | .../verification/Obligations.kt:179:22: error: no value passed for parameter 'id'.
+    | .../verification/Obligations.kt:195:22: error: no value passed for parameter 'id'.
+    | .../verification/Obligations.kt:208:22: error: no value passed for parameter 'id'.
+```
+
+After — the two sites that carry R5 clause 2, and nothing else:
+
+```
+    | jbmc: kotlinc failed: exit status 1
+    | .../verification/Refinement.kt:104:22: error: no value passed for parameter 'id'.
+    |         s.createUser("a")
+    |                      ^^^^
+    | .../verification/Refinement.kt:197:22: error: no value passed for parameter 'id'.
+```
+
+The rung's own output now agrees with the F031 gate, which reports
+`compile: 17/18 build clean` and names the same file twice. The cell is still a
+missing measurement — but it is now held by exactly one obligation, and that
+obligation is the one that cannot be moved without weakening it (F048).
+
+## The cell is recoverable, and reclaiming it would not improve the rate
+
+Measured, not assumed
+(`evidence/runs/calibration/kotlin-r4-refinement-removed-probe.log`): the same
+mutant tree with `verification/Refinement.kt` — the file the R4 rung does not
+read — removed, and nothing else changed:
+
+```
+decidable 7   VERIFIED 7   REFUTED 0   VACUOUS 0   UNDECIDED 0
+
+R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator
+```
+
+So the R4 verdict on this mutant is a **SURVIVAL**, and the row it would produce
+is `0/15 = 0%`: the same zero over a denominator one larger. The obligation that
+would have killed it is `o5d_rejectionBurnsNoId` — "a rejected registration burns
+no id", exactly this defect — and it is one of the eight JBMC blocks ("SAT
+checker ran out of memory"). The cell is missing for a build reason and would be
+uninformative for a solver reason, which are two different failures that happen
+to land on one mutant.
+
+That probe is **not a cell**: its tree is not the tree `calibrate`'s guard
+hashed. It answers what the rung would say, not what the rung said. F049 records
+the shared-compile-unit mechanism and names the repair, which is not made here.
+
+## Do not read this run's wall column
+
+`kotlin-proof`'s cost figures were taken in one window on a box with nothing else
+on it, and that is why they are quotable. This run was interrupted by two
+container restarts and resumed from its journal, so its wall column was measured
+on **three different machines** and separates by machine rather than by mutant:
+container A's five survivals span 89.4–96.1 s and container C's eight span
+107.4–117.7 s, with no overlap and identical verdicts throughout. The apparent
+14% speed-up over `kotlin-proof` is an artefact of that, not an effect of the
+edits — the three obligations the calls were removed from are BLOCKED and never
+run. **F050** records it, with the boundaries recoverable from this branch's
+committed journal history.
+
+The verdicts in this run are sound and are what the comparison above rests on;
+they do not depend on which machine produced them. The seconds do.

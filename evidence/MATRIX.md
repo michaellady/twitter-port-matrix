@@ -125,7 +125,7 @@ table rather than a defect in it:
 | Go | 9/14 = 64% | contracts on shipped functions, ceiling set by the trusted shim (F022) |
 | Rust | 1/14 = 7% ⚠ | contracts were on hand-written twins; the lift (F041) changed this and the sweep has not been re-run |
 | Java | 0/15 = 0% | 8 of 15 obligations blocked by a JBMC defect, and the zero decomposes four ways (F036) |
-| Kotlin | 0/14 = 0% | same JBMC wall, measured rather than assumed (F034) |
+| Kotlin | 0/14 = 0% | same JBMC wall, measured rather than assumed (F034). The denominator is 14 and not 15 because `id-burned-on-reject` is an ERROR cell: it must re-arity `Store.createUser`, and R5 clause 2 is an obligation that has to *call* that method (F048). Re-measured after five decorative couplings were removed — **all 18 cells unchanged** (F049 measures the missing cell as a survival, so reclaiming it would read `0/15 = 0%`) |
 
 A cell takes the **weaker end's** number, so a single 0% corner drives every
 pair it appears in to 0%. Nine of the twelve cells are 0% because Java or
@@ -374,6 +374,7 @@ means. Each invocation is run from the repository root.
 
 | R4 (Rust end) | `go run ./tools/cmd/calibrate -impls rust -rungs R4 -out evidence/runs/calibration/rust-proof -resume` | **done**, all 14 covered mutants, 1 killed (F027). Vacuity audited: `go run ./tools/cmd/verus canary` reports REFUTABLE 5, VACUOUS 0 (F030) |
 | R4 (Kotlin end) | `go run ./tools/cmd/calibrate -impls kotlin -rungs R4 -out evidence/runs/calibration/kotlin-proof -resume` | **done**, all 18 mutants, 2085 s, window `2026-09-02T20:05:49Z .. 2026-09-02T20:51:21Z`. 0 killed / 14 survived / 2 unreached / 2 error, `0/14 = 0%`. Vacuity audited on every tree that passed: the verdict line itself reads `every one refutable in this tree`. Write-up in `evidence/CALIBRATION-kotlin-proof.md`; F031, F032, F033 |
+| R4 (Kotlin end, re-measured) | `go run ./tools/cmd/calibrate -impls kotlin -rungs R4 -out evidence/runs/calibration/kotlin-proof-recovered -resume` | **done**, all 18 mutants, after five decorative `Store.createUser` couplings were removed from the obligation set (F048). **Every cell unchanged**: 0 killed / 14 survived / 2 unreached / 2 error, `0/14 = 0%`, and every verdict line reproduces character for character. The remaining compile ERROR names only `Refinement.kt`, which carries R5 clause 2. **Do not quote this run's wall column** — two container restarts mean it was measured on three machines (F050). Cost figures stay with the row above |
 | R4 (Java end) | *does not exist, and not for want of a tool.* `impls/java` carries no obligation set, so there is nothing for a JBMC rung to run. Writing one is a Java-corner job, not a rung job | blocked |
 | R3 | no invocation. `tlclink` checks the model and the `S_obs` link; it produces no per-corner kill verdict and no cell here | by design |
 
