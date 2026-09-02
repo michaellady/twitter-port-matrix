@@ -1,0 +1,119 @@
+calibrate: 3 mutant(s) x 1 rung(s) = 3 cells
+           rungs=R5  out=/tmp/claude-0/-home-user-twitter-port-matrix/2e91af5a-1222-5dd9-a24c-65ecbe9a372a/scratchpad/calout/r5kotlin  resume=false
+==============================================================================
+
+kotlin/tick-advances-by-two  d5c9dfe76c29  clock
+  guard    5/5 checks: kotlin@tick-advances-by-two -> /tmp/calibrate-mutant-551815634/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.7s -- charged to no rung
+  R5       killed       39.4s  R5 FAILED: 1 of 1 failing obligation(s) hit a refinement c...
+
+kotlin/limit-off-by-one      a8d65d795319  pagination
+  guard    5/5 checks: kotlin@limit-off-by-one -> /tmp/calibrate-mutant-4291430528/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.5s -- charged to no rung
+  R5       survived     65.8s  R5 PASSED: JBMC verified 5 of 5 decidable clause obligatio...
+
+kotlin/unknown-json-fields-accepted 0aa9ccba0865  parsing
+  guard    5/5 checks: kotlin@unknown-json-fields-accepted -> /tmp/calibrate-mutant-3008268512/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 12.5s -- charged to no rung
+  R5       survived     66.1s  R5 PASSED: JBMC verified 5 of 5 decidable clause obligatio...
+
+CALIBRATION -- per-rung mutation kill table
+==============================================================================
+corners   kotlin
+rungs     R5
+R1        20 traces x 200 steps, seed 1
+R2        6 rounds x 40 setup requests, seed 1
+probe     never (4 traces x 120 steps, plus the corpus and each mutant's witness)
+window    2026-09-02T20:34:41Z .. 2026-09-02T20:38:08Z
+
+==============================================================================
+KILL TABLE
+==============================================================================
+rung             live  killed  survived  unreached  equiv  killed/reached     killed/live     wall
+R5 refinement       1       1         0          0      0      1/1 = 100%      1/1 = 100%     171s
+
+  live       mutants that change observable behaviour. Equivalent ones are excluded
+             from every denominator: no rung can kill them, so counting them would
+             understate every rung for a reason that is not about the rung.
+  survived   the rung's own inputs DO elicit the difference and it passed anyway.
+             A gap in the rung.
+  unreached  live, but nothing in this rung's input source elicits the difference.
+             A gap in the inputs. F009 is the worked example. For a proof rung the
+             input source is the contract: unreached means the verifier reads none
+             of the files the mutant edits.
+  capped     the corner has no verifier for this rung. Not a measurement; shown
+             per mutant and per corner, in no denominator.
+  killed/reached  the rung's ORACLE. reached = live - unreached = killed +
+                  survived. Every rate is printed as its own fraction because a
+                  percentage travels and its denominator does not: 100% over two
+                  reached cells and 100% over eighteen are the same string and not
+                  the same claim (F008).
+  killed/live     the rung AS CONFIGURED, inputs included.
+  n/a             the denominator is zero -- nothing was reached, so there is no
+                  rate. Printed rather than shown as 0%, which is the rate of a
+                  rung that saw everything and killed nothing.
+
+==============================================================================
+DENOMINATORS -- what each rate is a percentage of
+==============================================================================
+
+  R5 refinement  killed/reached 1/1 = 100%   killed/live 1/1 = 100%
+                 3 cell(s) measured, 1 in the killed/reached denominator, 2 excluded
+                    2 survived?    survived, but never probed, so whether it is a rung gap
+                                   or an input gap is not known
+
+==============================================================================
+COST -- and which cost it is
+==============================================================================
+Every rung relaunches the implementation: R0 once for the whole corpus, R1 once
+per trace, R2 once per property-round. A launch is a warm build check plus a
+process start plus a health wait, and that price differs by language. So raw
+seconds mix what the RUNG costs with what the LANGUAGE costs. Both are below.
+
+  no floor measured; only raw wall time is available.
+
+  corner   rung            launches wall killed  wall clean  tool clean
+  kotlin   R5 refinement          -      39.4s      65.9s          -
+
+  wall killed  mean wall for a mutant this rung caught. NOT comparable with the
+               clean column, and not reliably smaller either. R1 stops at its
+               first mismatch -- then shrinks, and every shrink attempt is
+               another server launch, so at low trace counts a kill can cost
+               several times a clean pass. The launch count of a kill depends
+               on the defect, so it is not corrected and no tool figure is
+               derived from it.
+  wall clean   mean wall for a full pass -- the worst case, and what a sweep of
+               a correct implementation actually costs.
+  tool clean   wall clean minus launches x measured floor. The rung's own cost
+               with process startup removed. Reported only where the launch
+               count is known from the configuration -- never inferred.
+  *            the correction came out at or below zero. Not an error and not
+               hidden: it means this rung's own work costs no more than the
+               servers it launches, so at this configuration the rung IS process
+               startup. Compare rungs by their launch counts, not their seconds.
+  Mutant setup (materialise + warm the build cache) is charged to no rung; see
+  the setups block in results.json.
+
+==============================================================================
+PER MUTANT
+==============================================================================
+mutant                             R5         
+kotlin/tick-advances-by-two        kill       
+kotlin/limit-off-by-one            survived?  
+kotlin/unknown-json-fields-accepted survived?  
+
+==============================================================================
+READ WITH CARE
+==============================================================================
+ 1. R5 killed EVERYTHING (1/1). Worth reading as a statement about the
+    catalogue as much as the rung: a mutant set this rung finds trivial cannot
+    distinguish it from a stronger one.
+ 2. R5: 2 survival(s) were never probed (-probe=never), so it is not known
+    whether they are rung weaknesses, input gaps, or non-defects. These are
+    not evidence about the rung.
+ 3. no launch floor was measured, so the wall column mixes rung cost with
+    process-startup cost and the corners are not comparable.
+
+written: /tmp/claude-0/-home-user-twitter-port-matrix/2e91af5a-1222-5dd9-a24c-65ecbe9a372a/scratchpad/calout/r5kotlin/report.txt
+         /tmp/claude-0/-home-user-twitter-port-matrix/2e91af5a-1222-5dd9-a24c-65ecbe9a372a/scratchpad/calout/r5kotlin/results.json
+         /tmp/claude-0/-home-user-twitter-port-matrix/2e91af5a-1222-5dd9-a24c-65ecbe9a372a/scratchpad/calout/r5kotlin/journal.jsonl

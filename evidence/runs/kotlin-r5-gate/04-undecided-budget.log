@@ -1,0 +1,16 @@
+jbmc: refinement rung (R5) over the kotlin corner
+        tree    /home/user/twitter-port-matrix/impls/kotlin
+        jbmc    6.11.0 (cbmc-6.11.0)
+        kotlinc info: kotlinc-jvm 2.4.10 (JRE 21.0.10+7-Ubuntu-124.04)
+        bounds  --unwind 30 --max-nondet-string-length 3, budget 25s (25s per obligation)
+        compile src + verification in 10.7s
+R5 sites: 7 of 7 clause(s) in clause-sites-kotlin.json carry a Kotlin assertion; 17 site(s) located in this tree
+====================================================================================================
+clause obligation                        verdict    own assertion goals      wall      JBMC's own line
+----------------------------------------------------------------------------------------------------
+c01_absInitIsTheEmptyState         VERIFIED   4 ok, 0 failed           3.7s      VERIFICATION SUCCESSFUL
+c02_createUserAddsExactlyThatHandle VERIFIED   2 ok, 0 failed           4.8s      VERIFICATION SUCCESSFUL
+c11_appendAddsExactlyOneAtTheEnd   UNDECIDED  JBMC exceeded its 2.944730673s budget 3s        
+
+R5 UNDECIDED: the run budget was exhausted before c13_logPrefixNeverRewritten; nothing was decided about this tree   [25s]
+jbmc: jbmc exceeded its time budget: budget exhausted at c13_logPrefixNeverRewritten

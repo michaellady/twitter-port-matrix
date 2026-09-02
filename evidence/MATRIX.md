@@ -81,16 +81,16 @@ pairs.
 |---|---|---|---|---|---|---|
 | go ← rust | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 1/14 = 7% ‡ | cap←rust † |
 | go ← java | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java † | cap←java † |
-| go ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | cap←kotlin † |
+| go ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | pending |
 | rust ← go | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 1/14 = 7% ‡ | cap←rust † |
 | rust ← java | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java | cap←rust,java |
-| rust ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | cap←rust,kotlin |
+| rust ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | cap←rust |
 | java ← go | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java † | cap←java † |
 | java ← rust | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java | cap←java,rust |
-| java ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java | cap←java,kotlin |
-| kotlin ← go | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | cap←kotlin † |
-| kotlin ← rust | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | cap←kotlin,rust |
-| kotlin ← java | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java | cap←kotlin,java |
+| java ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java | cap←java |
+| kotlin ← go | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | pending |
+| kotlin ← rust | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | cap←rust |
+| kotlin ← java | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java | cap←java |
 
 **Cell vocabulary.**
 
@@ -98,21 +98,24 @@ pairs.
 |---|---|
 | `k/r = p%` | measured. `k` mutants killed out of `r` **reached** (`reached = live − unreached`; equivalent mutants are outside `live` already). The denominator travels with the rate, per F008 |
 | `cap←X` | **capped by X**: corner X has no rung of this kind that yields a kill verdict, so the pair has no cell. Not a measurement, in no denominator. `cap←X,Y` means neither end has it |
-| `pending` | the rung exists at both ends and no run has produced this cell. **Four cells are in this state**, all of them waiting on the same thing: the Kotlin corner's R4 sweep. Its rung exists and has been gated on five mutants; the 18-mutant run has not been made |
+| `pending` | the rung exists at both ends and no run has produced this cell. **Six cells are in this state.** Four wait on the Kotlin corner's R4 sweep — its rung exists and has been gated on five mutants; the 18-mutant run has not been made. Two are the R5 pair `go ← kotlin` and `kotlin ← go`, which stopped being capped when the Kotlin corner got an R5 rung (F046) and wait on that rung's own 18-mutant sweep; it has been gated on three mutants and one clean tree (`evidence/runs/kotlin-r5-gate/`) |
 | `n/a` | R3 is a claim about the TLA⁺ model and the `S_obs` link, not about either corner's code (`ASSURANCE.md`: *"Says nothing about code"*). `calibrate` has no R3 rung and is not getting one |
 | `†` | one end of this pair is **Go**, whose own R4/R5 evidence is now a completed 18-mutant sweep (9 killed, 5 survived, 4 unreached, 9/14 = 64% killed/reached, R4 and R5 agreeing on all 18 — F028). The cell is capped by the other end regardless, so the mark changes no cell; it records that the Go end's half of the pair is not what is missing |
 | `‡` | **the two ends' numbers are not comparable in meaning**, so the weaker-end rule produces an arithmetically correct cell that a reader will misread. See "What the two R4 cells actually say" below. Applies to both R4 cells that carry a number today |
 
-**Cell census.** 72 cells: **38 measured**, **18 capped**, **4 pending**,
-**12 n/a** (the whole R3 column). Of the 18 capped, 6 carry `†`.
+**Cell census.** 72 cells: **38 measured**, **16 capped**, **6 pending**,
+**12 n/a** (the whole R3 column). Of the 16 capped, 6 carry `†`.
 
 That is a change from the census this document carried when it was written, and
 the change is the point: **the R4 column was entirely capped and is not any
 more.** Adding a Verus driver on the Rust corner and a JBMC driver on the
 Kotlin corner moved 12 capped R4 cells to 2 measured, 4 pending and 6 capped —
-the 6 by Java, which has no obligations written at all. R5 is unchanged and
-still entirely capped: Gobra on Go is the only R5 rung, and no ordered pair has
-Go at both ends.
+the 6 by Java, which has no obligations written at all. **The R5 column is no
+longer entirely capped either**, for the same kind of reason and by two cells:
+the Kotlin corner now has an R5 rung (`jbmc r5verify`, F046), so `go ← kotlin`
+and `kotlin ← go` are pending rather than capped, and the four other R5 cells
+with Kotlin at one end are now capped by their *other* end alone. Neither
+pending cell carries a number yet: the rung is gated, not swept.
 
 Every measured cell in the **behavioural** columns (R0, R1, R2) is the same
 number, because all four corners produced identical outcome vectors on all 18
@@ -162,7 +165,7 @@ table at all.
 
 ---
 
-## Why the R5 column is entirely capped, and R4 no longer is
+## Why the R5 column is mostly capped, and two of its cells no longer are
 
 `ASSURANCE.md`'s per-corner ceiling table is the source, and no cell here may
 contradict it:
@@ -172,7 +175,7 @@ contradict it:
 | Go | Gobra, 83 of 91 clauses refutable, 0 vacuous, 8 undecided | 26 of 42 clauses | R5-core, partial | **yes, both** (`rungs.go`, Gobra driver) |
 | Rust | Verus, **1 property** (F016, F027); 5 of 62 clauses on shipped functions, all 5 refutable (F030) | no — `RwLock` has no vstd model | R4, one property (F4) | **yes, R4** (Verus driver) |
 | Java | not attempted; `impls/java` has no obligation set at all | unknown | R3 | no |
-| Kotlin | JBMC, 7 of 15 obligations decidable (F014 blocks 8) | no | R3 + bounded | **yes, R4** (JBMC driver) |
+| Kotlin | JBMC, 7 of 15 obligations decidable (F014 blocks 8) | 5 of 42 clauses, bounded ground instances; 2 more blocked by F014 (F046) | R5-core, bounded and partial | **yes, both** (JBMC driver; `jbmc r5verify`) |
 
 Three corners now have an R4 rung that produces a kill verdict — Gobra on Go,
 Verus on Rust, JBMC on Kotlin — so the R4 column is capped only where **Java**
@@ -180,11 +183,17 @@ is an end, which is six of the twelve pairs. Java's cap is not a matter of
 effort spent on JBMC either: `impls/java` has no obligation set for a rung to
 run, so the Kotlin corner's `Obligations.kt` has no Java twin.
 
-**R5 is a different story and is still entirely capped.** Only Go has an R5
-rung, and no ordered pair has Go at both ends, so every R5 cell is capped by at
-least one end for a reason recorded in `ASSURANCE.md` rather than for want of
-running something. Two of those reasons are structural rather than a matter of
-effort:
+**R5 was a different story until the Kotlin corner got an R5 rung.** Go was
+the only R5 rung and no ordered pair had Go at both ends, so every R5 cell was
+capped. What was missing on the Kotlin corner turned out not to be an
+attribution mechanism — JBMC's goal lines name the entry point, the assertion
+index, the file *and* the line, which is finer than the Gobra join the Go rung
+is built on — but an **abstraction function**. Three of its four axes are
+decidable and the follows axis is not; F046 has the transcripts. So `go ←
+kotlin` and `kotlin ← go` are now pending rather than capped, and the R5 column
+is capped for 10 of 12 pairs rather than 12.
+
+Two of the remaining reasons are structural rather than a matter of effort:
 
 - **Rust cannot reach R5-core at all** until the verified core is lifted out of
   its `RwLock`. That is a refactor, not an annotation, so *every pair with Rust
@@ -214,6 +223,7 @@ means. Each invocation is run from the repository root.
 |---|---|---|
 | R0, R1, R2 | `go run ./tools/cmd/calibrate -impls go,rust,java,kotlin -rungs R0,R1,R2 -out evidence/runs/calibration/four-corner -resume` | **done**, 216 cells, window 2026-08-30T22:33:29Z .. 2026-08-31T03:30:42Z |
 | R4, R5 (Go end) | `go run ./tools/cmd/calibrate -impls go -rungs R4,R5 -out evidence/runs/calibration/go-proof -resume` | **done**, 18 mutants x 2 rungs, 36 cells, 2043s + 1059s. 9 killed / 5 survived / 4 unreached at both rungs, 0 disagreements (F028) |
+| R5 (Kotlin end) | `go run ./tools/cmd/calibrate -impls kotlin -rungs R5 -out evidence/runs/calibration/kotlin-refinement -resume` | **rung exists, sweep not run** — gate only, in `evidence/runs/kotlin-r5-gate/`: one clean tree and three mutants through `calibrate` end to end. This is what the two new `pending` R5 cells are waiting on |
 | R4 (Rust end) | `go run ./tools/cmd/calibrate -impls rust -rungs R4 -out evidence/runs/calibration/rust-proof -resume` | **done**, all 14 covered mutants, 1 killed (F027). Vacuity audited: `go run ./tools/cmd/verus canary` reports REFUTABLE 5, VACUOUS 0 (F030) |
 | R4 (Kotlin end) | `go run ./tools/cmd/calibrate -impls kotlin -rungs R4 -out evidence/runs/calibration/kotlin-proof -resume` | **rung exists, sweep not run** — gate only, 5 mutants in `kotlin-r4-gate`. This is what the four `pending` cells are waiting on, and it is the cheapest cell-filling move on this table |
 | R4 (Java end) | *does not exist, and not for want of a tool.* `impls/java` carries no obligation set, so there is nothing for a JBMC rung to run. Writing one is a Java-corner job, not a rung job | blocked |

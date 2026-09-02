@@ -1,0 +1,29 @@
+jbmc: refinement rung (R5) over the kotlin corner
+        tree    /tmp/claude-0/-home-user-twitter-port-matrix/2e91af5a-1222-5dd9-a24c-65ecbe9a372a/scratchpad/mut/limit-off-by-one/tree
+        jbmc    6.11.0 (cbmc-6.11.0)
+        kotlinc info: kotlinc-jvm 2.4.10 (JRE 21.0.10+7-Ubuntu-124.04)
+        bounds  --unwind 30 --max-nondet-string-length 3, budget 15m0s (6m0s per obligation)
+        compile src + verification in 11.8s
+R5 sites: 7 of 7 clause(s) in clause-sites-kotlin.json carry a Kotlin assertion; 17 site(s) located in this tree
+====================================================================================================
+clause obligation                        verdict    own assertion goals      wall      JBMC's own line
+----------------------------------------------------------------------------------------------------
+c01_absInitIsTheEmptyState         VERIFIED   4 ok, 0 failed           4.5s      VERIFICATION SUCCESSFUL
+c02_createUserAddsExactlyThatHandle VERIFIED   2 ok, 0 failed           5.5s      VERIFICATION SUCCESSFUL
+c11_appendAddsExactlyOneAtTheEnd   VERIFIED   4 ok, 0 failed           4.2s      VERIFICATION SUCCESSFUL
+c13_logPrefixNeverRewritten        VERIFIED   3 ok, 0 failed           10s       VERIFICATION SUCCESSFUL
+c36_tickAdvancesByExactlyOne       VERIFIED   1 ok, 0 failed           3.9s      VERIFICATION SUCCESSFUL
+----------------------------------------------------------------------------------------------------
+negation canaries (F013): each MUST be refuted, or the clause it names is vacuous
+k01_absInitIsNotEmpty              refuted-ok 0 ok, 1 failed           3.8s      VERIFICATION FAILED
+k02_createUserDoesNotAddThatHandle refuted-ok 0 ok, 1 failed           4.6s      VERIFICATION FAILED
+k11_appendDoesNotAddOneAtTheEnd    refuted-ok 0 ok, 1 failed           4.1s      VERIFICATION FAILED
+k13_logPrefixIsRewritten           refuted-ok 0 ok, 1 failed           6.7s      VERIFICATION FAILED
+k36_tickDoesNotAdvanceByOne        refuted-ok 0 ok, 1 failed           4.2s      VERIFICATION FAILED
+====================================================================================================
+decidable 5 clause obligation(s) covering R5 clause(s) 1, 2, 11, 13, 36
+blocked   2   (recorded JBMC 6.11.0 limits; in neither the numerator nor the denominator)
+    the follows axis of abs is undecidable: HashSet.contains(Edge) reduces to Edge.equals -> String.equals (F014), and JBMC answers FAILURE for the claim AND for its negation
+        c07_addFollowAddsExactlyThatEdge, c09_removeFollowRemovesExactlyThatEdge
+
+R5 PASSED: JBMC verified 5 of 5 decidable clause obligation(s) covering R5 clause(s) 1, 2, 11, 13, 36, every one refutable in this tree; 2 clause obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [1m6.2s]
