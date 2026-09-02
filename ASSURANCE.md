@@ -136,8 +136,11 @@ something. No member has an unreachable exit
 no counterpart in the Go corner.
 
 Three members returned no verdict — `(*MemStore).HomeTimeline` (11 clauses),
-`(*MemStore).Replace` (2) and `isMonotoneLog` (2, a Gobra error rather than a
-timeout). Those 13 clauses are **unaudited, not verified**.
+`(*MemStore).Replace` (2) and `isMonotoneLog` (2): two clean timeouts and,
+for `isMonotoneLog`, a Silicon exception followed by `did not terminate`, with
+a plain timeout on reproduction. Gobra reports all of these as `0 error(s)`,
+which is why they are read from its wording rather than its count. Those 15 clauses are **unaudited, not
+verified**.
 
 **The per-clause negation sweep**, corrected key, 12-minute budget per canary:
 

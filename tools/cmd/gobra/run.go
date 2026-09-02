@@ -93,8 +93,6 @@ var (
 	rePkgErrors = regexp.MustCompile(`Gobra has found (\d+) error\(s\) in package (\S+) - (\S+)`)
 	reTotal     = regexp.MustCompile(`Gobra has found (\d+) error\(s\)\s*$`)
 	reErrorAt   = regexp.MustCompile(`Error at: <([^:>]+):(\d+):(\d+)> (.*)$`)
-	// Gobra's own words when --packageTimeout fires.
-	reTerminated = regexp.MustCompile(`The verification of package .* got terminated after `)
 )
 
 // runGobra invokes the jar and reads the verdict out of its own output. It
@@ -185,7 +183,7 @@ func runGobra(w *workspace, pkgs []string, statsDir string, budget time.Duration
 	// that becomes "the negation verified", i.e. VACUOUS. The termination
 	// line has to be checked first, and matched exactly: any looser test also
 	// matches the stack trace above.
-	if reTerminated.MatchString(res.Raw) {
+	if gobraTimedOut(res.Raw) {
 		return res, errTimeout
 	}
 	if res.Total < 0 && len(res.Packages) == 0 {
@@ -254,4 +252,32 @@ func countMembers(path string) (*memberCounts, error) {
 		}
 	}
 	return c, nil
+}
+
+// gobraTimedOut recognises Gobra's own --packageTimeout report. Gobra does
+// not use the word "timeout" for it. Verbatim, from a probe of isMonotoneLog:
+//
+//	The verification of package ... - store got terminated after 600 seconds
+//	The verification of member ... store.isMonotoneLog([]dom.Tweet) did not terminate
+//	Gobra has found 0 error(s)
+//	The verification of 1 members timed out
+//
+// Note the third line. A timed-out package reports ZERO errors, so anything
+// that reads the error count without reading these lines first scores a
+// timeout as a pass. That is the F013 false green with a different cause,
+// and it is why this check runs before the verdict is trusted.
+func gobraTimedOut(raw string) bool {
+	// Exact phrasings only. A bare "timeout" would also match the
+	// "packageTimeoutDuration" frame in the stack trace Gobra prints when the
+	// argument is malformed, and score a crashed run as a timed-out one.
+	for _, phrase := range []string{
+		"got terminated after",
+		"did not terminate",
+		"members timed out",
+	} {
+		if strings.Contains(raw, phrase) {
+			return true
+		}
+	}
+	return false
 }

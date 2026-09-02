@@ -126,3 +126,22 @@ func TestRealClausesContainRepeatedText(t *testing.T) {
 	}
 	t.Logf("most-repeated clause text appears on %d distinct members", worst)
 }
+
+// Gobra reports a --packageTimeout with "0 error(s)" and never says "timeout".
+// Reading the error count without this check scores a hung proof as verified.
+func TestGobraTimedOutRecognisesGobrasOwnWording(t *testing.T) {
+	raw := `INFO viper.gobra.Gobra - Verifying package /x/internal/store - store [06:21:29]
+ERROR viper.gobra.Gobra - The verification of package /x/internal/store - store got terminated after 600 seconds
+ERROR viper.gobra.Gobra - The verification of member /x/internal/store - store.isMonotoneLog([]dom.Tweet) did not terminate
+INFO viper.gobra.Gobra - Gobra has found 0 error(s)
+INFO viper.gobra.Gobra - The verification of 1 members timed out`
+	if !gobraTimedOut(raw) {
+		t.Fatal("a timed-out package that reports 0 error(s) was not recognised as a timeout")
+	}
+	clean := `INFO viper.gobra.Gobra - Verifying package /x/internal/store - store [06:21:29]
+INFO viper.gobra.Gobra - Gobra found no errors
+INFO viper.gobra.Gobra - Gobra has found 0 error(s)`
+	if gobraTimedOut(clean) {
+		t.Fatal("a clean run was scored as a timeout")
+	}
+}

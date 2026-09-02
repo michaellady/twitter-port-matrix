@@ -34,7 +34,29 @@ carries them — `PutUser`, `HasUser`, `PutFollow`, `DeleteFollow`, `Follows`,
 `PutTweet`. And `!(len(out) <= limit)` timed out too. The canary is trivial;
 the method is not. **Any change to `HomeTimeline`'s contract sends its proof
 past the budget**, and the per-member reachability probe agrees: `HomeTimeline`
-was one of the two members whose `ensures false` probe also timed out.
+was one of the three members whose `ensures false` probe did not return a
+verdict. The other two are `Replace` and `isMonotoneLog`, the second of which
+`Replace` calls. The reachability run reported `isMonotoneLog` as an *error*
+after 128 s: Silicon threw an exception from inside `viper.silicon.rules.executor`
+and Gobra then printed `did not terminate` for the member. Reproduced by hand
+with a 600 s budget it did not throw, and ran out the clock instead. Either
+way the member returned no verdict, and the way Gobra reports that is worth
+quoting because it points the wrong way:
+
+```
+The verification of package .../internal/store - store got terminated after 600 seconds
+The verification of member .../store.isMonotoneLog([]dom.Tweet) did not terminate
+Gobra has found 0 error(s)
+The verification of 1 members timed out
+```
+
+**A timed-out package reports zero errors.** Anything that reads the error
+count without reading the lines above it scores a hung proof as a pass. The
+tool reads Gobra's wording (`did not terminate`, `got terminated after`,
+`members timed out`) and never the bare word "timeout", which also appears in
+the stack trace Gobra prints for a malformed argument; on the first run the
+exception trace reached the parser before the `did not terminate` line did,
+and it failed safe by reporting no verdict at all.
 
 One clause on the member did get through — F2's ordering clause, `:528`, was
 refuted in the corrected run after timing out in the first. So the boundary is

@@ -12,7 +12,7 @@ import "testing"
 func TestTerminatedDetection(t *testing.T) {
 	timedOutTranscript := `02:32:05.761 [main] ERROR viper.gobra.Gobra - The verification of package /w/internal/store - store got terminated after 1 second
 02:32:05.767 [main] INFO viper.gobra.Gobra - Gobra has found 0 error(s)`
-	if !reTerminated.MatchString(timedOutTranscript) {
+	if !gobraTimedOut(timedOutTranscript) {
 		t.Error("a timed-out package was not detected; its `0 error(s)` would read as a pass")
 	}
 
@@ -22,13 +22,13 @@ func TestTerminatedDetection(t *testing.T) {
 	badArgTranscript := `ERROR viper.gobra.GobraRunner$ - For input string: "6m0"
 java.lang.NumberFormatException: For input string: "6m0"
 	at viper.gobra.frontend.ScallopGobraConfig.packageTimeoutDuration(Config.scala:665)`
-	if reTerminated.MatchString(badArgTranscript) {
+	if gobraTimedOut(badArgTranscript) {
 		t.Error("a NumberFormatException on the timeout argument was misread as a timeout")
 	}
 
 	clean := `INFO viper.gobra.Gobra - Gobra found no errors
 INFO viper.gobra.Gobra - Gobra has found 0 error(s)`
-	if reTerminated.MatchString(clean) {
+	if gobraTimedOut(clean) {
 		t.Error("a clean run was misread as a timeout")
 	}
 }
