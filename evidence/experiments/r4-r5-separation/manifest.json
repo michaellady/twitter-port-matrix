@@ -1,7 +1,8 @@
 {
-  "note": "A SCRATCH catalogue, not the main one. It exists to answer the single question F028 left open: R4's proof perimeter is five Gobra-verified packages, R5's refinement perimeter is four clause-carrying files, and the only file between them is internal/dom/dom.go -- but the main catalogue has no mutant confined to that file, so the two columns agreed on all 18 cells without ever being given a chance to disagree. These two mutants are confined to internal/dom/dom.go and to nothing else. They are deliberately NOT in tools/cmd/mutate/mutants.json: the ids there are shared across all four corners so the kill table can compare a defect port-to-port, and a Go-only id would break that symmetry and shift every published denominator to settle a question about one rung pair. Run with `calibrate -manifest evidence/experiments/r4-r5-separation/manifest.json -impls go -rungs R4,R5`.",
+  "note": "A SCRATCH catalogue, not the main one. It exists to answer the single question F028 left open: R4's proof perimeter is five Gobra-verified packages, R5's refinement perimeter is four clause-carrying files, and the only file between them is internal/dom/dom.go -- but the main catalogue has no mutant confined to that file, so the two columns agreed on all 18 cells without ever being given a chance to disagree. Two of these mutants are confined to internal/dom/dom.go and to nothing else, and separate the columns by REACH (F038). The third, clock-now-off-by-one, is inside a file R5 DOES reach and separates them by VERDICT (F039). They are deliberately NOT in tools/cmd/mutate/mutants.json: the ids there are shared across all four corners so the kill table can compare a defect port-to-port, and a Go-only id would break that symmetry and shift every published denominator to settle a question about one rung pair. Run with `calibrate -manifest evidence/experiments/r4-r5-separation/manifest.json -impls go -rungs R4,R5`.",
   "families": {
-    "validation": "observable input validation inside the verified core: the handle alphabet (D1) and the text character range (D6). Both are proved in internal/dom/dom.go by a loop invariant that cannot be restated in the postcondition, so they are obligations R4 can see and the refinement clause list cannot."
+    "validation": "observable input validation inside the verified core: the handle alphabet (D1) and the text character range (D6). Both are proved in internal/dom/dom.go by a loop invariant that cannot be restated in the postcondition, so they are obligations R4 can see and the refinement clause list cannot.",
+    "attribution": "a defect inside a file that DOES carry refinement clauses, but on a member that does not. R4 and R5 separate by VERDICT here rather than by reach: R5's perimeter includes the file, the refinement clause list has no clause for the broken obligation, and the attribution engine reads Gobra's own error and declines the kill."
   },
   "mutants": [
     {
@@ -58,6 +59,37 @@
             "\t\t}"
           ],
           "replacement": []
+        }
+      ]
+    },
+    {
+      "id": "clock-now-off-by-one",
+      "impl": "go",
+      "family": "attribution",
+      "description": "(*clock.Logical).Now returns l.now + 1, so every tweet's created_at is one ahead of the clock. The edit is INSIDE internal/clock/clock.go, which is in r5Files, so R5 reaches it -- but clock.go's only refinement clause site sits on (*Logical).Tick, and the failing postcondition is Now's own. R4 and R5 therefore differ by VERDICT rather than by reach.",
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"hello\"}"
+        }
+      ],
+      "edits": [
+        {
+          "file": "internal/clock/clock.go",
+          "anchor": [
+            "\tresult = l.now",
+            "\t// @ fold acc(l.LockP())"
+          ],
+          "replacement": [
+            "\tresult = l.now + 1",
+            "\t// @ fold acc(l.LockP())"
+          ]
         }
       ]
     }

@@ -4,6 +4,14 @@
 **Class:** a row of the kill table that carries no information the row above it
 does not — and a case where the canary passes while the rate says nothing
 
+> **CORRECTED IN PLACE 2026-09-02** by F038 and F039, which took the chance this
+> finding says the catalogue never gave the two columns. **The open question is
+> closed: the columns do separate**, by reach (F038) and by verdict (F039). The
+> title still describes what the shipped 18-mutant sweep showed and every number
+> below still holds of `tools/cmd/mutate/mutants.json` — what changes is that
+> "0 of 18" is now known to be a fact about that catalogue rather than about the
+> rungs. Corrections are marked inline.
+
 ## The result
 
 ```
@@ -52,6 +60,23 @@ No mutant in the catalogue is confined to `dom.go`. The only one that touches it
 at all, `self-follow-guard-dropped`, also edits `service.go` and so is reached
 by both. Re-derived from the manifest: **mutants where R4 reach ≠ R5 reach: 0.**
 
+> **CORRECTION (F038).** That zero is a property of
+> `tools/cmd/mutate/mutants.json`, and it no longer describes the project's
+> evidence. Two mutants confined to `internal/dom/dom.go` were written into the
+> scratch catalogue `evidence/experiments/r4-r5-separation/manifest.json` and
+> swept. Both came back `R4 killed` / `R5 unreached` — the cell this paragraph
+> predicted:
+>
+> ```
+> go/handle-alphabet-widened      R4 killed     R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [1m15.2s]
+> go/handle-alphabet-widened      R5 unreached  R5 PASSED: 1 failing obligation(s), none in a member carrying a refinement clause   [1m10.5s]
+> go/text-control-chars-accepted  R4 killed     R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [1m3.3s]
+> go/text-control-chars-accepted  R5 unreached  R5 PASSED: 1 failing obligation(s), none in a member carrying a refinement clause   [1m3.4s]
+> ```
+>
+> The scratch ids are kept out of the shipped catalogue on purpose, so the 18
+> mutants and every denominator drawn from them are unchanged.
+
 The four unreached cells are the four `internal/httpshim` mutants of F022, and
 `httpshim` is outside *both* perimeters, so it separates nothing either.
 
@@ -66,6 +91,14 @@ obligation inside a member carrying a refinement clause:
 The five in the second row are the loop-invariant path in
 `(*MemStore).HomeTimeline` — the machinery that discharges the refinement
 postconditions rather than the postconditions themselves.
+
+> **CORRECTION (F039).** "Every one" is still true of the nine, and the verdict
+> half of the mechanism is no longer only an argument. `clock-now-off-by-one`,
+> in the same scratch catalogue, breaks `(*clock.Logical).Now`'s postcondition —
+> inside `internal/clock/clock.go`, which **is** in `r5Files`, on a member
+> carrying no refinement clause. `R4 killed` / `R5 SURVIVED`, R5's
+> `killed/reached` denominator `0/1`. The columns differ by verdict, not only by
+> reach.
 
 That split matters more than it looks. Attribution was widened from
 clause-line-only to clause-*or*-member one fire earlier, after the clause-only
@@ -92,6 +125,7 @@ duplicated one; eighteen agreeing localises the question to the catalogue.
 
 - **Do not delete the R5 row.** It answers a different question, its canary
   works, and one `dom.go`-only mutant would separate the columns immediately.
+  **(F038: it did. Two of them, and the separation was immediate.)**
 - **Do not report R4 and R5 as two rungs' worth of assurance.** They are the
   same Gobra invocation read two ways. Nine kills reported twice is nine kills.
   (This also means their cost columns are not comparable — see the caveat in
@@ -102,6 +136,10 @@ duplicated one; eighteen agreeing localises the question to the catalogue.
   drawn from something other than the contract — is the test. A catalogue built
   from incident history has no reason to leave `dom.go` alone, and no reason to
   put every defect inside a member that a refinement clause happens to sit on.
+  **(F038/F039 moved it, in a scratch manifest rather than the shipped one, and
+  both predicted separations appeared on the first attempt. That is evidence
+  for this bullet, not against it: the three defects had to be written on
+  purpose, aimed at the perimeter difference. Queue item 4 stands.)**
 - **Before adding the Rust/Verus and Kotlin/JBMC proof rungs**, note that this
   finding is about a *pair* of rungs on one corner. The same question — does
   this row ever differ from its neighbour — should be asked of each new row as a
@@ -114,3 +152,6 @@ duplicated one; eighteen agreeing localises the question to the catalogue.
 - `tools/cmd/calibrate/rungs.go` — `gobraVerified`, `r5Files`, and the comment
   explaining why R5 is not credited with every R4 kill
 - `spec/refinement/clause-sites.json` — the sites `r5Files` is derived from
+- `evidence/findings/F038-*.md`, `F039-*.md` — the separations that close this
+  finding's open question
+- `evidence/runs/calibration/dom-separation/` — their journal, results and console

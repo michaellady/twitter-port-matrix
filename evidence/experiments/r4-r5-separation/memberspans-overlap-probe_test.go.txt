@@ -1,0 +1,44 @@
+// F040 reproduction. NOT compiled as part of the tree: copy into
+// tools/cmd/gobra/ as a _test.go file and run
+//
+//   go test ./tools/cmd/gobra/ -run TestScratchEnumerateOverlappingMemberSpans -v
+//
+// It is kept out of the package on purpose. It is a probe, not a gate: it
+// reports and always passes, and a check that cannot fail does not belong in
+// the test suite. The gate to add is the assertion version -- fail when any two
+// member spans overlap -- and that one fails today, which is why it waits for
+// the fix rather than landing red.
+
+package main
+
+import (
+	"path/filepath"
+	"sort"
+	"testing"
+)
+
+func TestScratchEnumerateOverlappingMemberSpans(t *testing.T) {
+	files := append([]string{}, contractFiles...)
+	files = append(files, "internal/dom/dom.go")
+	for _, f := range files {
+		sp, err := memberSpans(filepath.Join("../../../impls/go", f))
+		if err != nil {
+			t.Fatalf("%s: %v", f, err)
+		}
+		var names []string
+		for m := range sp {
+			names = append(names, m)
+		}
+		sort.Strings(names)
+		for i := 0; i < len(names); i++ {
+			for j := i + 1; j < len(names); j++ {
+				a, b := sp[names[i]], sp[names[j]]
+				if a[0] <= b[1] && b[0] <= a[1] {
+					lo, hi := max(a[0], b[0]), min(a[1], b[1])
+					t.Logf("OVERLAP %s: %s[%d,%d] and %s[%d,%d] both claim lines %d..%d",
+						f, names[i], a[0], a[1], names[j], b[0], b[1], lo, hi)
+				}
+			}
+		}
+	}
+}

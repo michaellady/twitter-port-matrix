@@ -1,0 +1,20 @@
+{
+  "note": "GATE CANARY, not a defect. Refutes the compile arm of `mutate verify`: the anchor matches exactly one site but the replacement is not a legal Go program, so verify must FAIL on compile. Standing rule 2.",
+  "families": {"canary": "gate refutation only"},
+  "mutants": [
+    {
+      "id": "canary-does-not-compile",
+      "impl": "go",
+      "family": "canary",
+      "description": "Replacement references an undefined identifier.",
+      "witness": [],
+      "edits": [
+        {
+          "file": "internal/dom/dom.go",
+          "anchor": ["\t\tif b[i] < 0x20 {", "\t\t\treturn false", "\t\t}"],
+          "replacement": ["\t\tif b[i] < notAnIdentifierThatExists {", "\t\t\treturn false", "\t\t}"]
+        }
+      ]
+    }
+  ]
+}
