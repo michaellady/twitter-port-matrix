@@ -57,6 +57,7 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F045 | the Kotlin abstraction function is shipped code, and the Go one is not | Go's projections are ghost and `go build` erases them; Kotlin has no ghost mode, so its `abs` methods are in the compiled artefact. A widening of that corner's surface the Go corner does not pay |
 | F046 | JBMC can name which refinement clause failed, so R5 is not a Go-only rung | the feasibility question answered by measurement rather than argument; `go ← kotlin` and `kotlin ← go` stopped being capped |
 | F047 | a second catalogue, and what independence actually cost | 43 mutants from 12 defects across three non-contract sources. The independence claim is about the *generator*, not the effect: every live mutant necessarily deviates from `S_obs`, so only the procedure that chose it can be independent |
+| F051 | lifting the contracts off the twins quintupled the Rust proof row | 1/14 = 7% became 5/14 = 36% on the same catalogue and driver; all four new kills are in the two crates the lift touched, and the twin structure was costing 29 points of kill rate |
 
 ---
 

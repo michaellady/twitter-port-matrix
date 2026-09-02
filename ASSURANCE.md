@@ -76,7 +76,7 @@ argued away.
 | Corner | R0-R3 | R4 | R5-core | R5-wire | Ceiling |
 |---|---|---|---|---|---|
 | Go | yes | Gobra, **91 of 91 clauses refutable, 0 vacuous, 0 undecided** | **30 of 42 clauses** | no | **R5-core, partial** |
-| Rust | yes | Verus, **37 of 37 shipped clauses refutable, 0 vacuous** | **statable, partial: `abs` has a body; 17 clauses on 3 axes; no rung** | no | **R4 on 4 of 5 crates; R5-core has no rung** |
+| Rust | yes | Verus, **37 of 37 shipped clauses refutable, 0 vacuous**; R4 row `5/14 = 36%`, up from `1/14 = 7%` before the lift (F051) | **statable, partial: `abs` has a body; 17 clauses on 3 axes; no rung** | no | **R4 on 4 of 5 crates; R5-core has no rung** |
 | Java | yes | JBMC, bounded, **7 of 15 obligations decidable** (F034) | no | no | **R3 + bounded (measured)** |
 | Kotlin | yes | JBMC, bounded | **5 of 42 clauses, bounded** | no | **R5-core, bounded and partial (measured)** |
 
