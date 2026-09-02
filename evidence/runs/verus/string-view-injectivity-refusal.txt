@@ -1,0 +1,51 @@
+    Checking domain v0.1.0 (/home/user/twitter-port-matrix/impls/rust/crates/domain)
+warning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl
+  --> crates/domain/src/lib.rs:45:21
+   |
+45 |     #[derive(Debug, Clone, PartialEq, Eq)]
+   |                     ^^^^^
+
+warning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl
+  --> crates/domain/src/lib.rs:52:21
+   |
+52 |     #[derive(Debug, Clone, PartialEq, Eq)]
+   |                     ^^^^^
+
+warning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl
+  --> crates/domain/src/lib.rs:62:21
+   |
+62 |     #[derive(Debug, Clone, PartialEq, Eq)]
+   |                     ^^^^^
+
+warning: autoderive Clone impl does not take the form Verus expects; continuing, but without adding a specification for the derived Clone impl
+  --> crates/domain/src/lib.rs:69:21
+   |
+69 |     #[derive(Debug, Clone, PartialEq, Eq)]
+   |                     ^^^^^
+
+verification results:: 9 verified, 0 errors
+warning: `domain` (lib) generated 4 warnings
+    Checking store v0.1.0 (/home/user/twitter-port-matrix/impls/rust/crates/store)
+note: function body check: not all errors may have been reported; rerun with a higher value for --multiple-errors to find other potential errors in this function
+   --> crates/store/src/lib.rs:295:5
+    |
+295 |     pub fn put_user(&mut self, u: User) -> (result: Result<(), StoreError>)
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error: postcondition not satisfied
+   --> crates/store/src/lib.rs:298:13
+    |
+298 |             result is Ok ==> !abs_users(old(self)).contains(u.handle@),
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ failed this postcondition
+...
+315 |         Ok(())
+    |         ------ at the end of the function body
+
+error: assertion failed
+   --> crates/store/src/lib.rs:314:16
+    |
+314 |         assert(abs_users(self) =~= abs_users(&old_self).insert(u.handle@));
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ assertion failed
+
+verification results:: 8 verified, 1 errors
+error: could not compile `store` (lib) due to 2 previous errors

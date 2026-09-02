@@ -58,16 +58,34 @@ func cmdCanary(args []string) error {
 		return err
 	}
 
-	shipped, twin := splitBlocks(blocks)
+	shipped, twin, ghost, assumed := splitBlocks(blocks)
 	fmt.Printf("Verus negation canary over %s\n", implDir)
 	fmt.Printf("  verify-enabled crates: %s\n", strings.Join(crateNames(crates), ", "))
-	fmt.Printf("  ensures blocks: %d on shipped functions, %d inside #[cfg(verus_only)] mod verus_proof\n",
+	fmt.Printf("  ensures blocks: %d on shipped exec functions, %d inside #[cfg(verus_only)] mod verus_proof\n",
 		len(shipped), len(twin))
 	fmt.Printf("  clauses:        %d shipped, %d twin\n", countClauses(shipped), countClauses(twin))
+	// Ghost and assumed blocks are reported, never swept, and never counted in
+	// the shipped number. A `proof fn`'s ensures is a lemma; an `admit()` or
+	// `external_body` body makes every postcondition provable, so its canary
+	// comes back VACUOUS for a reason that is a tautology rather than a
+	// finding. Naming them here is what keeps the shipped count honest -- see
+	// F042, where two trusted axioms in `crates/store` were silently entering
+	// the sweep as shipped obligations attributed to an unrelated `fmt`.
+	if len(ghost) > 0 || len(assumed) > 0 {
+		fmt.Printf("  excluded:       %d clause(s) on ghost `spec`/`proof` fns, %d on assumed (`external_body` / `admit()`) fns\n",
+			countClauses(ghost), countClauses(assumed))
+		for _, b := range append(append([]*clauseBlock{}, ghost...), assumed...) {
+			why := "ghost"
+			if b.Assumed {
+				why = "assumed"
+			}
+			fmt.Printf("                  %s:%d %s (%s, %d clause(s))\n", b.Rel, b.HeadLine+1, b.Func, why, len(b.Clauses))
+		}
+	}
 
 	target := shipped
 	if *twins {
-		target = blocks
+		target = append(append([]*clauseBlock{}, shipped...), twin...)
 	}
 	if len(target) == 0 {
 		return fmt.Errorf("no ensures block to sweep: every clause in this tree is inside a verus_proof twin, and -twins was not given")
@@ -294,15 +312,23 @@ func report(rs []canaryResult) error {
 	return nil
 }
 
-func splitBlocks(bs []*clauseBlock) (shipped, twin []*clauseBlock) {
+// splitBlocks sorts every `ensures` block into the four kinds the sweep must
+// keep apart. Only `shipped` is swept and only `shipped` is the number the R4
+// row is licensed against.
+func splitBlocks(bs []*clauseBlock) (shipped, twin, ghost, assumed []*clauseBlock) {
 	for _, b := range bs {
-		if b.Twin {
+		switch {
+		case b.Assumed:
+			assumed = append(assumed, b)
+		case b.Ghost:
+			ghost = append(ghost, b)
+		case b.Twin:
 			twin = append(twin, b)
-		} else {
+		default:
 			shipped = append(shipped, b)
 		}
 	}
-	return shipped, twin
+	return shipped, twin, ghost, assumed
 }
 
 func countClauses(bs []*clauseBlock) int {

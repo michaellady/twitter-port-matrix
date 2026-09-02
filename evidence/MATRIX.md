@@ -170,7 +170,7 @@ contradict it:
 | Corner | R4 | R5-core | Ceiling | Rung in `calibrate`? |
 |---|---|---|---|---|
 | Go | Gobra, 83 of 91 clauses refutable, 0 vacuous, 8 undecided | 26 of 42 clauses | R5-core, partial | **yes, both** (`rungs.go`, Gobra driver) |
-| Rust | Verus, **1 property** (F016, F027); 5 of 62 clauses on shipped functions, all 5 refutable (F030) | no — `RwLock` has no vstd model | R4, one property (F4) | **yes, R4** (Verus driver) |
+| Rust | Verus, **37 of 37 shipped clauses refutable, 0 vacuous**; census 37 shipped / 20 twin / 13 assumed after the lift, from 5 / 36 / 21 (F041, F042) | **statable and partly discharged** — `abs` has bodies, `abs(init) == init_S` and commutation for 3 operations, 17 clauses; **no rung** | R4 on 4 of 5 crates; R5-core has no rung | **yes, R4** (Verus driver) |
 | Java | not attempted; `impls/java` has no obligation set at all | unknown | R3 | no |
 | Kotlin | JBMC, 7 of 15 obligations decidable (F014 blocks 8) | no | R3 + bounded | **yes, R4** (JBMC driver) |
 
@@ -186,9 +186,18 @@ least one end for a reason recorded in `ASSURANCE.md` rather than for want of
 running something. Two of those reasons are structural rather than a matter of
 effort:
 
-- **Rust cannot reach R5-core at all** until the verified core is lifted out of
-  its `RwLock`. That is a refactor, not an annotation, so *every pair with Rust
-  at either end is capped below R5* until it happens.
+- **Rust's R5-core is no longer structurally blocked, and still has no rung.**
+  The verified core was lifted out of its `RwLock` on 2026-09-02
+  ([F041](findings/F041-the-r5-blocker-was-the-lock-not-the-property.md)):
+  `abs_users` / `abs_follows` / `abs_tweets` have bodies, and `abs(init) ==
+  init_S` plus state commutation for `put_user`, `put_follow` and `put_tweet`
+  are discharged on shipped functions. **The cells do not change**, because a
+  cell is a `calibrate` verdict and `rungs.go` hard-codes R5 as Gobra with a
+  Go-only file list — and because the response axis is blocked one level below
+  the lock, on `String`'s view not being known injective
+  ([F043](findings/F043-the-abstraction-is-not-injective-and-vstd-will-not-say-it-is.md)).
+  So *every pair with Rust at either end is still capped below R5*, for a
+  different and smaller reason than before.
 - **R5-wire is not reachable in any corner** (F012): the decode boundary is
   outside every verification perimeter by construction. The R5 column here is
   R5-core throughout.

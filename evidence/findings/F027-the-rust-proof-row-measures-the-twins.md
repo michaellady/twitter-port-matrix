@@ -1,5 +1,22 @@
 # F027 — the Rust R4 row cannot mean what the Go R4 row means
 
+> **SUPERSEDED IN PART, 2026-09-02.** The structural fact this finding rests on
+> — that `crates/domain` is the only verify-enabled crate whose `verus!` block
+> encloses the shipped items — **is no longer true**. `crates/ids`,
+> `crates/clock` and `crates/store` had their state lifted out of `Mutex` /
+> `RwLock` and their contracts moved onto shipped functions
+> ([F041](F041-the-r5-blocker-was-the-lock-not-the-property.md)). The clause
+> census below reads `5 shipped, 57 twin`; measured with the corrected
+> classifier ([F042](F042-the-vacuity-instrument-counted-two-axioms-as-shipped-obligations.md))
+> that tree was **5 shipped / 36 twin / 21 assumed**, and the current tree is
+> **37 / 20 / 13**.
+>
+> **The 1-kill-in-14 number below has NOT been re-measured** against the lifted
+> tree. It is the last figure actually produced by a `calibrate` sweep, and the
+> reason it was 1 — that a mutant in `store`, `clock` or `ids` touched nothing
+> any contract mentioned — is now false for those three crates. Expect it to
+> move; do not quote it as current.
+
 **Status:** measured while adding R4 to `calibrate` as a rung on the Rust corner
 **Class:** a property of where the contracts live, not a defect in any mutant —
 and one that makes two identically-named cells incomparable

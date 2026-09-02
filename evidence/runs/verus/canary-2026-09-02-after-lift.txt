@@ -1,0 +1,105 @@
+Verus negation canary over /home/user/twitter-port-matrix/impls/rust
+  verify-enabled crates: clock, domain, ids, service, store
+  ensures blocks: 13 on shipped exec functions, 4 inside #[cfg(verus_only)] mod verus_proof
+  clauses:        37 shipped, 20 twin
+  excluded:       0 clause(s) on ghost `spec`/`proof` fns, 13 on assumed (`external_body` / `admit()`) fns
+                  crates/service/src/lib.rs:419 proof_service_put_user (assumed, 4 clause(s))
+                  crates/service/src/lib.rs:599 proof_service_put_follow (assumed, 3 clause(s))
+                  crates/service/src/lib.rs:630 proof_service_delete_follow (assumed, 2 clause(s))
+                  crates/store/src/lib.rs:256 axiom_string_obeys_key_model (assumed, 1 clause(s))
+                  crates/store/src/lib.rs:267 axiom_string_pair_obeys_key_model (assumed, 1 clause(s))
+                  crates/store/src/lib.rs:758 proof_follow_remove (assumed, 2 clause(s))
+  sweeping:       37 clause(s)
+
+workspace: /tmp/verus-canary-2257815647 (a copy; the tree at /home/user/twitter-port-matrix/impls/rust is never written to)
+
+baseline (unmodified copy) --
+  R4 PASSED: verification results:: 32 verified, 0 errors over 5 of 5 verify-enabled crate(s)   [2m28.7s]
+
+self-test (does this sweep report VACUOUS when it should?) --
+  probe crates/clock/src/lib.rs:87 t.value == v
+  with `requires false,` spliced in, every postcondition is vacuously provable,
+  so the canary MUST come back VACUOUS
+  -> VACUOUS [6s]
+     clock: verification results:: 5 verified, 0 errors -- Verus PROVED the negated antecedent, so the clause's antecedent is unsatisfiable and the obligation is discharged over nothing
+  self-test PASSED: the sweep reports VACUOUS when the obligation is unreachable
+
+sweep --
+  [ 1/37] REFUTABLE      4s  crates/clock/src/lib.rs:87 t.value == v
+           clock: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 2/37] REFUTABLE      3s  crates/clock/src/lib.rs:97 out == self.value
+           clock: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 3/37] REFUTABLE      3s  crates/clock/src/lib.rs:113 self.value == old(self).value + 1
+           clock: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 4/37] REFUTABLE      3s  crates/clock/src/lib.rs:114 self.value > old(self).value
+           clock: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 5/37] REFUTABLE      4s  crates/clock/src/lib.rs:115 self.wf()
+           clock: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 6/37] REFUTABLE      4s  crates/clock/src/lib.rs:125 self.value == v
+           clock: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 7/37] REFUTABLE      1s  crates/domain/src/lib.rs:131 from@ == to@ ==> result is Err
+           domain: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 8/37] REFUTABLE      1s  crates/domain/src/lib.rs:132 from@ != to@ ==> result is Ok
+           domain: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 9/37] REFUTABLE      1s  crates/domain/src/lib.rs:133 result is Ok ==> result->Ok_0.from@ == from@
+           domain: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [10/37] REFUTABLE      1s  crates/domain/src/lib.rs:134 result is Ok ==> result->Ok_0.to@   == to@
+           domain: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [11/37] REFUTABLE      1s  crates/domain/src/lib.rs:135 result is Ok ==> result->Ok_0.from@ != result->Ok_0.to@
+           domain: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [12/37] REFUTABLE      4s  crates/ids/src/lib.rs:85 c.value == 0
+           ids: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [13/37] REFUTABLE      3s  crates/ids/src/lib.rs:86 c.wf()
+           ids: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [14/37] REFUTABLE      4s  crates/ids/src/lib.rs:103 out == old(self).value + 1
+           ids: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [15/37] REFUTABLE      4s  crates/ids/src/lib.rs:104 self.value == out
+           ids: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [16/37] REFUTABLE      3s  crates/ids/src/lib.rs:105 self.value > old(self).value
+           ids: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [17/37] REFUTABLE      4s  crates/ids/src/lib.rs:106 out >= 1
+           ids: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [18/37] REFUTABLE      3s  crates/ids/src/lib.rs:107 self.wf()
+           ids: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [19/37] REFUTABLE      4s  crates/ids/src/lib.rs:116 out == self.value
+           ids: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [20/37] REFUTABLE      4s  crates/ids/src/lib.rs:126 self.value == v
+           ids: verification results:: 4 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [21/37] REFUTABLE      2s  crates/store/src/lib.rs:280 abs_users(&i) == Set::<Seq<char>>::empty()
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [22/37] REFUTABLE      2s  crates/store/src/lib.rs:281 abs_follows(&i) == Set::<(Seq<char>, Seq<char>)>::empty()
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [23/37] REFUTABLE      2s  crates/store/src/lib.rs:282 abs_tweets(&i) == Seq::<Tweet>::empty()
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [24/37] REFUTABLE      2s  crates/store/src/lib.rs:308 result is Err ==> abs_users(old(self)).contains(u.handle@)
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [25/37] REFUTABLE      2s  crates/store/src/lib.rs:309 result is Err ==> abs_users(self) == abs_users(old(self))
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [26/37] REFUTABLE      2s  crates/store/src/lib.rs:310 result is Ok ==> abs_users(self) == abs_users(old(self)).in…
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [27/37] REFUTABLE      2s  crates/store/src/lib.rs:354 result is Ok ==> abs_users(old(self)).contains(f.from@)
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [28/37] REFUTABLE      2s  crates/store/src/lib.rs:355 result is Ok ==> abs_users(old(self)).contains(f.to@)
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [29/37] REFUTABLE      2s  crates/store/src/lib.rs:356 result is Ok ==> abs_follows(self) == abs_follows(old(self)…
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [30/37] REFUTABLE      2s  crates/store/src/lib.rs:357 result is Err ==> abs_follows(self) == abs_follows(old(self…
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [31/37] REFUTABLE      2s  crates/store/src/lib.rs:358 abs_users(self) == abs_users(old(self))
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [32/37] REFUTABLE      3s  crates/store/src/lib.rs:359 abs_tweets(self) == abs_tweets(old(self))
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [33/37] REFUTABLE      2s  crates/store/src/lib.rs:408 result is Ok ==> abs_users(old(self)).contains(t.author@)
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [34/37] REFUTABLE      2s  crates/store/src/lib.rs:409 result is Ok ==> abs_tweets(self) == abs_tweets(old(self)).…
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [35/37] REFUTABLE      3s  crates/store/src/lib.rs:410 result is Err ==> abs_tweets(self) == abs_tweets(old(self))
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [36/37] REFUTABLE      3s  crates/store/src/lib.rs:411 abs_users(self) == abs_users(old(self))
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [37/37] REFUTABLE      3s  crates/store/src/lib.rs:412 abs_follows(self) == abs_follows(old(self))
+           store: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+
+canary sweep: 37 clause(s)   REFUTABLE 37   VACUOUS 0   ILL-FORMED 0   TIMEOUT 0
+
+every one of the 37 shipped clause(s) is refutable; the R4 row on this corner is not measuring vacuous obligations.

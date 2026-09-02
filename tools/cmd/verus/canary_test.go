@@ -83,13 +83,18 @@ func TestClauseKeySeparatesTwoFunctionsSharingClauseText(t *testing.T) {
 }
 
 // The shipped/twin split is the Rust corner's central structural fact (F012,
-// F016, F027): most obligations sit on hand-written functions inside
-// `#[cfg(verus_only)] mod verus_proof`, over `external_body` shims, with
-// nothing tying them to the code that ships. This test re-derives the split
-// from the real tree so the claim cannot go stale, and so a clause moving out
-// of a twin -- the repair everyone wants -- shows up as a failure here rather
-// than as a quietly larger sweep.
-func TestShippedClausesAreExactlyFollowNew(t *testing.T) {
+// F016, F027): obligations used to sit almost entirely on hand-written
+// functions inside `#[cfg(verus_only)] mod verus_proof`, over `external_body`
+// shims, with nothing tying them to the code that ships.
+//
+// **This test used to assert exactly one shipped block, `Follow::new`.** It was
+// written as a tripwire for the repair, and on 2026-09-02 the repair landed:
+// `crates/ids`, `crates/clock` and `crates/store` had their state lifted out of
+// `Mutex` / `RwLock` into plain owned value types, and their contracts moved
+// onto the shipped functions (F041). The tripwire fired, which is what it was
+// for; it is re-armed here against the NEW truth, so the next crate to be
+// lifted -- `crates/service` is the one left -- trips it in turn.
+func TestShippedClausesCoverTheLiftedCrates(t *testing.T) {
 	root := repoRoot(t)
 	implDir := filepath.Join(root, "impls", "rust")
 	crates, err := verifyEnabledCrates(implDir)
@@ -100,29 +105,143 @@ func TestShippedClausesAreExactlyFollowNew(t *testing.T) {
 	if err != nil {
 		t.Fatalf("extractClauses: %v", err)
 	}
-	shipped, twin := splitBlocks(blocks)
-	if len(shipped) != 1 {
-		var names []string
-		for _, b := range shipped {
-			names = append(names, b.Rel+":"+b.Func)
-		}
-		t.Fatalf("shipped ensures blocks = %d (%s); the Rust corner has exactly one, Follow::new in crates/domain. "+
-			"If a contract moved onto a shipped function this is the good news -- update the test and F027 together", len(shipped), strings.Join(names, ", "))
+	shipped, twin, _, assumed := splitBlocks(blocks)
+
+	// Every crate whose state has been lifted out of its lock must carry at
+	// least one contract on a function that ships. A crate dropping off this
+	// list is a regression, not a refactor.
+	byCrate := map[string][]string{}
+	for _, b := range shipped {
+		byCrate[b.Crate] = append(byCrate[b.Crate], b.Func)
 	}
-	b := shipped[0]
-	if b.Func != "new" || !strings.Contains(b.Rel, "crates/domain") {
-		t.Fatalf("the one shipped block is %s:%s, want new in crates/domain", b.Rel, b.Func)
-	}
-	if len(b.Clauses) != 5 {
-		t.Fatalf("Follow::new carries %d clause(s), want 5", len(b.Clauses))
-	}
-	for _, c := range b.Clauses {
-		if _, err := negate(c.Text); err != nil {
-			t.Fatalf("no canary for shipped clause %q: %v", c.Text, err)
+	for _, want := range []string{"domain", "ids", "clock", "store"} {
+		if len(byCrate[want]) == 0 {
+			t.Fatalf("crate %s has no shipped ensures block; the lift regressed. shipped = %v", want, byCrate)
 		}
 	}
+
+	// `crates/service` is the corner's remaining twin holdout: its state is
+	// three `Arc`-shared sub-stores plus a write mutex, and lifting it is the
+	// next move (F041). When it happens this assertion fires -- deliberately.
+	if len(byCrate["service"]) != 0 {
+		t.Fatalf("crates/service now has shipped ensures blocks (%v). That is the good news: "+
+			"update this test, ASSURANCE.md's Rust rows and F041 together", byCrate["service"])
+	}
+
+	// The domain contract that was the corner's ONLY one is still there and
+	// still five clauses. It is the control for everything above.
+	var follow *clauseBlock
+	for _, b := range shipped {
+		if b.Func == "new" && strings.Contains(b.Rel, "crates/domain") {
+			follow = b
+		}
+	}
+	if follow == nil {
+		t.Fatal("Follow::new lost its shipped ensures block")
+	}
+	if len(follow.Clauses) != 5 {
+		t.Fatalf("Follow::new carries %d clause(s), want 5", len(follow.Clauses))
+	}
+
+	// Every shipped clause must have a canary. A shipped clause the negator
+	// refuses is a clause the R4 row is not licensed to count.
+	for _, b := range shipped {
+		for _, c := range b.Clauses {
+			if _, err := negate(c.Text); err != nil {
+				t.Fatalf("no canary for shipped clause %q on %s: %v", c.Text, b.Func, err)
+			}
+		}
+	}
+
 	if len(twin) == 0 {
 		t.Fatal("no twin blocks found; the parser is not seeing verus_proof modules and the shipped count is inflated")
+	}
+
+	// Shipped must now outnumber twin. Before the lift it was 5 against 57.
+	ns, nt := countClauses(shipped), countClauses(twin)
+	if ns <= nt {
+		t.Fatalf("shipped clauses %d, twin clauses %d; the lift moved the majority onto shipped functions and this asserts it stayed there", ns, nt)
+	}
+
+	// The two `obeys_key_model` axioms in crates/store carry `ensures` and are
+	// discharged by `admit()`. They must be classified assumed, never shipped:
+	// sweeping an admitted postcondition returns VACUOUS as a tautology, which
+	// reads as a finding and is not one. F042.
+	if len(assumed) == 0 {
+		t.Fatal("no assumed blocks found; crates/store's two admitted key-model axioms must be classified assumed, not shipped")
+	}
+	for _, b := range assumed {
+		for _, sb := range shipped {
+			if sb == b {
+				t.Fatalf("%s:%s is both shipped and assumed", b.Rel, b.Func)
+			}
+		}
+	}
+}
+
+// A `broadcast proof fn` signature must be recognised as a signature. When it
+// was not, its `ensures` block was attributed to whatever `fn` the scanner had
+// seen last -- in the real tree, `impl Display for StoreError`'s `fmt`, sixty
+// lines away in a different impl. F042.
+func TestFnNameReadsVerusModifiers(t *testing.T) {
+	for sig, want := range map[string]string{
+		"pub broadcast proof fn axiom_string_obeys_key_model()": "axiom_string_obeys_key_model",
+		"pub open spec fn wf(&self) -> bool":                    "wf",
+		"pub closed spec fn count(g: &Generator) -> int":        "count",
+		"proof fn lemma_x()":                                    "lemma_x",
+		"pub fn next(&mut self) -> (out: i64)":                  "next",
+	} {
+		got, ok := fnName(sig)
+		if !ok || got != want {
+			t.Fatalf("fnName(%q) = %q, %v; want %q", sig, got, ok, want)
+		}
+	}
+	if !isGhostSignature("pub broadcast proof fn axiom_x()") {
+		t.Fatal("a broadcast proof fn must classify as ghost")
+	}
+	if !isGhostSignature("pub open spec fn wf(&self) -> bool") {
+		t.Fatal("an open spec fn must classify as ghost")
+	}
+	if isGhostSignature("pub fn next(&mut self) -> (out: i64)") {
+		t.Fatal("an exec fn must not classify as ghost")
+	}
+}
+
+// An `admit()` body makes every postcondition provable. Its clauses are
+// assumed, and the sweep must exclude them by name rather than report a
+// VACUOUS verdict that is a tautology about the body rather than a fact about
+// the code. F042.
+func TestBodyIsAdmittedSpotsAdmittedAndUnimplementedBodies(t *testing.T) {
+	admitted := []string{
+		"pub broadcast proof fn a()",
+		"    ensures",
+		"        p(),",
+		"{",
+		"    admit();",
+		"}",
+	}
+	if !bodyIsAdmitted(admitted, 0) {
+		t.Fatal("an admit() body was not recognised as assumed")
+	}
+	unimpl := []string{
+		"pub closed spec fn f() -> int {",
+		"    unimplemented!()",
+		"}",
+	}
+	if !bodyIsAdmitted(unimpl, 0) {
+		t.Fatal("an unimplemented!() body was not recognised as assumed")
+	}
+	real := []string{
+		"pub fn next(&mut self) -> (out: i64)",
+		"    ensures",
+		"        out >= 1,",
+		"{",
+		"    self.value = self.value + 1;",
+		"    self.value",
+		"}",
+	}
+	if bodyIsAdmitted(real, 0) {
+		t.Fatal("a real body was misread as assumed")
 	}
 }
 
