@@ -1,0 +1,252 @@
+calibrate: 43 mutant(s) x 3 rung(s) = 129 cells
+           rungs=R0,R1,R2  out=/home/user/twitter-port-matrix/evidence/runs/independent-catalogue/r0r2  resume=false
+==============================================================================
+  floor go        462 ms/launch  (3 samples, spread 447-476 ms)
+  floor rust       97 ms/launch  (3 samples, spread 95-102 ms)
+  floor java     1012 ms/launch  (3 samples, spread 972-1042 ms)
+  floor kotlin   8929 ms/launch  (3 samples, spread 8817-9098 ms)
+------------------------------------------------------------------------------
+
+go/handle-bound-off-by-one   3e09c71e694e  boundary
+  guard    5/5 checks: go@handle-bound-off-by-one -> /tmp/calibrate-mutant-4290013453/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
+  R0       survived      0.6s  R0 PASSED: every step matches S_obs byte-for-byte
+  R1       survived     11.1s  R1 PASSED: 4000 requests per implementation, zero unexplai...
+  R2       survived     27.4s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness  (1.6s)
+
+go/limit-bound-off-by-one    52bdd833e50f  boundary
+  guard    5/5 checks: go@limit-bound-off-by-one -> /tmp/calibrate-mutant-126842147/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
+  R0       survived      0.5s  R0 PASSED: every step matches S_obs byte-for-byte
+  R1       survived     10.6s  R1 PASSED: 4000 requests per implementation, zero unexplai...
+  R2       killed       28.4s  R2 FAILED
+  probe    live, reached by witness  (1.9s)
+
+go/text-rejects-space        a2172ad7a49f  boundary
+  guard    5/5 checks: go@text-rejects-space -> /tmp/calibrate-mutant-101478365/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
+  R0       killed        0.5s  R0 FAILED: 13 step(s) disagree with S_obs
+  R1       killed        5.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     29.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=1, seed=2, seed=3, seed=4  (1.4s)
+
+go/timeline-drops-oldest     d8327769ff03  collection-bound
+  guard    5/5 checks: go@timeline-drops-oldest -> /tmp/calibrate-mutant-2891973695/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
+  R0       killed        0.5s  R0 FAILED: 6 step(s) disagree with S_obs
+  R1       killed       13.9s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     30.1s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=1, seed=2, seed=3, seed=4  (1.6s)
+
+go/visibility-args-swapped   8c8a1c1f7f2a  swapped-arguments
+  guard    5/5 checks: go@visibility-args-swapped -> /tmp/calibrate-mutant-919928835/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
+  R0       killed        0.5s  R0 FAILED: 6 step(s) disagree with S_obs
+  R1       killed       17.7s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       30.6s  R2 FAILED
+
+go/visibility-negation-dropped 52a77143c8cf  dropped-negation
+  guard    5/5 checks: go@visibility-negation-dropped -> /tmp/calibrate-mutant-4127814432/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
+  R0       killed        0.5s  R0 FAILED: 7 step(s) disagree with S_obs
+  R1       killed       11.8s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       29.1s  R2 FAILED
+
+go/wrong-error-branch-cursor 83c994722b1b  wrong-error-branch
+  guard    5/5 checks: go@wrong-error-branch-cursor -> /tmp/calibrate-mutant-969116859/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.5s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       15.9s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     30.1s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=1, seed=3, seed=4  (1.7s)
+
+go/handle-case-folded        f511130ef597  normalisation
+  guard    5/5 checks: go@handle-case-folded -> /tmp/calibrate-mutant-4147917590/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 3 step(s) disagree with S_obs
+  R1       killed        6.2s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     29.8s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=2, seed=3, seed=4  (1.6s)
+
+go/next-cursor-off-by-one    2f5e4e25336c  pagination
+  guard    5/5 checks: go@next-cursor-off-by-one -> /tmp/calibrate-mutant-2319838794/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
+  R0       killed        0.5s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       44.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       30.7s  R2 FAILED
+
+go/text-length-in-code-points 7f26697d1bbf  encoding
+  guard    5/5 checks: go@text-length-in-code-points -> /tmp/calibrate-mutant-1774014484/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       survived      0.6s  R0 PASSED: every step matches S_obs byte-for-byte
+  R1       survived     11.9s  R1 PASSED: 4000 requests per implementation, zero unexplai...
+  R2       survived     30.0s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness  (1.9s)
+
+go/go-slice-len-aliasing     4dd34b51acb6  language-idiom
+  guard    5/5 checks: go@go-slice-len-aliasing -> /tmp/calibrate-mutant-2817171249/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
+  R0       killed        0.5s  R0 FAILED: 8 step(s) disagree with S_obs
+  R1       killed       10.3s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       29.7s  R2 FAILED
+
+rust/handle-bound-off-by-one 2147f4ccfc78  boundary
+  guard    5/5 checks: rust@handle-bound-off-by-one -> /tmp/calibrate-mutant-4206891471/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 29.1s -- charged to no rung
+  R0       survived      0.2s  R0 PASSED: every step matches S_obs byte-for-byte
+  R1       survived      3.3s  R1 PASSED: 4000 requests per implementation, zero unexplai...
+  R2       survived      7.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness  (28.0s)
+
+rust/limit-bound-off-by-one  6b47d580da71  boundary
+  guard    5/5 checks: rust@limit-bound-off-by-one -> /tmp/calibrate-mutant-4140773739/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.7s -- charged to no rung
+  R0       survived      0.1s  R0 PASSED: every step matches S_obs byte-for-byte
+  R1       survived      3.6s  R1 PASSED: 4000 requests per implementation, zero unexplai...
+  R2       killed        7.7s  R2 FAILED
+  probe    live, reached by witness  (27.0s)
+
+rust/text-rejects-space      94d87503f23c  boundary
+  guard    5/5 checks: rust@text-rejects-space -> /tmp/calibrate-mutant-4128569191/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.9s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 13 step(s) disagree with S_obs
+  R1       killed        1.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=1, seed=2, seed=3, seed=4  (27.7s)
+
+rust/timeline-drops-oldest   71a1f8862f1b  collection-bound
+  guard    5/5 checks: rust@timeline-drops-oldest -> /tmp/calibrate-mutant-114724726/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.4s -- charged to no rung
+  R0       killed        0.2s  R0 FAILED: 6 step(s) disagree with S_obs
+  R1       killed        3.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=1, seed=2, seed=3, seed=4  (29.5s)
+
+rust/visibility-args-swapped 3ed75ace2f5d  swapped-arguments
+  guard    5/5 checks: rust@visibility-args-swapped -> /tmp/calibrate-mutant-1495419434/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.2s -- charged to no rung
+  R0       killed        0.2s  R0 FAILED: 6 step(s) disagree with S_obs
+  R1       killed        4.7s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed        7.5s  R2 FAILED
+
+rust/visibility-negation-dropped 521b2aaab22e  dropped-negation
+  guard    5/5 checks: rust@visibility-negation-dropped -> /tmp/calibrate-mutant-253456676/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.6s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 7 step(s) disagree with S_obs
+  R1       killed        3.0s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed        7.3s  R2 FAILED
+
+rust/wrong-error-branch-cursor 076c06fc55cc  wrong-error-branch
+  guard    5/5 checks: rust@wrong-error-branch-cursor -> /tmp/calibrate-mutant-3576663895/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.0s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed        4.0s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=1, seed=3, seed=4  (26.7s)
+
+rust/handle-case-folded      8c4aa5918e1a  normalisation
+  guard    5/5 checks: rust@handle-case-folded -> /tmp/calibrate-mutant-326854654/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.1s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 3 step(s) disagree with S_obs
+  R1       killed        1.7s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=2, seed=3, seed=4  (26.7s)
+
+rust/next-cursor-off-by-one  39b0f8476b49  pagination
+  guard    5/5 checks: rust@next-cursor-off-by-one -> /tmp/calibrate-mutant-1036999993/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.3s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       11.2s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed        7.6s  R2 FAILED
+
+rust/text-length-in-code-points 1070972c9f83  encoding
+  guard    5/5 checks: rust@text-length-in-code-points -> /tmp/calibrate-mutant-1925061273/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.4s -- charged to no rung
+  R0       survived      0.1s  R0 PASSED: every step matches S_obs byte-for-byte
+  R1       survived      3.2s  R1 PASSED: 4000 requests per implementation, zero unexplai...
+  R2       survived      7.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness  (27.2s)
+
+java/handle-bound-off-by-one 2c8de4f72a08  boundary
+  guard    5/5 checks: java@handle-bound-off-by-one -> /tmp/calibrate-mutant-134509067/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.9s -- charged to no rung
+  R0       survived      1.0s  R0 PASSED: every step matches S_obs byte-for-byte
+  R1       survived     21.8s  R1 PASSED: 4000 requests per implementation, zero unexplai...
+  R2       survived     58.7s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness  (3.4s)
+
+java/limit-bound-off-by-one  f78de0d0968f  boundary
+  guard    5/5 checks: java@limit-bound-off-by-one -> /tmp/calibrate-mutant-2071358370/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       survived      1.1s  R0 PASSED: every step matches S_obs byte-for-byte
+  R1       survived     22.0s  R1 PASSED: 4000 requests per implementation, zero unexplai...
+  R2       killed       57.7s  R2 FAILED
+  probe    live, reached by witness  (3.4s)
+
+java/text-rejects-space      100e8c96b4bb  boundary
+  guard    5/5 checks: java@text-rejects-space -> /tmp/calibrate-mutant-4157011635/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.9s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 13 step(s) disagree with S_obs
+  R1       killed       11.0s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     56.9s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=1, seed=2, seed=3, seed=4  (3.1s)
+
+java/timeline-drops-oldest   324a0cc71a63  collection-bound
+  guard    5/5 checks: java@timeline-drops-oldest -> /tmp/calibrate-mutant-3046438928/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.9s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 6 step(s) disagree with S_obs
+  R1       killed       27.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     57.8s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=1, seed=2, seed=3, seed=4  (3.3s)
+
+java/visibility-args-swapped 4f33299df13d  swapped-arguments
+  guard    5/5 checks: java@visibility-args-swapped -> /tmp/calibrate-mutant-636539754/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.9s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 6 step(s) disagree with S_obs
+  R1       killed       36.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       57.2s  R2 FAILED
+
+java/visibility-negation-dropped 6b288dfcba0f  dropped-negation
+  guard    5/5 checks: java@visibility-negation-dropped -> /tmp/calibrate-mutant-2386177575/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 7 step(s) disagree with S_obs
+  R1       killed       22.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       57.7s  R2 FAILED
+
+java/wrong-error-branch-cursor cce858565cc0  wrong-error-branch
+  guard    5/5 checks: java@wrong-error-branch-cursor -> /tmp/calibrate-mutant-3699253199/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.0s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       31.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     57.9s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=1, seed=3, seed=4  (3.3s)
+
+java/handle-case-folded      ada5d14b8e4b  normalisation
+  guard    5/5 checks: java@handle-case-folded -> /tmp/calibrate-mutant-60248520/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 3 step(s) disagree with S_obs
+  R1       killed       11.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     57.4s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=2, seed=3, seed=4  (3.0s)
+
+java/next-cursor-off-by-one  a2c578124646  pagination
+  guard    5/5 checks: java@next-cursor-off-by-one -> /tmp/calibrate-mutant-2738224257/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.9s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       85.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       57.9s  R2 FAILED
+
+java/text-length-in-code-points db623dddd25e  encoding
+  guard    5/5 checks: java@text-length-in-code-points -> /tmp/calibrate-mutant-735117484/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.9s -- charged to no rung
+  R0       survived      1.0s  R0 PASSED: every step matches S_obs byte-for-byte
+  R1       survived     21.8s  R1 PASSED: 4000 requests per implementation, zero unexplai...
+  R2       survived     52.4s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness  (2.9s)
+
+java/jvm-string-identity-compare aeeb7a774627  language-idiom
+  guard    5/5 checks: java@jvm-string-identity-compare -> /tmp/calibrate-mutant-3427479927/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.8s -- charged to no rung
+  R0       killed        0.9s  R0 FAILED: 3 step(s) disagree with S_obs
+  R1       killed       22.3s  R1 FAILED: at least one implementation diverges from S_obs

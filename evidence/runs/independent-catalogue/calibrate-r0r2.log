@@ -1,127 +1,77 @@
 calibrate: 43 mutant(s) x 3 rung(s) = 129 cells
-           rungs=R0,R1,R2  out=/home/user/twitter-port-matrix/evidence/runs/independent-catalogue/r0r2  resume=false
+           rungs=R0,R1,R2  out=/home/user/twitter-port-matrix/evidence/runs/independent-catalogue/r0r2  resume=true
+           journal holds 95 reusable cell(s) and 21 probe(s)
 ==============================================================================
-  floor go        462 ms/launch  (3 samples, spread 447-476 ms)
-  floor rust       97 ms/launch  (3 samples, spread 95-102 ms)
-  floor java     1012 ms/launch  (3 samples, spread 972-1042 ms)
-  floor kotlin   8929 ms/launch  (3 samples, spread 8817-9098 ms)
+  floor go        462 ms/launch  (from journal)
+  floor rust       97 ms/launch  (from journal)
+  floor java     1012 ms/launch  (from journal)
+  floor kotlin   8929 ms/launch  (from journal)
 ------------------------------------------------------------------------------
 
-go/handle-bound-off-by-one   3e09c71e694e  boundary
-  guard    5/5 checks: go@handle-bound-off-by-one -> /tmp/calibrate-mutant-4290013453/tree (baseline go is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
-  R0       survived      0.6s  R0 PASSED: every step matches S_obs byte-for-byte
-  R1       survived     11.1s  R1 PASSED: 4000 requests per implementation, zero unexplai...
-  R2       survived     27.4s  R2 PASSED: every relation holds on every generated state
-  probe    live, reached by witness  (1.6s)
+go/handle-bound-off-by-one   3e09c71e694e  (resumed, 3 cell(s) from journal)
 
-go/limit-bound-off-by-one    52bdd833e50f  boundary
-  guard    5/5 checks: go@limit-bound-off-by-one -> /tmp/calibrate-mutant-126842147/tree (baseline go is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
-  R0       survived      0.5s  R0 PASSED: every step matches S_obs byte-for-byte
-  R1       survived     10.6s  R1 PASSED: 4000 requests per implementation, zero unexplai...
-  R2       killed       28.4s  R2 FAILED
-  probe    live, reached by witness  (1.9s)
+go/limit-bound-off-by-one    52bdd833e50f  (resumed, 3 cell(s) from journal)
 
-go/text-rejects-space        a2172ad7a49f  boundary
-  guard    5/5 checks: go@text-rejects-space -> /tmp/calibrate-mutant-101478365/tree (baseline go is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
-  R0       killed        0.5s  R0 FAILED: 13 step(s) disagree with S_obs
-  R1       killed        5.1s  R1 FAILED: at least one implementation diverges from S_obs
-  R2       survived     29.5s  R2 PASSED: every relation holds on every generated state
-  probe    live, reached by witness, corpus, seed=1, seed=2, seed=3, seed=4  (1.4s)
+go/text-rejects-space        a2172ad7a49f  (resumed, 3 cell(s) from journal)
 
-go/timeline-drops-oldest     d8327769ff03  collection-bound
-  guard    5/5 checks: go@timeline-drops-oldest -> /tmp/calibrate-mutant-2891973695/tree (baseline go is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
-  R0       killed        0.5s  R0 FAILED: 6 step(s) disagree with S_obs
-  R1       killed       13.9s  R1 FAILED: at least one implementation diverges from S_obs
-  R2       survived     30.1s  R2 PASSED: every relation holds on every generated state
-  probe    live, reached by witness, corpus, seed=1, seed=2, seed=3, seed=4  (1.6s)
+go/timeline-drops-oldest     d8327769ff03  (resumed, 3 cell(s) from journal)
 
-go/visibility-args-swapped   8c8a1c1f7f2a  swapped-arguments
-  guard    5/5 checks: go@visibility-args-swapped -> /tmp/calibrate-mutant-919928835/tree (baseline go is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
-  R0       killed        0.5s  R0 FAILED: 6 step(s) disagree with S_obs
-  R1       killed       17.7s  R1 FAILED: at least one implementation diverges from S_obs
-  R2       killed       30.6s  R2 FAILED
+go/visibility-args-swapped   8c8a1c1f7f2a  (resumed, 3 cell(s) from journal)
 
-go/visibility-negation-dropped 52a77143c8cf  dropped-negation
-  guard    5/5 checks: go@visibility-negation-dropped -> /tmp/calibrate-mutant-4127814432/tree (baseline go is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
-  R0       killed        0.5s  R0 FAILED: 7 step(s) disagree with S_obs
-  R1       killed       11.8s  R1 FAILED: at least one implementation diverges from S_obs
-  R2       killed       29.1s  R2 FAILED
+go/visibility-negation-dropped 52a77143c8cf  (resumed, 3 cell(s) from journal)
 
-go/wrong-error-branch-cursor 83c994722b1b  wrong-error-branch
-  guard    5/5 checks: go@wrong-error-branch-cursor -> /tmp/calibrate-mutant-969116859/tree (baseline go is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
-  R0       killed        0.5s  R0 FAILED: 1 step(s) disagree with S_obs
-  R1       killed       15.9s  R1 FAILED: at least one implementation diverges from S_obs
-  R2       survived     30.1s  R2 PASSED: every relation holds on every generated state
-  probe    live, reached by witness, corpus, seed=1, seed=3, seed=4  (1.7s)
+go/wrong-error-branch-cursor 83c994722b1b  (resumed, 3 cell(s) from journal)
 
-go/handle-case-folded        f511130ef597  normalisation
-  guard    5/5 checks: go@handle-case-folded -> /tmp/calibrate-mutant-4147917590/tree (baseline go is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
-  R0       killed        0.6s  R0 FAILED: 3 step(s) disagree with S_obs
-  R1       killed        6.2s  R1 FAILED: at least one implementation diverges from S_obs
-  R2       survived     29.8s  R2 PASSED: every relation holds on every generated state
-  probe    live, reached by witness, corpus, seed=2, seed=3, seed=4  (1.6s)
+go/handle-case-folded        f511130ef597  (resumed, 3 cell(s) from journal)
 
-go/next-cursor-off-by-one    2f5e4e25336c  pagination
-  guard    5/5 checks: go@next-cursor-off-by-one -> /tmp/calibrate-mutant-2319838794/tree (baseline go is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
-  R0       killed        0.5s  R0 FAILED: 1 step(s) disagree with S_obs
-  R1       killed       44.5s  R1 FAILED: at least one implementation diverges from S_obs
-  R2       killed       30.7s  R2 FAILED
+go/next-cursor-off-by-one    2f5e4e25336c  (resumed, 3 cell(s) from journal)
 
-go/text-length-in-code-points 7f26697d1bbf  encoding
-  guard    5/5 checks: go@text-length-in-code-points -> /tmp/calibrate-mutant-1774014484/tree (baseline go is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
-  R0       survived      0.6s  R0 PASSED: every step matches S_obs byte-for-byte
-  R1       survived     11.9s  R1 PASSED: 4000 requests per implementation, zero unexplai...
-  R2       survived     30.0s  R2 PASSED: every relation holds on every generated state
-  probe    live, reached by witness  (1.9s)
+go/text-length-in-code-points 7f26697d1bbf  (resumed, 3 cell(s) from journal)
 
-go/go-slice-len-aliasing     4dd34b51acb6  language-idiom
-  guard    5/5 checks: go@go-slice-len-aliasing -> /tmp/calibrate-mutant-2817171249/tree (baseline go is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
-  R0       killed        0.5s  R0 FAILED: 8 step(s) disagree with S_obs
-  R1       killed       10.3s  R1 FAILED: at least one implementation diverges from S_obs
-  R2       killed       29.7s  R2 FAILED
+go/go-slice-len-aliasing     4dd34b51acb6  (resumed, 3 cell(s) from journal)
 
-rust/handle-bound-off-by-one 2147f4ccfc78  boundary
-  guard    5/5 checks: rust@handle-bound-off-by-one -> /tmp/calibrate-mutant-4206891471/tree (baseline rust is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 29.1s -- charged to no rung
-  R0       survived      0.2s  R0 PASSED: every step matches S_obs byte-for-byte
-  R1       survived      3.3s  R1 PASSED: 4000 requests per implementation, zero unexplai...
-  R2       survived      7.5s  R2 PASSED: every relation holds on every generated state
-  probe    live, reached by witness  (28.0s)
+rust/handle-bound-off-by-one 2147f4ccfc78  (resumed, 3 cell(s) from journal)
 
-rust/limit-bound-off-by-one  6b47d580da71  boundary
-  guard    5/5 checks: rust@limit-bound-off-by-one -> /tmp/calibrate-mutant-4140773739/tree (baseline rust is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 25.7s -- charged to no rung
-  R0       survived      0.1s  R0 PASSED: every step matches S_obs byte-for-byte
-  R1       survived      3.6s  R1 PASSED: 4000 requests per implementation, zero unexplai...
-  R2       killed        7.7s  R2 FAILED
-  probe    live, reached by witness  (27.0s)
+rust/limit-bound-off-by-one  6b47d580da71  (resumed, 3 cell(s) from journal)
 
-rust/text-rejects-space      94d87503f23c  boundary
-  guard    5/5 checks: rust@text-rejects-space -> /tmp/calibrate-mutant-4128569191/tree (baseline rust is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 26.9s -- charged to no rung
-  R0       killed        0.1s  R0 FAILED: 13 step(s) disagree with S_obs
-  R1       killed        1.4s  R1 FAILED: at least one implementation diverges from S_obs
-  R2       survived      7.5s  R2 PASSED: every relation holds on every generated state
-  probe    live, reached by witness, corpus, seed=1, seed=2, seed=3, seed=4  (27.7s)
+rust/text-rejects-space      94d87503f23c  (resumed, 3 cell(s) from journal)
 
-rust/timeline-drops-oldest   71a1f8862f1b  collection-bound
-  guard    5/5 checks: rust@timeline-drops-oldest -> /tmp/calibrate-mutant-114724726/tree (baseline rust is a different tree)
-  setup    apply 0.0s (walk copy) + warm build 26.4s -- charged to no rung
-  R0       killed        0.2s  R0 FAILED: 6 step(s) disagree with S_obs
-  R1       killed        3.4s  R1 FAILED: at least one implementation diverges from S_obs
-  R2       survived      7.6s  R2 PASSED: every relation holds on every generated state
-  probe    live, reached by witness, corpus, seed=1, seed=2, seed=3, seed=4  (29.5s)
+rust/timeline-drops-oldest   71a1f8862f1b  (resumed, 3 cell(s) from journal)
 
-rust/visibility-args-swapped 3ed75ace2f5d  swapped-arguments
-  guard    5/5 checks: rust@visibility-args-swapped -> /tmp/calibrate-mutant-1495419434/tree (baseline rust is a different tree)
+rust/visibility-args-swapped 3ed75ace2f5d  (resumed, 3 cell(s) from journal)
+
+rust/visibility-negation-dropped 521b2aaab22e  (resumed, 3 cell(s) from journal)
+
+rust/wrong-error-branch-cursor 076c06fc55cc  (resumed, 3 cell(s) from journal)
+
+rust/handle-case-folded      8c4aa5918e1a  (resumed, 3 cell(s) from journal)
+
+rust/next-cursor-off-by-one  39b0f8476b49  (resumed, 3 cell(s) from journal)
+
+rust/text-length-in-code-points 1070972c9f83  (resumed, 3 cell(s) from journal)
+
+java/handle-bound-off-by-one 2c8de4f72a08  (resumed, 3 cell(s) from journal)
+
+java/limit-bound-off-by-one  f78de0d0968f  (resumed, 3 cell(s) from journal)
+
+java/text-rejects-space      100e8c96b4bb  (resumed, 3 cell(s) from journal)
+
+java/timeline-drops-oldest   324a0cc71a63  (resumed, 3 cell(s) from journal)
+
+java/visibility-args-swapped 4f33299df13d  (resumed, 3 cell(s) from journal)
+
+java/visibility-negation-dropped 6b288dfcba0f  (resumed, 3 cell(s) from journal)
+
+java/wrong-error-branch-cursor cce858565cc0  (resumed, 3 cell(s) from journal)
+
+java/handle-case-folded      ada5d14b8e4b  (resumed, 3 cell(s) from journal)
+
+java/next-cursor-off-by-one  a2c578124646  (resumed, 3 cell(s) from journal)
+
+java/text-length-in-code-points db623dddd25e  (resumed, 3 cell(s) from journal)
+
+java/jvm-string-identity-compare aeeb7a774627  language-idiom
+  guard    5/5 checks: java@jvm-string-identity-compare -> /tmp/calibrate-mutant-3537264119/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.5s -- charged to no rung
+  R0       killed        0.9s  (resumed)
+  R1       killed       22.3s  (resumed)
