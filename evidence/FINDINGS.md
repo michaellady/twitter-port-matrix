@@ -35,6 +35,7 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F023 | the strongest rungs cannot see a constant | an id origin shifted by one is killed by R0 and R1, and survives R2, R4 and R5 |
 | F024 | a count that goes down is the repair | two of the four drifted Verus twins carried no `ensures` at all, so deleting them took 23 verified to 21 and lost nothing |
 | F025 | three of seven VERIFIED were never audited | the canary sweep was indexed by canary, not by claim, so three obligations with no canary at all passed the one gate built to catch that — and the audit that would have caught it costs 3 s on a bounded checker and does not terminate on a deductive one |
+| F026 | the proof half of the matrix has no cell | one corner has a proof rung and no ordered pair has that corner at both ends, so all 24 R4/R5 cells are capped and the Go sweep fills none of them |
 
 ---
 

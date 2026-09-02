@@ -201,11 +201,23 @@ whole contract.
    that exist, attributing each kill to **every** rung that kills it rather
    than the first to run. `evidence/CALIBRATION-four-corner.md` is the R0-R2
    baseline to extend, not replace.
+   - [x] **Per-judge attribution confirmed and locked.** The sweep already ran
+         every rung against every mutant; `runRungs` now carries the reason and
+         three tests fail against an injected first-judge `break`. Nothing about
+         the sweep's shape needs deciding before it runs.
 3. **The twelve cells.** For each ordered pair, run `calibrate` with A as the
    base and B as the subject, and shape `evidence/MATRIX.md` as the 12 x 6
    table GOAL.md opens with, with a **coverage denominator** beside each kill
    rate (F008). Cells whose weaker end caps the rung say so in the cell rather
    than leaving it blank.
+   - [x] **The coverage denominator ships with every rate.** `calibrate` prints
+         `killed/reached` as a fraction and states per rung what was excluded
+         and why; `results.json` carries `cells`, `reached` and `excluded`.
+   - [x] **`evidence/MATRIX.md` exists as a skeleton**: 36 measured cells, 24
+         capped, 12 n/a (R3), 0 pending, no invented number, and the exact
+         invocation that fills each column. **F026: all 24 R4/R5 cells are
+         capped and the Go proof sweep fills none of them** -- the first proof
+         cell needs a second corner's verifier rung, not another sweep.
 4. **A second catalogue from a source other than the contract** -- incident
    history, a fuzzer corpus. Until this exists the 100% rows partly measure
    that catalogue and corpus share a parent.
@@ -287,6 +299,61 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 17:45 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`, branch
+  `claude/loop-f-matrix-shape`)** — **The two prerequisites queue items 2 and 3
+  both depend on, made before the 72-mutant sweep rather than after it.**
+  1. **Attribution was already per-judge; nothing was changed to make it so.**
+     `calibrateRunnable` runs every selected rung against every mutant with no
+     short circuit, so a mutant killed at R0 and R2 is already in both rows'
+     kill counts. What was missing was anything stopping that from being
+     undone: the loop is now `runRungs` with the invocation injected, carrying
+     the reason in its doc comment, and three tests lock it. Shown to fail
+     (standing rule 2) by injecting `if c.Outcome == outcomeKilled { break }`:
+     ```
+     --- FAIL: TestEveryRungRunsAfterAKill          the sweep asked [R0]
+     --- FAIL: TestResumedCellDoesNotSkipTheOtherRungs  asked [R1], want [R1 R2]
+     --- FAIL: TestKillAtTwoRungsCreditsBothRows    R1: killed/reached = 0/0, want 0/1
+     ```
+     On this catalogue first-judge would report every rung after R0 as killing
+     nothing, since R0 kills 72 of 72.
+  2. **Every reported rate now carries its denominator.** `killed/reached` and
+     `killed/live` are printed as fractions (`14/14 = 100%`, `7/17 = 41%`), the
+     summary rows carry `cells`, `reached` and a per-outcome `excluded` list
+     into `results.json`, and a `DENOMINATORS` section states per rung how many
+     cells were excluded and why, in the excluded outcome's own words (F009 for
+     an input gap, F022 for a proof rung's reach). Shown to fail by restoring
+     the old rendering with the new fields in place — three tests fail, and the
+     one that matters most is the zero-denominator case, where the old renderer
+     printed a rate for a rung that reached nothing:
+     ```
+     before   R4 proof   2  0  0  2  0     0%     0%    0s
+     after    R4 proof   2  0  0  2  0   0/0 = n/a   0/2 = 0%   0s
+     ```
+     `0%` is the same six characters for "reached nothing" and "saw everything
+     and killed none". Smoke-tested end to end at `-impls go -rungs R0 -ids
+     limit-off-by-one`: `R0 FAILED: 1 step(s) disagree with S_obs`, reported as
+     `killed/reached 1/1 = 100%`, `0 excluded`.
+  3. **`evidence/MATRIX.md` created as a skeleton** — 12 ordered pairs × R0-R5,
+     72 cells: **36 measured** (R0/R1/R2 from `four-corner`, with denominators),
+     **24 capped**, **12 n/a** (the R3 column: a claim about the model, not
+     about code), **0 pending**. No number in it is invented; each is copied
+     from `evidence/runs/calibration/four-corner/results.json` or from
+     `ASSURANCE.md`'s ceiling table. It opens with the B ← A definition over the
+     four EXISTING corners — no cell requires a new implementation — and with
+     `CALIBRATION.md`'s caveat, and it records the exact `calibrate` invocation
+     that fills each column.
+  **F026 written**, and it changes what the next fire should expect: **all 24
+  R4/R5 cells are capped**, because only Go has a proof rung and no ordered pair
+  has Go at both ends. The Go R4+R5 sweep is still the right next step — it
+  answers whether R4 and R5 discriminate at all, which five mutants cannot — but
+  it fills **one end of six rows and zero cells of the matrix**. The first proof
+  cell needs a *second* corner's verifier rung. A fire that runs the sweep
+  expecting a matrix cell will report a success as a failure.
+  `go build`, `go vet`, `go test ./tools/...` all clean; 9 new tests.
+  **Next fire: the Go corner's full R4+R5 sweep**, unchanged from the entry
+  below — `-impls go -rungs R4,R5 -out evidence/runs/calibration/go-proof
+  -resume`, ~50 minutes, journalled per cell. Read its result as one end's rate,
+  not as a matrix cell (F026).
 - **2026-09-02 18:20 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`, branch
   `claude/loop-c-jbmc-rung`)** — **Queue item 1, fourth sub-step: DONE. R4 is a
   `calibrate` rung on the Kotlin corner, driven by JBMC.** New tool
