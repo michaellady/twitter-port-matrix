@@ -97,7 +97,7 @@ func cmdR5(args []string) error {
 				r.Evidence += " on " + c.Blocker + " — " + ob.Blockers[c.Blocker]
 			}
 		default:
-			verified, refuted, missing := 0, 0, 0
+			refuted, vac, undecided, missing := 0, 0, 0, 0
 			var lines []string
 			for _, st := range s.Sites {
 				cr, ok := byText[st.File+"\x00"+st.Text]
@@ -105,25 +105,41 @@ func cmdR5(args []string) error {
 					missing++
 					continue
 				}
-				verified++
-				if cr.Verdict == refutable {
+				switch cr.Verdict {
+				case refutable:
 					refuted++
 					if len(cr.Errors) > 0 {
 						lines = append(lines, cr.Errors[0])
 					}
+				case vacuous:
+					vac++
+				default:
+					// TIMEOUT or ILL-FORMED. Neither answer was established.
+					undecided++
 				}
 			}
 			switch {
+			case vac > 0:
+				// One vacuous site is enough: the clause is not proved.
+				r.Status = "VACUOUS"
+				r.Evidence = fmt.Sprintf("%d of %d sites verified their own negation", vac, len(s.Sites))
 			case missing > 0:
 				r.Status = "UNATTEMPTED"
 				r.Evidence = fmt.Sprintf("%d of %d sites not in the canary run", missing, len(s.Sites))
+			case undecided > 0:
+				// Not VERIFIED: the package is green, but a green package is
+				// exactly the evidence F013 showed is compatible with an
+				// empty obligation. Without a refuted negation there is no
+				// per-clause evidence, so this clause is unaudited.
+				r.Status = "UNAUDITED"
+				r.Evidence = fmt.Sprintf("%d of %d sites: the solver did not decide the negation "+
+					"within the budget, so reachability is unestablished", undecided, len(s.Sites))
 			case refuted == len(s.Sites):
 				r.Status = "VERIFIED"
 				r.Evidence = firstLine(lines)
 			default:
-				r.Status = "VACUOUS"
-				r.Evidence = fmt.Sprintf("%d of %d sites could not be refuted when negated",
-					len(s.Sites)-refuted, len(s.Sites))
+				r.Status = "UNAUDITED"
+				r.Evidence = "no per-clause evidence"
 			}
 		}
 		counts[r.Status]++
@@ -139,7 +155,7 @@ func cmdR5(args []string) error {
 			r.N, r.Corner, trunc(r.Op, 11), trunc(r.Site, 26), r.Status, trunc(r.Summary, 62))
 	}
 	fmt.Println()
-	keys := []string{"VERIFIED", "VACUOUS", "FAILED", "UNATTEMPTED"}
+	keys := []string{"VERIFIED", "VACUOUS", "FAILED", "UNAUDITED", "UNATTEMPTED"}
 	var parts []string
 	for _, k := range keys {
 		if counts[k] > 0 {
@@ -153,6 +169,15 @@ func cmdR5(args []string) error {
 	for _, r := range rows {
 		if r.Status == "VERIFIED" {
 			fmt.Printf("  %2d  %s\n      %s\n", r.N, r.Site, r.Evidence)
+		}
+	}
+	if counts["UNAUDITED"] > 0 {
+		fmt.Println("\nUNAUDITED — the package verifies with the clause present, but its negation")
+		fmt.Println("was not decided, so nothing rules out the clause being vacuous:")
+		for _, r := range rows {
+			if r.Status == "UNAUDITED" {
+				fmt.Printf("  %2d  %-26s %s\n      %s\n", r.N, r.Site, r.Evidence, trunc(r.Summary, 90))
+			}
 		}
 	}
 	if counts["UNATTEMPTED"] > 0 {

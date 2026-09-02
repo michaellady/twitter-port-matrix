@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,15 +13,15 @@ import (
 // A clause is one `ensures` in the Go corner's contracts, together with the
 // member it sits on and the negation the canary sweep will substitute for it.
 type clause struct {
-	File      string // repo-relative, e.g. internal/store/memstore.go
-	Pkg       string // internal/store
-	StartLine int    // 1-based line of the `ensures` keyword
-	EndLine   int    // last continuation line
-	Member    string // the func/method the contract belongs to
-	Text      string // the clause expression, continuations joined
-	Kind      clauseKind
-	Canary    string // the expression the canary substitutes
-	CanaryWhy string // what verifying the canary would mean
+	File      string     `json:"File"`      // repo-relative, e.g. internal/store/memstore.go
+	Pkg       string     `json:"Pkg"`       // internal/store
+	StartLine int        `json:"StartLine"` // 1-based line of the `ensures` keyword
+	EndLine   int        `json:"EndLine"`   // last continuation line
+	Member    string     `json:"Member"`    // the func/method the contract belongs to
+	Text      string     `json:"Text"`      // the clause expression, continuations joined
+	Kind      clauseKind `json:"Kind"`
+	Canary    string     `json:"Canary"`    // the expression the canary substitutes
+	CanaryWhy string     `json:"CanaryWhy"` // what verifying the canary would mean
 }
 
 type clauseKind string
@@ -259,12 +261,29 @@ func indexTopLevel(s, tok string) int {
 }
 
 func cmdClauses(args []string) error {
-	implDir, err := implDirFromArgs(args)
+	fs := flag.NewFlagSet("clauses", flag.ContinueOnError)
+	impl := fs.String("impl", "impls/go", "the Go implementation directory")
+	asJSON := fs.Bool("json", false, "emit the full clause records as JSON")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	implDir, err := implDirFromArgs([]string{"-impl", *impl})
 	if err != nil {
 		return err
 	}
 	all, err := allClauses(implDir)
 	if err != nil {
+		return err
+	}
+	if *asJSON {
+		// The table below truncates; anything that consumes clause text
+		// downstream must read this instead. A mapping built from the
+		// truncated display text silently fails to match.
+		b, err := json.MarshalIndent(all, "", "  ")
+		if err != nil {
+			return err
+		}
+		_, err = os.Stdout.Write(append(b, '\n'))
 		return err
 	}
 	counts := map[clauseKind]int{}
