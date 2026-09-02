@@ -137,6 +137,8 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::RwLock;
 
+use vstd::prelude::*;
+
 use domain::{Follow, Tweet, User};
 
 /// Flat snapshot of the verified core's data model. Used by Stream 2's
@@ -177,19 +179,265 @@ impl std::fmt::Display for StoreError {
 
 impl std::error::Error for StoreError {}
 
-#[derive(Default)]
-struct Inner {
-    users: HashMap<String, User>,
+verus! {
+
+/// The store's entire state, as a plain owned value.
+///
+/// **This type is the reason R5 was unreachable on this corner.** Until
+/// 2026-09-02 the same three fields lived *inside* `MemStore`'s
+/// `RwLock<Inner>`, and `vstd 0.0.0-2026-04-20-1748` ships no
+/// `std_specs/sync.rs`. Making `MemStore` structurally visible to Verus so a
+/// `spec fn` could project the fields reports, verbatim (reproduced
+/// 2026-09-02, see `evidence/findings/F041`):
+///
+/// ```text
+/// error: `std::sync::poison::rwlock::RwLock` is not supported
+/// error: `std::sync::poison::rwlock::RwLockReadGuard` is not supported
+/// error: `std::sync::poison::rwlock::impl&%11::read` is not supported
+/// error: `std::sync::poison::PoisonError` is not supported
+/// error: `std::sync::poison::rwlock::impl&%23::deref` is not supported
+/// ```
+///
+/// `Inner` is now declared inside the `verus!` block, so the verifier sees
+/// the fields directly and the abstraction functions below have BODIES. The
+/// lock moved out to `MemStore`, which is the trusted boundary.
+pub struct Inner {
+    pub users: HashMap<String, User>,
     /// Follow edges, flat: the edge IS the key. Previously
     /// `HashMap<String, HashSet<String>>`, whose nested shape forced every
     /// inner operation into an `external_body` shim.
-    follows: HashSet<(String, String)>,
+    pub follows: HashSet<(String, String)>,
     /// Per-author append-only list, in insertion order.
     /// ONE append-ordered tweet log; never sorted. Replaces
     /// `HashMap<String, Vec<Tweet>>`. See F004/F005: the monotonicity lemma
     /// makes F2 a consequence of this shape rather than a claim about a sort.
-    tweets: Vec<Tweet>,
+    pub tweets: Vec<Tweet>,
 }
+
+/// `abs_rust`, users axis: the set of registered handles, viewed as
+/// `Seq<char>`. This is `abs_L` from `ASSURANCE.md`'s R5 obligation,
+/// projected onto the axis `S_obs` calls `users`.
+///
+/// It has a body. That is the whole point.
+pub open spec fn abs_users(i: &Inner) -> Set<Seq<char>> {
+    Set::new(|h: Seq<char>| exists|k: String| #[trigger] i.users@.contains_key(k) && k@ == h)
+}
+
+/// `abs_rust`, follows axis: the set of follow edges, viewed as pairs of
+/// `Seq<char>`.
+pub open spec fn abs_follows(i: &Inner) -> Set<(Seq<char>, Seq<char>)> {
+    Set::new(
+        |e: (Seq<char>, Seq<char>)|
+            exists|p: (String, String)|
+                #[trigger] i.follows@.contains(p) && p.0@ == e.0 && p.1@ == e.1,
+    )
+}
+
+/// `abs_rust`, tweets axis: the append-ordered log, as a `Seq`.
+pub open spec fn abs_tweets(i: &Inner) -> Seq<Tweet> {
+    i.tweets@
+}
+
+/// **Trusted (TCB), one axiom, and the only one this crate adds.**
+///
+/// `vstd`'s `HashMap` / `HashSet` specifications are all conditioned on
+/// `obeys_key_model::<Key>()`, an uninterpreted predicate meaning "this key
+/// type's `Hash` and `Eq` agree with `==` on the abstract value". vstd proves
+/// it by broadcast axiom for every primitive and `Box` thereof, and **not for
+/// `String`** — see `vstd/std_specs/hash.rs`, whose own doc comment says the
+/// user must `assume(obeys_key_model::<MyKey>())` and that "in the future, we
+/// plan to devise a way for you to prove that it does so". vstd's own
+/// `StringHashMap` / `StringHashSet` wrappers are `external_body` and assume
+/// exactly this.
+///
+/// It is stated here as one named, greppable axiom rather than buried in an
+/// `assume` inside a body, so `TCB.md` can carry one row for it.
+pub broadcast proof fn axiom_string_obeys_key_model()
+    ensures
+        #[trigger] vstd::std_specs::hash::obeys_key_model::<String>(),
+{
+    admit();
+}
+
+/// **Trusted (TCB), the second and last axiom.** The same `obeys_key_model`
+/// hole as above, for the follow-edge key type. `follows` is a
+/// `HashSet<(String, String)>` — the edge IS the key (F004) — and vstd proves
+/// the predicate for no tuple type either.
+pub broadcast proof fn axiom_string_pair_obeys_key_model()
+    ensures
+        #[trigger] vstd::std_specs::hash::obeys_key_model::<(String, String)>(),
+{
+    admit();
+}
+
+impl Inner {
+    /// R5, obligation 1 of 3: `abs_L(init_L) == init_S`.
+    ///
+    /// `init_S` is the empty state on all three axes. Before the lift this
+    /// clause could not be *stated*, because `abs_users` had no body.
+    pub fn new() -> (i: Inner)
+        ensures
+            abs_users(&i) == Set::<Seq<char>>::empty(),
+            abs_follows(&i) == Set::<(Seq<char>, Seq<char>)>::empty(),
+            abs_tweets(&i) == Seq::<Tweet>::empty(),
+    {
+        let i = Inner {
+            users: HashMap::new(),
+            follows: HashSet::new(),
+            tweets: Vec::new(),
+        };
+        assert(abs_users(&i) =~= Set::<Seq<char>>::empty());
+        assert(abs_follows(&i) =~= Set::<(Seq<char>, Seq<char>)>::empty());
+        assert(abs_tweets(&i) =~= Seq::<Tweet>::empty());
+        i
+    }
+
+    /// R5, obligation 3 of 3, users axis, `put_user` step:
+    /// `abs_L(step_L(s, r)) == step_S(abs_L(s), r)`.
+    ///
+    /// `step_S` for a `POST /users` that is accepted inserts the handle into
+    /// the user set and does nothing else; for one that is rejected it is the
+    /// identity. Both directions are stated, plus the accept/reject condition
+    /// that decides which applies — without that, "the state commutes" says
+    /// nothing about *when*.
+    ///
+    /// This is the shipped function. `MemStore::put_user` takes the lock and
+    /// calls it.
+    pub fn put_user(&mut self, u: User) -> (result: Result<(), StoreError>)
+        ensures
+            result is Err ==> abs_users(old(self)).contains(u.handle@),
+            result is Err ==> abs_users(self) == abs_users(old(self)),
+            result is Ok ==> abs_users(self) == abs_users(old(self)).insert(u.handle@),
+    {
+        broadcast use vstd::std_specs::hash::group_hash_axioms;
+        broadcast use axiom_string_obeys_key_model;
+
+        if self.users.contains_key(&u.handle) {
+            assert(self.users@.contains_key(u.handle));
+            assert(abs_users(self).contains(u.handle@));
+            return Err(StoreError::HandleTaken);
+        }
+        let ghost old_self = *self;
+        let ghost hv = u.handle@;
+        let h = u.handle.clone();
+        self.users.insert(h, u);
+        assert(self.users@ =~= old_self.users@.insert(h, u));
+        assert forall|x: Seq<char>| abs_users(self).contains(x) implies
+            abs_users(&old_self).insert(hv).contains(x) by {
+            let k = choose|k: String| #[trigger] self.users@.contains_key(k) && k@ == x;
+            if k != h {
+                assert(old_self.users@.contains_key(k));
+            }
+        }
+        assert forall|x: Seq<char>| abs_users(&old_self).insert(hv).contains(x) implies
+            abs_users(self).contains(x) by {
+            if x == hv {
+                assert(self.users@.contains_key(h));
+            } else {
+                let k = choose|k: String| #[trigger] old_self.users@.contains_key(k) && k@ == x;
+                assert(self.users@.contains_key(k));
+            }
+        }
+        assert(abs_users(self) =~= abs_users(&old_self).insert(hv));
+        Ok(())
+    }
+
+    /// R5, obligation 3 of 3, follows axis, `put_follow` step.
+    ///
+    /// Both the accept and the reject transition, plus the F9 premise that
+    /// decides between them: an accepted edge has both endpoints registered.
+    /// The users and tweets axes are stated as unchanged — a commutation
+    /// clause that only constrains the axis it writes to says nothing about
+    /// the ones it must leave alone.
+    pub fn put_follow(&mut self, f: Follow) -> (result: Result<(), StoreError>)
+        ensures
+            result is Ok ==> abs_users(old(self)).contains(f.from@),
+            result is Ok ==> abs_users(old(self)).contains(f.to@),
+            result is Ok ==> abs_follows(self) == abs_follows(old(self)).insert((f.from@, f.to@)),
+            result is Err ==> abs_follows(self) == abs_follows(old(self)),
+            abs_users(self) == abs_users(old(self)),
+            abs_tweets(self) == abs_tweets(old(self)),
+    {
+        broadcast use vstd::std_specs::hash::group_hash_axioms;
+        broadcast use axiom_string_obeys_key_model;
+        broadcast use axiom_string_pair_obeys_key_model;
+
+        if !self.users.contains_key(&f.from) {
+            return Err(StoreError::UnknownUser);
+        }
+        if !self.users.contains_key(&f.to) {
+            return Err(StoreError::UnknownUser);
+        }
+        assert(abs_users(self).contains(f.from@));
+        assert(abs_users(self).contains(f.to@));
+        let ghost old_self = *self;
+        let ghost e = (f.from@, f.to@);
+        let edge = (f.from, f.to);
+        self.follows.insert(edge);
+        assert(self.follows@ =~= old_self.follows@.insert(edge));
+        assert forall|x: (Seq<char>, Seq<char>)| abs_follows(self).contains(x) implies
+            abs_follows(&old_self).insert(e).contains(x) by {
+            let p = choose|p: (String, String)| #[trigger] self.follows@.contains(p)
+                && p.0@ == x.0 && p.1@ == x.1;
+            if p != edge {
+                assert(old_self.follows@.contains(p));
+            }
+        }
+        assert forall|x: (Seq<char>, Seq<char>)| abs_follows(&old_self).insert(e).contains(x)
+            implies abs_follows(self).contains(x) by {
+            if x == e {
+                assert(self.follows@.contains(edge));
+            } else {
+                let p = choose|p: (String, String)| #[trigger] old_self.follows@.contains(p)
+                    && p.0@ == x.0 && p.1@ == x.1;
+                assert(self.follows@.contains(p));
+            }
+        }
+        assert(abs_follows(self) =~= abs_follows(&old_self).insert(e));
+        Ok(())
+    }
+
+    /// R5, obligation 3 of 3, tweets axis, `put_tweet` step.
+    ///
+    /// This axis needs **no** project-local axiom: `Vec::push` is modelled by
+    /// vstd outright, so `abs_tweets` commutes on the strength of vstd's own
+    /// specification. Compare the two `obeys_key_model` axioms the hash-keyed
+    /// axes need.
+    pub fn put_tweet(&mut self, t: Tweet) -> (result: Result<(), StoreError>)
+        ensures
+            result is Ok ==> abs_users(old(self)).contains(t.author@),
+            result is Ok ==> abs_tweets(self) == abs_tweets(old(self)).push(t),
+            result is Err ==> abs_tweets(self) == abs_tweets(old(self)),
+            abs_users(self) == abs_users(old(self)),
+            abs_follows(self) == abs_follows(old(self)),
+    {
+        broadcast use vstd::std_specs::hash::group_hash_axioms;
+        broadcast use axiom_string_obeys_key_model;
+
+        if !self.users.contains_key(&t.author) {
+            return Err(StoreError::UnknownUser);
+        }
+        assert(abs_users(self).contains(t.author@));
+        // ENFORCE the monotonicity lemma's premises rather than assuming
+        // them. F2 is derived from the log being ordered by construction, and
+        // that rests on two facts about every append: ids strictly increase,
+        // created_at never decreases. Nothing previously checked either, so an
+        // out-of-order append would silently produce a mis-ordered timeline
+        // with no failing test and no failing proof. See F005.
+        let n = self.tweets.len();
+        if n > 0 {
+            let last_id = self.tweets[n - 1].id;
+            let last_created_at = self.tweets[n - 1].created_at;
+            if t.id <= last_id || t.created_at < last_created_at {
+                return Err(StoreError::NonMonotonic);
+            }
+        }
+        self.tweets.push(t);
+        Ok(())
+    }
+}
+
+} // verus!
 
 /// Thread-safe in-memory store. All exported methods take `&self` and lock
 /// internally; this is what F5-rust hangs on.
@@ -200,17 +448,13 @@ pub struct MemStore {
 impl MemStore {
     /// Returns an empty store.
     pub fn new() -> Self {
-        Self { inner: RwLock::new(Inner::default()) }
+        Self { inner: RwLock::new(Inner::new()) }
     }
 
     /// Registers a user. Returns `DuplicateUser` if the handle is taken.
     pub fn put_user(&self, u: User) -> Result<(), StoreError> {
         let mut g = self.inner.write().expect("store poisoned");
-        if g.users.contains_key(&u.handle) {
-            return Err(StoreError::HandleTaken);
-        }
-        g.users.insert(u.handle.clone(), u);
-        Ok(())
+        g.put_user(u)
     }
 
     /// Reports user existence.
@@ -222,14 +466,7 @@ impl MemStore {
     /// Records a follow edge. Idempotent (F3); rejects unknown users (F9).
     pub fn put_follow(&self, f: Follow) -> Result<(), StoreError> {
         let mut g = self.inner.write().expect("store poisoned");
-        if !g.users.contains_key(&f.from) {
-            return Err(StoreError::UnknownUser);
-        }
-        if !g.users.contains_key(&f.to) {
-            return Err(StoreError::UnknownUser);
-        }
-        g.follows.insert((f.from, f.to));
-        Ok(())
+        g.put_follow(f)
     }
 
     /// Reports whether `from` follows `to`. One flat lookup; this is the
@@ -248,22 +485,7 @@ impl MemStore {
     /// Appends a tweet to its author's list. Rejects unknown authors (F6).
     pub fn put_tweet(&self, t: Tweet) -> Result<(), StoreError> {
         let mut g = self.inner.write().expect("store poisoned");
-        if !g.users.contains_key(&t.author) {
-            return Err(StoreError::UnknownUser);
-        }
-        // ENFORCE the monotonicity lemma's premises rather than assuming
-        // them. F2 is derived from the log being ordered by construction, and
-        // that rests on two facts about every append: ids strictly increase,
-        // created_at never decreases. Nothing previously checked either, so an
-        // out-of-order append would silently produce a mis-ordered timeline
-        // with no failing test and no failing proof. See F005.
-        if let Some(last) = g.tweets.last() {
-            if t.id <= last.id || t.created_at < last.created_at {
-                return Err(StoreError::NonMonotonic);
-            }
-        }
-        g.tweets.push(t);
-        Ok(())
+        g.put_tweet(t)
     }
 
     /// Returns the set of handles `from` follows. Snapshot copy.
