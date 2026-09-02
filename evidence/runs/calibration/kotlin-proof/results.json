@@ -1,0 +1,1313 @@
+{
+  "tool": "calibrate",
+  "started_at": "2026-09-02T20:05:49Z",
+  "finished_at": "2026-09-02T20:51:21Z",
+  "config": {
+    "root": "/home/user/twitter-port-matrix",
+    "manifest": "tools/cmd/mutate/mutants.json",
+    "registry": "impls/registry.json",
+    "corpus": "generated/conformance.jsonl",
+    "impls": [
+      "kotlin"
+    ],
+    "rungs": [
+      "R4"
+    ],
+    "r1_traces": 20,
+    "r1_steps": 200,
+    "r1_seed": 1,
+    "r2_rounds": 6,
+    "r2_setup": 40,
+    "r2_seed": 1,
+    "probe_mode": "any",
+    "probe_traces": 4,
+    "probe_steps": 120,
+    "floor_samples": 3,
+    "rung_timeout": "20m0s"
+  },
+  "launch_floors": {
+    "kotlin": {
+      "impl": "kotlin",
+      "samples": 3,
+      "launch_ms": 11303.914333333334,
+      "build_ms": 11176.666333333334,
+      "min_ms": 10947.36,
+      "max_ms": 11503.204
+    }
+  },
+  "setups": [
+    {
+      "mutant": "kotlin/id-first-is-two",
+      "tree_hash": "sha256:73f7bb9525a69efbb34aa6d040a87ed0debcd965600f1bc750ca1385c0524035",
+      "apply_ms": 15.34,
+      "warm_build_ms": 10723.666,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/id-burned-on-reject",
+      "tree_hash": "sha256:3b9b35823d6841446ea5dfbeefdd2c3bc84ba52a5a0a6efed98ad5ad8b301aea",
+      "apply_ms": 11.355,
+      "warm_build_ms": 11867.176,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/self-follow-guard-dropped",
+      "tree_hash": "sha256:f5f7c8308180df6a7dc66cd7ae973006a97b86b7a64ac9aafec79a896e1b2d4a",
+      "apply_ms": 10.86,
+      "warm_build_ms": 10944.577,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/follow-precedence-flipped",
+      "tree_hash": "sha256:9fafec776cb86c2d425db0abf906ae1f31d0fb7a6bea18abcdaa96ab93565afa",
+      "apply_ms": 9.754,
+      "warm_build_ms": 10603.755,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/timeline-scan-reversed",
+      "tree_hash": "sha256:4239111ce96fcf9bf84e7311ab6db2aa6bad688a67713f2039fdb1aa4844eb29",
+      "apply_ms": 10.421,
+      "warm_build_ms": 11142.606,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/timeline-tiebreak-by-id-asc",
+      "tree_hash": "sha256:7e65e3e1dbdbcb24112f52bbb646eba09fbab31cd7d34dd403494c7b8938eb46",
+      "apply_ms": 11.874,
+      "warm_build_ms": 12631.331,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/follow-toggles",
+      "tree_hash": "sha256:129711fe76459f2a96a1d4e3045226dd77a378daa0cf6a3af158f25fc276128b",
+      "apply_ms": 11.078,
+      "warm_build_ms": 10913.602,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/unfollow-rejects-missing-edge",
+      "tree_hash": "sha256:a0fc8aca9eaf75f1e7c9be2e8c92c02242a8b1680dabb97a5c5e79d572ce7a0e",
+      "apply_ms": 10.971,
+      "warm_build_ms": 11147.914,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/orphan-author-accepted",
+      "tree_hash": "sha256:2fd86cd5d69fecff37b95f407cb229a8e82770db5ddbad91f4b5baa080978d76",
+      "apply_ms": 11.423,
+      "warm_build_ms": 11169.691,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/created-at-frozen",
+      "tree_hash": "sha256:5e5eb5875b680a95e7f9ccea04d8bd53b657d5e59dfdd29a116bec93ac3fbb12",
+      "apply_ms": 11.503,
+      "warm_build_ms": 10738.737,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/tick-advances-by-two",
+      "tree_hash": "sha256:a365649101d365a639e5c6449b74471fba8213bab5119bb95e264184dadf7789",
+      "apply_ms": 10.621,
+      "warm_build_ms": 11372.468,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/tick-goes-backwards",
+      "tree_hash": "sha256:763477b8665d6b980224de7e6c7a6d9e509ed19d6455fcb7c16cbafb145f5721",
+      "apply_ms": 11.704,
+      "warm_build_ms": 11585.333,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/next-cursor-always-emitted",
+      "tree_hash": "sha256:7d5099bf075b9e518f86bc790bdef7963ad3e19e3133fee4bea6fa3509e62f10",
+      "apply_ms": 11.193,
+      "warm_build_ms": 10654.193,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/next-cursor-is-first-id",
+      "tree_hash": "sha256:971ad7f6f656deb19be6c9a7af3f6f8a044bf1b7c32affaf2fa94318a6c07090",
+      "apply_ms": 12.728,
+      "warm_build_ms": 11400.481,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/cursor-inclusive",
+      "tree_hash": "sha256:0fe7ae8767bcd270b7d86cf2073a3d8a86996d452f363091e8bbaa749939fc0f",
+      "apply_ms": 11.842,
+      "warm_build_ms": 12615.2,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/limit-off-by-one",
+      "tree_hash": "sha256:7d898320bec17b0db79c2a33027e7555221097497c972f39bfe24cc5f685f4cb",
+      "apply_ms": 9.719,
+      "warm_build_ms": 11661.285,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/unknown-json-fields-accepted",
+      "tree_hash": "sha256:bb58c1f64f6f660e7196137488eaa8aafaf62ee02726f96b1c51c6ed25f6a56a",
+      "apply_ms": 13.656,
+      "warm_build_ms": 11634.582,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/repeated-query-param-accepted",
+      "tree_hash": "sha256:5cfb7bdb4373d4e11568251208ee991baffcce6f8aa6f48d9bc667eec66988a2",
+      "apply_ms": 11.731,
+      "warm_build_ms": 11468.17,
+      "copy_mode": "walk"
+    }
+  ],
+  "cells": [
+    {
+      "mutant": "kotlin/id-first-is-two",
+      "impl": "kotlin",
+      "id": "id-first-is-two",
+      "family": "id-alloc",
+      "tree_hash": "sha256:73f7bb9525a69efbb34aa6d040a87ed0debcd965600f1bc750ca1385c0524035",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 125728.636,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [2m5.7s]",
+      "guard": {
+        "impl_name": "kotlin@id-first-is-two",
+        "dir": "/tmp/calibrate-mutant-1780938412/tree",
+        "tree_hash": "sha256:73f7bb9525a69efbb34aa6d040a87ed0debcd965600f1bc750ca1385c0524035",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/store/Store.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/id-burned-on-reject",
+      "impl": "kotlin",
+      "id": "id-burned-on-reject",
+      "family": "id-alloc",
+      "tree_hash": "sha256:3b9b35823d6841446ea5dfbeefdd2c3bc84ba52a5a0a6efed98ad5ad8b301aea",
+      "rung": "R4",
+      "outcome": "error",
+      "wall_ms": 11538.045,
+      "guard": {
+        "impl_name": "kotlin@id-burned-on-reject",
+        "dir": "/tmp/calibrate-mutant-962170801/tree",
+        "tree_hash": "sha256:3b9b35823d6841446ea5dfbeefdd2c3bc84ba52a5a0a6efed98ad5ad8b301aea",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "error": "jbmc produced no R4 verdict (exit 1). Nothing was measured:\n    | /tmp/calibrate-mutant-962170801/tree/verification/Canaries.kt:73:22: error: no value passed for parameter 'id'.\n    |         s.createUser(\"a\")\n    |                      ^^^^\n    | /tmp/calibrate-mutant-962170801/tree/verification/Obligations.kt:179:22: error: no value passed for parameter 'id'.\n    |         s.createUser(\"a\")\n    |                      ^^^^\n    | /tmp/calibrate-mutant-962170801/tree/verification/Obligations.kt:195:22: error: no value passed for parameter 'id'.\n    |         s.createUser(\"a\")\n    |                      ^^^^\n    | /tmp/calibrate-mutant-962170801/tree/verification/Obligations.kt:208:22: error: no value passed for parameter 'id'.\n    |         s.createUser(\"a\")\n    |                      ^^^^"
+    },
+    {
+      "mutant": "kotlin/self-follow-guard-dropped",
+      "impl": "kotlin",
+      "id": "self-follow-guard-dropped",
+      "family": "precedence",
+      "tree_hash": "sha256:f5f7c8308180df6a7dc66cd7ae973006a97b86b7a64ac9aafec79a896e1b2d4a",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 119975.953,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [2m0s]",
+      "guard": {
+        "impl_name": "kotlin@self-follow-guard-dropped",
+        "dir": "/tmp/calibrate-mutant-2964824062/tree",
+        "tree_hash": "sha256:f5f7c8308180df6a7dc66cd7ae973006a97b86b7a64ac9aafec79a896e1b2d4a",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/service/Service.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/follow-precedence-flipped",
+      "impl": "kotlin",
+      "id": "follow-precedence-flipped",
+      "family": "precedence",
+      "tree_hash": "sha256:9fafec776cb86c2d425db0abf906ae1f31d0fb7a6bea18abcdaa96ab93565afa",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 122232.8,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [2m2.2s]",
+      "guard": {
+        "impl_name": "kotlin@follow-precedence-flipped",
+        "dir": "/tmp/calibrate-mutant-3342055307/tree",
+        "tree_hash": "sha256:9fafec776cb86c2d425db0abf906ae1f31d0fb7a6bea18abcdaa96ab93565afa",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus) and inside the verified core (src/twitterport/service/Service.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/timeline-scan-reversed",
+      "impl": "kotlin",
+      "id": "timeline-scan-reversed",
+      "family": "ordering",
+      "tree_hash": "sha256:4239111ce96fcf9bf84e7311ab6db2aa6bad688a67713f2039fdb1aa4844eb29",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 119444.95,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [1m59.4s]",
+      "guard": {
+        "impl_name": "kotlin@timeline-scan-reversed",
+        "dir": "/tmp/calibrate-mutant-1029821846/tree",
+        "tree_hash": "sha256:4239111ce96fcf9bf84e7311ab6db2aa6bad688a67713f2039fdb1aa4844eb29",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/store/Store.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/timeline-tiebreak-by-id-asc",
+      "impl": "kotlin",
+      "id": "timeline-tiebreak-by-id-asc",
+      "family": "ordering",
+      "tree_hash": "sha256:7e65e3e1dbdbcb24112f52bbb646eba09fbab31cd7d34dd403494c7b8938eb46",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 119745.179,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [1m59.7s]",
+      "guard": {
+        "impl_name": "kotlin@timeline-tiebreak-by-id-asc",
+        "dir": "/tmp/calibrate-mutant-2787129475/tree",
+        "tree_hash": "sha256:7e65e3e1dbdbcb24112f52bbb646eba09fbab31cd7d34dd403494c7b8938eb46",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/store/Store.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/follow-toggles",
+      "impl": "kotlin",
+      "id": "follow-toggles",
+      "family": "idempotence",
+      "tree_hash": "sha256:129711fe76459f2a96a1d4e3045226dd77a378daa0cf6a3af158f25fc276128b",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 117553.479,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [1m57.5s]",
+      "guard": {
+        "impl_name": "kotlin@follow-toggles",
+        "dir": "/tmp/calibrate-mutant-3933876231/tree",
+        "tree_hash": "sha256:129711fe76459f2a96a1d4e3045226dd77a378daa0cf6a3af158f25fc276128b",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=4) and inside the verified core (src/twitterport/store/Store.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/unfollow-rejects-missing-edge",
+      "impl": "kotlin",
+      "id": "unfollow-rejects-missing-edge",
+      "family": "idempotence",
+      "tree_hash": "sha256:a0fc8aca9eaf75f1e7c9be2e8c92c02242a8b1680dabb97a5c5e79d572ce7a0e",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 120303.44,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [2m0.3s]",
+      "guard": {
+        "impl_name": "kotlin@unfollow-rejects-missing-edge",
+        "dir": "/tmp/calibrate-mutant-2380254161/tree",
+        "tree_hash": "sha256:a0fc8aca9eaf75f1e7c9be2e8c92c02242a8b1680dabb97a5c5e79d572ce7a0e",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/service/Service.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/orphan-author-accepted",
+      "impl": "kotlin",
+      "id": "orphan-author-accepted",
+      "family": "existence",
+      "tree_hash": "sha256:2fd86cd5d69fecff37b95f407cb229a8e82770db5ddbad91f4b5baa080978d76",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 111350.497,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [1m51.3s]",
+      "guard": {
+        "impl_name": "kotlin@orphan-author-accepted",
+        "dir": "/tmp/calibrate-mutant-4130033772/tree",
+        "tree_hash": "sha256:2fd86cd5d69fecff37b95f407cb229a8e82770db5ddbad91f4b5baa080978d76",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/service/Service.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/created-at-frozen",
+      "impl": "kotlin",
+      "id": "created-at-frozen",
+      "family": "clock",
+      "tree_hash": "sha256:5e5eb5875b680a95e7f9ccea04d8bd53b657d5e59dfdd29a116bec93ac3fbb12",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 108478.827,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [1m48.5s]",
+      "guard": {
+        "impl_name": "kotlin@created-at-frozen",
+        "dir": "/tmp/calibrate-mutant-1504889408/tree",
+        "tree_hash": "sha256:5e5eb5875b680a95e7f9ccea04d8bd53b657d5e59dfdd29a116bec93ac3fbb12",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/store/Store.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/tick-advances-by-two",
+      "impl": "kotlin",
+      "id": "tick-advances-by-two",
+      "family": "clock",
+      "tree_hash": "sha256:a365649101d365a639e5c6449b74471fba8213bab5119bb95e264184dadf7789",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 125616.405,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [2m5.6s]",
+      "guard": {
+        "impl_name": "kotlin@tick-advances-by-two",
+        "dir": "/tmp/calibrate-mutant-2936869931/tree",
+        "tree_hash": "sha256:a365649101d365a639e5c6449b74471fba8213bab5119bb95e264184dadf7789",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/store/Store.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/tick-goes-backwards",
+      "impl": "kotlin",
+      "id": "tick-goes-backwards",
+      "family": "clock",
+      "tree_hash": "sha256:763477b8665d6b980224de7e6c7a6d9e509ed19d6455fcb7c16cbafb145f5721",
+      "rung": "R4",
+      "outcome": "error",
+      "wall_ms": 149462.932,
+      "guard": {
+        "impl_name": "kotlin@tick-goes-backwards",
+        "dir": "/tmp/calibrate-mutant-2818460913/tree",
+        "tree_hash": "sha256:763477b8665d6b980224de7e6c7a6d9e509ed19d6455fcb7c16cbafb145f5721",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "error": "jbmc produced no R4 verdict (exit 1). Nothing was measured:\n    | decidable 7   VERIFIED 6   REFUTED 0   VACUOUS 1   UNDECIDED 0\n    | blocked   8   (recorded JBMC 6.11.0 limits; in neither the numerator nor the denominator)\n    |     JBMC's String.getBytes(Charset) is nondeterministic (F014); the UTF-8 byte-length predicates are unreachable\n    |         o2a_emptyIsInvalid, o2b_goodHandleIsValid, o5a_unknownBeatsSelfFollow, o5b_knownSelfFollowIsForbidden\n    |     JBMC exhausts memory on this instance (\"SAT checker ran out of memory\"); a bounded-model-checking scalability wall, not a modelling gap\n    |         o4a_pageRespectsLimit, o5d_rejectionBurnsNoId\n    |     JBMC's String.equals is unsound (`assert \"abc\".equals(\"abc\")` is FAILURE, F014); every visibility and error-code comparison is undecidable\n    |         o4b_cursorNullMeansExhausted, o4c_pageIsNewestFirst\n    |   ! c3_clockCanDecrease guards o3b_createdAtNonDecreasing and was NOT refuted (VERIFIED); under vacuity a claim and its negation both verify, so o3b_createdAtNonDecreasing decides nothing (F013)\n    | \n    | R4 UNDECIDED: 1 of 7 decidable obligation(s) could not be read (c3_clockCanDecrease guards o3b_createdAtNonDecreasing and was NOT refuted (VERIFIED); under vacuity a claim and its negation both verify, so o3b_createdAtNonDecreasing decides nothing (F013)); nothing was decided about this tree   [2m29.5s]\n    | jbmc: R4 UNDECIDED: c3_clockCanDecrease guards o3b_createdAtNonDecreasing and was NOT refuted (VERIFIED); under vacuity a claim and its negation both verify, so o3b_createdAtNonDecreasing decides nothing (F013)"
+    },
+    {
+      "mutant": "kotlin/next-cursor-always-emitted",
+      "impl": "kotlin",
+      "id": "next-cursor-always-emitted",
+      "family": "pagination",
+      "tree_hash": "sha256:7d5099bf075b9e518f86bc790bdef7963ad3e19e3133fee4bea6fa3509e62f10",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 121517.524,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [2m1.5s]",
+      "guard": {
+        "impl_name": "kotlin@next-cursor-always-emitted",
+        "dir": "/tmp/calibrate-mutant-2042929873/tree",
+        "tree_hash": "sha256:7d5099bf075b9e518f86bc790bdef7963ad3e19e3133fee4bea6fa3509e62f10",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/store/Store.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/next-cursor-is-first-id",
+      "impl": "kotlin",
+      "id": "next-cursor-is-first-id",
+      "family": "pagination",
+      "tree_hash": "sha256:971ad7f6f656deb19be6c9a7af3f6f8a044bf1b7c32affaf2fa94318a6c07090",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 121345.032,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [2m1.3s]",
+      "guard": {
+        "impl_name": "kotlin@next-cursor-is-first-id",
+        "dir": "/tmp/calibrate-mutant-598194632/tree",
+        "tree_hash": "sha256:971ad7f6f656deb19be6c9a7af3f6f8a044bf1b7c32affaf2fa94318a6c07090",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/store/Store.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/cursor-inclusive",
+      "impl": "kotlin",
+      "id": "cursor-inclusive",
+      "family": "pagination",
+      "tree_hash": "sha256:0fe7ae8767bcd270b7d86cf2073a3d8a86996d452f363091e8bbaa749939fc0f",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 119235.069,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [1m59.2s]",
+      "guard": {
+        "impl_name": "kotlin@cursor-inclusive",
+        "dir": "/tmp/calibrate-mutant-769586260/tree",
+        "tree_hash": "sha256:0fe7ae8767bcd270b7d86cf2073a3d8a86996d452f363091e8bbaa749939fc0f",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/store/Store.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/limit-off-by-one",
+      "impl": "kotlin",
+      "id": "limit-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:7d898320bec17b0db79c2a33027e7555221097497c972f39bfe24cc5f685f4cb",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 123088.942,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [2m3.1s]",
+      "guard": {
+        "impl_name": "kotlin@limit-off-by-one",
+        "dir": "/tmp/calibrate-mutant-4247397445/tree",
+        "tree_hash": "sha256:7d898320bec17b0db79c2a33027e7555221097497c972f39bfe24cc5f685f4cb",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=2, seed=3, seed=4) and inside the verified core (src/twitterport/store/Store.kt), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "kotlin/unknown-json-fields-accepted",
+      "impl": "kotlin",
+      "id": "unknown-json-fields-accepted",
+      "family": "parsing",
+      "tree_hash": "sha256:bb58c1f64f6f660e7196137488eaa8aafaf62ee02726f96b1c51c6ed25f6a56a",
+      "rung": "R4",
+      "outcome": "unreached",
+      "wall_ms": 123512.529,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [2m3.5s]",
+      "guard": {
+        "impl_name": "kotlin@unknown-json-fields-accepted",
+        "dir": "/tmp/calibrate-mutant-2381054070/tree",
+        "tree_hash": "sha256:bb58c1f64f6f660e7196137488eaa8aafaf62ee02726f96b1c51c6ed25f6a56a",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4), but the verifier reads none of the files this mutant edits (src/twitterport/httpshim/Json.kt); no obligation covers it"
+    },
+    {
+      "mutant": "kotlin/repeated-query-param-accepted",
+      "impl": "kotlin",
+      "id": "repeated-query-param-accepted",
+      "family": "parsing",
+      "tree_hash": "sha256:5cfb7bdb4373d4e11568251208ee991baffcce6f8aa6f48d9bc667eec66988a2",
+      "rung": "R4",
+      "outcome": "unreached",
+      "wall_ms": 124905.929,
+      "verdict_line": "R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [2m4.9s]",
+      "guard": {
+        "impl_name": "kotlin@repeated-query-param-accepted",
+        "dir": "/tmp/calibrate-mutant-3563139764/tree",
+        "tree_hash": "sha256:5cfb7bdb4373d4e11568251208ee991baffcce6f8aa6f48d9bc667eec66988a2",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=3), but the verifier reads none of the files this mutant edits (src/twitterport/httpshim/Server.kt); no obligation covers it"
+    }
+  ],
+  "probes": [
+    {
+      "mutant": "kotlin/id-first-is-two",
+      "tree_hash": "sha256:73f7bb9525a69efbb34aa6d040a87ed0debcd965600f1bc750ca1385c0524035",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 24486.985
+    },
+    {
+      "mutant": "kotlin/self-follow-guard-dropped",
+      "tree_hash": "sha256:f5f7c8308180df6a7dc66cd7ae973006a97b86b7a64ac9aafec79a896e1b2d4a",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 60,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 19,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 8,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 3,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 25979.442
+    },
+    {
+      "mutant": "kotlin/follow-precedence-flipped",
+      "tree_hash": "sha256:9fafec776cb86c2d425db0abf906ae1f31d0fb7a6bea18abcdaa96ab93565afa",
+      "live": true,
+      "reached_by": [
+        "corpus"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 12,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 24347.519
+    },
+    {
+      "mutant": "kotlin/timeline-scan-reversed",
+      "tree_hash": "sha256:4239111ce96fcf9bf84e7311ab6db2aa6bad688a67713f2039fdb1aa4844eb29",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 25,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 25,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 5,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 38,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 24051.672
+    },
+    {
+      "mutant": "kotlin/timeline-tiebreak-by-id-asc",
+      "tree_hash": "sha256:7e65e3e1dbdbcb24112f52bbb646eba09fbab31cd7d34dd403494c7b8938eb46",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 25,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 51,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 5,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 117,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 24832.857
+    },
+    {
+      "mutant": "kotlin/follow-toggles",
+      "tree_hash": "sha256:129711fe76459f2a96a1d4e3045226dd77a378daa0cf6a3af158f25fc276128b",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 20,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 46,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 84,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 110,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 24463.033
+    },
+    {
+      "mutant": "kotlin/unfollow-rejects-missing-edge",
+      "tree_hash": "sha256:a0fc8aca9eaf75f1e7c9be2e8c92c02242a8b1680dabb97a5c5e79d572ce7a0e",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 34,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 6,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 30,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 4,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 16,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 24213.566
+    },
+    {
+      "mutant": "kotlin/orphan-author-accepted",
+      "tree_hash": "sha256:2fd86cd5d69fecff37b95f407cb229a8e82770db5ddbad91f4b5baa080978d76",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 31,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 101,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 38,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 7,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 4,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 24474.527
+    },
+    {
+      "mutant": "kotlin/created-at-frozen",
+      "tree_hash": "sha256:5e5eb5875b680a95e7f9ccea04d8bd53b657d5e59dfdd29a116bec93ac3fbb12",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 19,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 20,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 16,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 26,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 8,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 24389.484
+    },
+    {
+      "mutant": "kotlin/tick-advances-by-two",
+      "tree_hash": "sha256:a365649101d365a639e5c6449b74471fba8213bab5119bb95e264184dadf7789",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 17,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 16,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 5,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 22,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 7,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 23670.235
+    },
+    {
+      "mutant": "kotlin/next-cursor-always-emitted",
+      "tree_hash": "sha256:7d5099bf075b9e518f86bc790bdef7963ad3e19e3133fee4bea6fa3509e62f10",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 20,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 14,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 5,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 38,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 23680.773
+    },
+    {
+      "mutant": "kotlin/next-cursor-is-first-id",
+      "tree_hash": "sha256:971ad7f6f656deb19be6c9a7af3f6f8a044bf1b7c32affaf2fa94318a6c07090",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 42,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 51,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 66,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 26345.989
+    },
+    {
+      "mutant": "kotlin/cursor-inclusive",
+      "tree_hash": "sha256:0fe7ae8767bcd270b7d86cf2073a3d8a86996d452f363091e8bbaa749939fc0f",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 44,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 22,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 17,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 110,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 24823.605
+    },
+    {
+      "mutant": "kotlin/limit-off-by-one",
+      "tree_hash": "sha256:7d898320bec17b0db79c2a33027e7555221097497c972f39bfe24cc5f685f4cb",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 42,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 51,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 66,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 26185.826
+    },
+    {
+      "mutant": "kotlin/unknown-json-fields-accepted",
+      "tree_hash": "sha256:bb58c1f64f6f660e7196137488eaa8aafaf62ee02726f96b1c51c6ed25f6a56a",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 7,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 92,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 86,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 76,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 94,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 25357.337
+    },
+    {
+      "mutant": "kotlin/repeated-query-param-accepted",
+      "tree_hash": "sha256:5cfb7bdb4373d4e11568251208ee991baffcce6f8aa6f48d9bc667eec66988a2",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=3"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 51,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 66,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 10,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 26847.206
+    }
+  ],
+  "summary": [
+    {
+      "rung": "R4",
+      "label": "proof",
+      "inputs": "contract",
+      "cells": 18,
+      "live": 16,
+      "killed": 0,
+      "survived": 14,
+      "unreached": 2,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 2,
+      "reached": 14,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 2,
+          "reason": "live, but the verifier reads none of the files the mutant edits, so no obligation could have covered it (F022)"
+        },
+        {
+          "outcome": "error",
+          "count": 2,
+          "reason": "no verdict was read; a missing measurement, never a pass"
+        }
+      ],
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 2085036.168,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 120252.1994375,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    },
+    {
+      "rung": "R4",
+      "label": "proof",
+      "inputs": "contract",
+      "impl": "kotlin",
+      "cells": 18,
+      "live": 16,
+      "killed": 0,
+      "survived": 14,
+      "unreached": 2,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 2,
+      "reached": 14,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 2,
+          "reason": "live, but the verifier reads none of the files the mutant edits, so no obligation could have covered it (F022)"
+        },
+        {
+          "outcome": "error",
+          "count": 2,
+          "reason": "no verdict was read; a missing measurement, never a pass"
+        }
+      ],
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 2085036.168,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 120252.1994375,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    }
+  ],
+  "warnings": [
+    "R4 killed NOTHING (0/16 live mutants). A rung that never fires has not been shown to be able to fire; check it against a known-bad canary before reading this row as evidence about the mutants.",
+    "R4: 2 cell(s) errored. Those are missing measurements, not passes."
+  ]
+}

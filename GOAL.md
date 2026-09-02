@@ -376,6 +376,77 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 20:51 (fan-out task, branch `claude/task-kotlin-r4-sweep`)** —
+  **The Kotlin corner's 18-mutant R4 sweep is done, the matrix has no `pending`
+  cell left, and two proof rungs disagree for the first time.** F011 guard
+  first, since a drifted anchor injects nothing and every rung "kills" it:
+  ```
+  anchors: 18/18 match exactly one site
+  compile: 18/18 build clean
+
+  verify PASSED: every anchor matches one site; every mutant compiles
+  ```
+  Then `calibrate -impls kotlin -rungs R4`, window
+  `2026-09-02T20:05:49Z .. 2026-09-02T20:51:21Z`, 2085 s, **nothing else on the
+  container** — which is worth saying because most cost figures here are not
+  clean (`CALIBRATION-go-proof.md` records load average 6–12 through its window).
+  ```
+  rung             live  killed  survived  unreached  equiv  killed/reached     killed/live     wall
+  R4 proof           16       0        14          2      0       0/14 = 0%       0/16 = 0%    2085s
+  ```
+  All fourteen survivals produced the same line, character for character:
+  ```
+  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator
+  ```
+  **`every one refutable in this tree` is the vacuity audit, and it is a
+  precondition of the verdict rather than a separate pass**: `cmdVerify` refuses
+  to start if any obligation lacks a canary, the canary sweep runs on every tree
+  nothing refuted (all 16 here), and `R4 PASSED` is emitted only after the
+  demotion in `decide()`. No obligation was VERIFIED without a canary naming it —
+  **F025 is not recurring.**
+
+  **Two ERROR cells, two different mechanisms, neither a survival.**
+  `id-burned-on-reject` → **F031**: the mutant changes `Store.createUser`'s
+  arity, `mutate verify` cleared it because the registry build compiles `src`,
+  and the rung compiles `src` *and* `verification`, where five call sites still
+  pass one argument. `tick-goes-backwards` → **F032**: `appendTweet` *enforces*
+  F005's monotonicity premise by throwing, so the negation canary is unreachable
+  and the audit will not read the tree —
+  ```
+  ! c3_clockCanDecrease guards o3b_createdAtNonDecreasing and was NOT refuted (VERIFIED); under vacuity a claim and its negation both verify, so o3b_createdAtNonDecreasing decides nothing (F013)
+  R4 UNDECIDED: 1 of 7 decidable obligation(s) could not be read (...); nothing was decided about this tree   [2m29.5s]
+  ```
+  The guard F005 asked for is what costs the corner its one likely kill.
+
+  **The result that matters — F033.** Against `CALIBRATION-go-proof.md` over the
+  same 18 ids, on the 12 mutants where both rungs returned a kill-or-survive
+  verdict: **agree 4, DISAGREE 8**, all four agreements SURVIVED/SURVIVED. F028
+  found R4 and R5 agreeing 18 of 18, but that was one Gobra run read two ways;
+  this is two verifiers, two corners, two obligation sets. Cause of the eight:
+  four are properties that *are* written and F014 blocks (`o4c`, `o4a`, `o5b`),
+  four are properties nothing states. The rung is not broken — the injection
+  canary reports `R4 FAILED: JBMC refuted 2 of 7 decidable obligation(s)` — but
+  both obligations it fires on are over `dom/Dom.kt`, and **no mutant in the
+  catalogue edits `Dom.kt`**, so its demonstrated capability and the catalogue's
+  reach do not intersect.
+
+  **Matrix:** the four `pending` cells (`go ← kotlin`, `kotlin ← go`,
+  `rust ← kotlin`, `kotlin ← rust`) all take the weaker end's number, Kotlin's,
+  `0/14 = 0%`, and all carry `‡`. Census **38 measured, 18 capped, 4 pending,
+  12 n/a → 42 measured, 18 capped, 0 pending, 12 n/a**. Every remaining gap is a
+  cap, not a to-do. Also corrected in place: F017's prediction that the two
+  `next-cursor-*` defects sit in different perimeters per corner is now measured
+  — `SURVIVED` on Kotlin, `unreached` on Go — so Go's outer reach is 14/18 and
+  Kotlin's 16/18, and the three corners' three denominators of `14` are three
+  unrelated quantities.
+
+  **Next fire:** the R4 column is complete except where Java caps it, and Java
+  caps it for want of an obligation set, not a tool. Either write
+  `impls/java`'s obligations (six capped R4 cells, and F014 says JBMC cannot be
+  the tool for them) or take queue item 4 — a catalogue drawn from something
+  other than the contract, which is now the only way to learn whether these
+  columns discriminate. F031's fix (teach `mutate verify` the rung's build) is
+  small and would have saved a 12-minute discovery.
 - **2026-09-02 21:05 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`,
   branch `claude/loop-d-homeline-vacuity`)** — **F021's eight undecided clauses
   are decided. None is vacuous.** All three levers F021 named as untried were

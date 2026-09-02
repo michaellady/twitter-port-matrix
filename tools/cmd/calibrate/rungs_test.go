@@ -531,3 +531,57 @@ func TestNoConflictMarkersInTrackedFiles(t *testing.T) {
 		t.Errorf("unresolved conflict marker: %s", b)
 	}
 }
+
+// TestEveryFindingIsIndexed pairs `evidence/findings/F0NN-*.md` with its row in
+// `evidence/FINDINGS.md`, in both directions.
+//
+// Four agents working in parallel wrote ten findings between them and not one
+// of them added an index row, so `FINDINGS.md` stopped at F037 while the
+// directory held F047. Nothing noticed, because the index is prose and the
+// findings are prose. A finding nobody can find from the index is most of the
+// way to not having been written.
+func TestEveryFindingIsIndexed(t *testing.T) {
+	root := repoRootForRungs(t)
+
+	entries, err := os.ReadDir(filepath.Join(root, "evidence", "findings"))
+	if err != nil {
+		t.Skipf("no findings directory: %v", err)
+	}
+	onDisk := map[string]string{}
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".md") || !strings.HasPrefix(e.Name(), "F") {
+			continue
+		}
+		if id := e.Name()[:4]; len(id) == 4 {
+			onDisk[id] = e.Name()
+		}
+	}
+	if len(onDisk) == 0 {
+		t.Fatal("no finding files found; this test is looking in the wrong place")
+	}
+
+	b, err := os.ReadFile(filepath.Join(root, "evidence", "FINDINGS.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	indexed := map[string]bool{}
+	for _, ln := range strings.Split(string(b), "\n") {
+		if !strings.HasPrefix(ln, "| F") {
+			continue
+		}
+		if id := strings.TrimSpace(strings.SplitN(ln[2:], "|", 2)[0]); len(id) == 4 {
+			indexed[id] = true
+		}
+	}
+
+	for id, name := range onDisk {
+		if !indexed[id] {
+			t.Errorf("%s exists but has no row in evidence/FINDINGS.md", name)
+		}
+	}
+	for id := range indexed {
+		if _, ok := onDisk[id]; !ok {
+			t.Errorf("evidence/FINDINGS.md indexes %s but no such finding file exists", id)
+		}
+	}
+}
