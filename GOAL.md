@@ -235,6 +235,13 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 09:25 (interactive session, PR #3)** — Diagnosed the two
+  silent fires. A session spawned into this environment by the routine has
+  **no checkout of the repository**; a probe session reported `repo not
+  cloned; need git access or repo pre-staging`. Both fires spent their budget
+  in an empty container. The routine prompt now begins with an explicit
+  `add_repo` + clone step and a hard stop if that fails. The next-fire entry
+  below is unchanged and still the entry point.
 - **2026-09-02 06:34 (interactive session, PR #3)** — R4/R5 audit complete.
   Negation sweep `91 clauses: 83 refutable, 0 VACUOUS, 8 timed out`; R5
   `26 VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED`; F019–F021 written; `GOAL.md`
