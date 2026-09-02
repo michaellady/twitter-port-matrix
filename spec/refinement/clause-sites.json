@@ -1,0 +1,566 @@
+{
+  "note": "Links each R5 clause in obligations.json to the concrete Gobra `ensures` clauses that carry it, so a clause's status can be read off the verifier's own output instead of asserted. `sites` are matched on (file, member, text); line numbers are not stored because they drift. A clause with no site is either blocked -- obligations.json names the blocker -- or discharged in a form that is not a postcondition, in which case `evidence_kind` says which.",
+  "keyed_by": "1-based index into obligations.json .clauses",
+  "clauses": {
+    "1": {
+      "summary": "abs(init) == init_S on users, follows and log axes",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "New",
+          "text": "s.AbsUsers() == set[string]{}"
+        },
+        {
+          "file": "internal/store/memstore.go",
+          "member": "New",
+          "text": "s.AbsFollows() == set[dom.Follow]{}"
+        },
+        {
+          "file": "internal/store/memstore.go",
+          "member": "New",
+          "text": "s.AbsLogLen() == 0"
+        }
+      ]
+    },
+    "2": {
+      "summary": "fresh handle => AbsUsers' == AbsUsers + {h}",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).PutUser",
+          "text": "!(u.Handle in old(s.AbsUsers())) ==> s.AbsUsers() == old(s.AbsUsers()) union set[string]{\u2026"
+        }
+      ]
+    },
+    "3": {
+      "summary": "taken handle => AbsUsers' == AbsUsers",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).PutUser",
+          "text": "(u.Handle in old(s.AbsUsers())) ==> s.AbsUsers() == old(s.AbsUsers())"
+        }
+      ]
+    },
+    "4": {
+      "summary": "fresh handle => err == nil",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).PutUser",
+          "text": "!(u.Handle in old(s.AbsUsers())) ==> err == nil"
+        }
+      ]
+    },
+    "5": {
+      "summary": "taken handle => err != nil",
+      "corner": "go",
+      "recorded_status": "blocked",
+      "evidence_kind": "none",
+      "sites": []
+    },
+    "6": {
+      "summary": "response commutation for HasUser: result == h in AbsUsers",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).HasUser",
+          "text": "result == (handle in s.AbsUsers())"
+        }
+      ]
+    },
+    "7": {
+      "summary": "both endpoints known => AbsFollows' == AbsFollows + {e} and err == nil (F3 idempotent, F9)",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).PutFollow",
+          "text": "(f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers())) ==> err == nil"
+        },
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).PutFollow",
+          "text": "(f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.\u2026"
+        }
+      ]
+    },
+    "8": {
+      "summary": "either endpoint unknown => AbsFollows' == AbsFollows",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).PutFollow",
+          "text": "!((f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers()))) ==> s.AbsFollows() == old\u2026"
+        }
+      ]
+    },
+    "9": {
+      "summary": "AbsFollows' == AbsFollows - {e}, unconditionally (F3 idempotent)",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).DeleteFollow",
+          "text": "s.AbsFollows() == old(s.AbsFollows()) setminus set[dom.Follow]{dom.Follow{From: from, To:\u2026"
+        }
+      ]
+    },
+    "10": {
+      "summary": "response commutation for Follows: result == e in AbsFollows",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).Follows",
+          "text": "result == (dom.Follow{From: from, To: to} in s.AbsFollows())"
+        }
+      ]
+    },
+    "11": {
+      "summary": "AbsAcceptsTweet(t) => log length +1, t last, err == nil (F6)",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).PutTweet",
+          "text": "old(s.AbsAcceptsTweet(t)) ==> err == nil"
+        },
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).PutTweet",
+          "text": "old(s.AbsAcceptsTweet(t)) ==> s.AbsLogLen() == old(s.AbsLogLen()) + 1"
+        },
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).PutTweet",
+          "text": "old(s.AbsAcceptsTweet(t)) ==> s.AbsLogAt(old(s.AbsLogLen())) == t"
+        }
+      ]
+    },
+    "12": {
+      "summary": "not AbsAcceptsTweet(t) => log length unchanged",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).PutTweet",
+          "text": "!old(s.AbsAcceptsTweet(t)) ==> s.AbsLogLen() == old(s.AbsLogLen())"
+        }
+      ]
+    },
+    "13": {
+      "summary": "the existing log prefix is never rewritten",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).PutTweet",
+          "text": "forall k int :: 0 <= k && k < old(s.AbsLogLen()) ==> s.AbsLogAt(k) == old(s.AbsLogAt(k))"
+        }
+      ]
+    },
+    "14": {
+      "summary": "F2 ordering: descending (created_at, id)",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).HomeTimeline",
+          "text": "forall a, b int :: 0 <= a && a < b && b < len(out) ==> (out[a].CreatedAt > out[b].Created\u2026"
+        }
+      ]
+    },
+    "15": {
+      "summary": "F1 visibility: every entry authored by user or followed by user",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).HomeTimeline",
+          "text": "forall a int :: 0 <= a && a < len(out) ==> (out[a].Author == user || (dom.Follow{From: us\u2026"
+        }
+      ]
+    },
+    "16": {
+      "summary": "D10 cursor: cursor > 0 => every returned id < cursor",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).HomeTimeline",
+          "text": "cursor > 0 ==> forall a int :: 0 <= a && a < len(out) ==> out[a].ID < cursor"
+        }
+      ]
+    },
+    "17": {
+      "summary": "no fabrication: every returned tweet is some log entry",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).HomeTimeline",
+          "text": "forall a int :: 0 <= a && a < len(out) ==> exists i int :: 0 <= i && i < s.AbsLogLen() &&\u2026"
+        }
+      ]
+    },
+    "18": {
+      "summary": "no loss: if !more, every visible entry under the cursor is on the page",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/store/memstore.go",
+          "member": "(*MemStore).HomeTimeline",
+          "text": "!more ==> forall k int :: 0 <= k && k < s.AbsLogLen() && (cursor <= 0 || s.AbsLogAt(k).ID\u2026"
+        }
+      ]
+    },
+    "19": {
+      "summary": "Replace installs a log satisfying the append-log invariant",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "fold",
+      "sites": [],
+      "note": "(*MemStore).Replace carries no functional postcondition. What it discharges is the `fold acc(s.LockP())` at the end of its body: LockP() carries the append-log invariant, so the fold succeeds only if the installed log satisfies it. A negation canary over an `ensures` cannot reach this, and the canary recorded for it in impls/go/internal/_broken (CANARY H) is a Go test, not a Gobra one."
+    },
+    "20": {
+      "summary": "F8: every issued id is the previous counter value, and the counter advances by exactly 1; result >= 1",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/ids/ids.go",
+          "member": "(*Generator).Next",
+          "text": "result == old(unfolding acc(g.LockP()) in g.next)"
+        },
+        {
+          "file": "internal/ids/ids.go",
+          "member": "(*Generator).Next",
+          "text": "unfolding acc(g.LockP()) in g.next == result + 1"
+        },
+        {
+          "file": "internal/ids/ids.go",
+          "member": "(*Generator).Next",
+          "text": "result >= 1"
+        }
+      ]
+    },
+    "21": {
+      "summary": "abs(init) == init_S on users, follows and log axes",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/service/service.go",
+          "member": "New",
+          "text": "s.AbsUsers() == set[string]{}"
+        },
+        {
+          "file": "internal/service/service.go",
+          "member": "New",
+          "text": "s.AbsFollows() == set[dom.Follow]{}"
+        },
+        {
+          "file": "internal/service/service.go",
+          "member": "New",
+          "text": "s.AbsLogLen() == 0"
+        }
+      ]
+    },
+    "22": {
+      "summary": "at most the requested handle is added; no other user appears",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).CreateUser",
+          "text": "s.AbsUsers() == old(s.AbsUsers()) || s.AbsUsers() == old(s.AbsUsers()) union set[string]{\u2026"
+        }
+      ]
+    },
+    "23": {
+      "summary": "already-registered handle => AbsUsers unchanged",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).CreateUser",
+          "text": "(handle in old(s.AbsUsers())) ==> s.AbsUsers() == old(s.AbsUsers())"
+        }
+      ]
+    },
+    "24": {
+      "summary": "valid, fresh handle => added",
+      "corner": "go",
+      "recorded_status": "blocked",
+      "evidence_kind": "none",
+      "sites": []
+    },
+    "25": {
+      "summary": "at most the named edge is added",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).Follow",
+          "text": "s.AbsFollows() == old(s.AbsFollows()) || s.AbsFollows() == old(s.AbsFollows()) union set[\u2026"
+        }
+      ]
+    },
+    "26": {
+      "summary": "F4 on abs: from == to => AbsFollows unchanged",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).Follow",
+          "text": "from == to ==> s.AbsFollows() == old(s.AbsFollows())"
+        }
+      ]
+    },
+    "27": {
+      "summary": "F9 on abs: unknown endpoint => AbsFollows unchanged",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).Follow",
+          "text": "!(from in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())"
+        },
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).Follow",
+          "text": "!(to in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())"
+        }
+      ]
+    },
+    "28": {
+      "summary": "valid, known, distinct => edge added",
+      "corner": "go",
+      "recorded_status": "blocked",
+      "evidence_kind": "none",
+      "sites": []
+    },
+    "29": {
+      "summary": "at most the named edge is removed; unknown endpoint removes nothing",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).Unfollow",
+          "text": "s.AbsFollows() == old(s.AbsFollows()) || s.AbsFollows() == old(s.AbsFollows()) setminus s\u2026"
+        },
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).Unfollow",
+          "text": "!(from in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())"
+        },
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).Unfollow",
+          "text": "!(to in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())"
+        }
+      ]
+    },
+    "30": {
+      "summary": "log grows by at most one",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).PostTweet",
+          "text": "s.AbsLogLen() == old(s.AbsLogLen()) || s.AbsLogLen() == old(s.AbsLogLen()) + 1"
+        }
+      ]
+    },
+    "31": {
+      "summary": "F6 on abs: unknown author => log unchanged",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).PostTweet",
+          "text": "!(author in old(s.AbsUsers())) ==> s.AbsLogLen() == old(s.AbsLogLen())"
+        }
+      ]
+    },
+    "32": {
+      "summary": "the existing log prefix is never rewritten",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).PostTweet",
+          "text": "forall k int :: 0 <= k && k < old(s.AbsLogLen()) ==> s.AbsLogAt(k) == old(s.AbsLogAt(k))"
+        }
+      ]
+    },
+    "33": {
+      "summary": "valid, known author => appended",
+      "corner": "go",
+      "recorded_status": "blocked",
+      "evidence_kind": "none",
+      "sites": []
+    },
+    "34": {
+      "summary": "F1, F2, D10 cursor, and framing on all three axes",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).HomeTimeline",
+          "text": "forall a, b int :: 0 <= a && a < b && b < len(out) ==> (out[a].CreatedAt > out[b].Created\u2026"
+        },
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).HomeTimeline",
+          "text": "forall a int :: 0 <= a && a < len(out) ==> (out[a].Author == user || (dom.Follow{From: us\u2026"
+        },
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).HomeTimeline",
+          "text": "cursor > 0 ==> forall a int :: 0 <= a && a < len(out) ==> out[a].ID < cursor"
+        },
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).HomeTimeline",
+          "text": "s.AbsUsers() == old(s.AbsUsers())"
+        },
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).HomeTimeline",
+          "text": "s.AbsFollows() == old(s.AbsFollows())"
+        },
+        {
+          "file": "internal/service/service.go",
+          "member": "(*Service).HomeTimeline",
+          "text": "s.AbsLogLen() == old(s.AbsLogLen())"
+        }
+      ]
+    },
+    "35": {
+      "summary": "no fabrication, no loss",
+      "corner": "go",
+      "recorded_status": "blocked",
+      "evidence_kind": "none",
+      "sites": []
+    },
+    "36": {
+      "summary": "F7: now' == now + 1",
+      "corner": "go",
+      "recorded_status": "discharged",
+      "evidence_kind": "postcondition",
+      "sites": [
+        {
+          "file": "internal/clock/clock.go",
+          "member": "(*Logical).Tick",
+          "text": "unfolding acc(l.LockP()) in l.now == old(unfolding acc(l.LockP()) in l.now) + 1"
+        }
+      ]
+    },
+    "37": {
+      "summary": "F7 forwarded through the interface-typed clock field",
+      "corner": "go",
+      "recorded_status": "blocked",
+      "evidence_kind": "none",
+      "sites": []
+    },
+    "38": {
+      "summary": "id-counter axis of abs, and the id in the response body",
+      "corner": "go",
+      "recorded_status": "blocked",
+      "evidence_kind": "none",
+      "sites": []
+    },
+    "39": {
+      "summary": "abs_rust has a body",
+      "corner": "rust",
+      "recorded_status": "blocked",
+      "evidence_kind": "none",
+      "sites": []
+    },
+    "40": {
+      "summary": "any state or response commutation clause",
+      "corner": "rust",
+      "recorded_status": "blocked",
+      "evidence_kind": "none",
+      "sites": []
+    },
+    "41": {
+      "summary": "F8",
+      "corner": "rust",
+      "recorded_status": "blocked",
+      "evidence_kind": "none",
+      "sites": []
+    },
+    "42": {
+      "summary": "put_tweet_ensures describes the production put_tweet",
+      "corner": "rust",
+      "recorded_status": "corrected_in_S-13",
+      "evidence_kind": "none",
+      "sites": []
+    }
+  }
+}
