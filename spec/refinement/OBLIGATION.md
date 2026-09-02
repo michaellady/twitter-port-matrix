@@ -269,10 +269,9 @@ package is compatible with an obligation nothing reaches.
 This table is now derived rather than asserted. `spec/refinement/clause-sites.json`
 maps each clause to the `ensures` that carries it, and `go run ./tools/cmd/gobra r5`
 prints the status together with the Gobra line that refuted each negation.
-The counts from the first sweep were withdrawn — a checkpoint key collided
-across members carrying identical framing clauses — and the corrected sweep is
-running. Re-generate this table from its output rather than trusting the `D`/`U`
-marks below, which predate the fix.
+Current run: **26 VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS**
+(`evidence/runs/gobra/r5-clause-status.txt`). An earlier run's 25/5 was
+produced by a colliding checkpoint key and is withdrawn.
 `—` = not stated, with the blocker named.
 
 ### Go — `internal/store` (Gobra, image `sha256:2ef080cc`)
@@ -292,18 +291,18 @@ marks below, which predate the fix.
 | `PutTweet` | `AbsAcceptsTweet(t)` ⇒ length +1, `t` last, `err == nil` | **D** (F6) |
 | `PutTweet` | `¬AbsAcceptsTweet(t)` ⇒ length unchanged | **D** |
 | `PutTweet` | prefix of the log unchanged (append-only) | **D** |
-| `HomeTimeline` | descending `(created_at, id)` | **U** (F2) |
+| `HomeTimeline` | descending `(created_at, id)` | **D** (F2) |
 | `HomeTimeline` | every entry authored by `user` or followed by `user` | **U** (**F1**) |
 | `HomeTimeline` | `cursor > 0 ⇒ every id < cursor` | **U** (D10) |
 | `HomeTimeline` | no fabrication: every entry is some log entry | **U** |
 | `HomeTimeline` | no loss: if `!more`, every visible entry under the cursor is on the page | **U** |
 | `Replace` | installs a log satisfying the append-log invariant | **D**, not canaried — see below |
 
-**The five `U` rows are the store's strongest clauses**, and that is not a
-coincidence: the canary for a quantified clause asks whether its range can be
-non-empty, which is a harder query than the clause itself. Auditing cost rises
-with obligation strength, so the obligations most worth checking for vacuity are
-the ones the check cannot reach. See
+**The four `U` rows are all on `HomeTimeline`**, and so are three framing
+negations that refute in seconds on every other member: it is that method's
+proof that sits at the edge of the budget, not the canaries. Auditing cost
+rises with obligation strength, so the obligations most worth checking for
+vacuity are the ones the check cannot reach. See
 [F021](../../evidence/findings/F021-the-audit-fails-where-the-obligations-are-strongest.md).
 
 `Replace` carries no functional postcondition at all. What it discharges is the

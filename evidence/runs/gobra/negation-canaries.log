@@ -1,0 +1,193 @@
+negation canaries: 91 functional clauses, 23 already done, 68 to run, 2 workers, 12m0s budget each
+  [  1/ 68] REFUTABLE    internal/store/memstore.go:141 s.AbsLogLen() == old(s.AbsLogLen())
+  [  2/ 68] REFUTABLE    internal/store/memstore.go:140 s.AbsFollows() == old(s.AbsFollows())
+  [  3/ 68] REFUTABLE    internal/store/memstore.go:139 (u.Handle in old(s.AbsUsers())) ==> s.AbsUsers() == old(s.A…
+  [  4/ 68] REFUTABLE    internal/store/memstore.go:198 !((f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers(…
+  [  5/ 68] REFUTABLE    internal/store/memstore.go:163 result == (handle in s.AbsUsers())
+  [  6/ 68] REFUTABLE    internal/store/memstore.go:164 s.AbsUsers() == old(s.AbsUsers())
+  [  7/ 68] REFUTABLE    internal/store/memstore.go:165 s.AbsFollows() == old(s.AbsFollows())
+  [  8/ 68] REFUTABLE    internal/store/memstore.go:166 s.AbsLogLen() == old(s.AbsLogLen())
+  [  9/ 68] REFUTABLE    internal/store/memstore.go:167 forall k int :: 0 <= k && k < old(s.AbsLogLen()) ==> s.AbsL…
+  [ 10/ 68] REFUTABLE    internal/store/memstore.go:194 s.AbsUsers() == old(s.AbsUsers())
+  [ 11/ 68] REFUTABLE    internal/store/memstore.go:195 (f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers())…
+  [ 12/ 68] REFUTABLE    internal/store/memstore.go:196 (f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers())…
+  [ 13/ 68] REFUTABLE    internal/store/memstore.go:233 s.AbsLogLen() == old(s.AbsLogLen())
+  [ 14/ 68] REFUTABLE    internal/store/memstore.go:200 s.AbsLogLen() == old(s.AbsLogLen())
+  [ 15/ 68] REFUTABLE    internal/store/memstore.go:230 s.AbsUsers() == old(s.AbsUsers())
+  [ 16/ 68] REFUTABLE    internal/store/memstore.go:231 s.AbsFollows() == old(s.AbsFollows()) setminus set[dom.Foll…
+  [ 17/ 68] REFUTABLE    internal/store/memstore.go:290 s.AbsFollows() == old(s.AbsFollows())
+  [ 18/ 68] REFUTABLE    internal/store/memstore.go:289 result == (dom.Follow{From: from, To: to} in s.AbsFollows())
+  [ 19/ 68] REFUTABLE    internal/store/memstore.go:291 s.AbsUsers() == old(s.AbsUsers())
+  [ 20/ 68] REFUTABLE    internal/store/memstore.go:340 s.AbsFollows() == old(s.AbsFollows())
+  [ 21/ 68] REFUTABLE    internal/store/memstore.go:292 s.AbsLogLen() == old(s.AbsLogLen())
+  [ 22/ 68] REFUTABLE    internal/store/memstore.go:339 s.AbsUsers() == old(s.AbsUsers())
+  [ 23/ 68] REFUTABLE    internal/store/memstore.go:342 forall k int :: 0 <= k && k < old(s.AbsLogLen()) ==> s.AbsL…
+  [ 24/ 68] REFUTABLE    internal/store/memstore.go:341 s.AbsLogLen() >= old(s.AbsLogLen())
+  [ 25/ 68] REFUTABLE    internal/store/memstore.go:344 old(s.AbsAcceptsTweet(t)) ==> err == nil
+  [ 26/ 68] REFUTABLE    internal/store/memstore.go:345 old(s.AbsAcceptsTweet(t)) ==> s.AbsLogLen() == old(s.AbsLog…
+  [ 27/ 68] REFUTABLE    internal/store/memstore.go:346 old(s.AbsAcceptsTweet(t)) ==> s.AbsLogAt(old(s.AbsLogLen())…
+  [ 28/ 68] REFUTABLE    internal/store/memstore.go:347 !old(s.AbsAcceptsTweet(t)) ==> s.AbsLogLen() == old(s.AbsLo…
+  [ 29/ 68] TIMEOUT      internal/store/memstore.go:542 s.AbsUsers() == old(s.AbsUsers())
+  [ 30/ 68] TIMEOUT      internal/store/memstore.go:527 len(out) <= limit
+  [ 31/ 68] REFUTABLE    internal/store/memstore.go:528 forall a, b int :: 0 <= a && a < b && b < len(out) ==> (out…
+  [ 32/ 68] TIMEOUT      internal/store/memstore.go:531 forall a int :: 0 <= a && a < len(out) ==> (out[a].Author =…
+  [ 33/ 68] TIMEOUT      internal/store/memstore.go:534 cursor > 0 ==> forall a int :: 0 <= a && a < len(out) ==> o…
+  [ 34/ 68] TIMEOUT      internal/store/memstore.go:535 forall a int :: 0 <= a && a < len(out) ==> exists i int :: …
+  [ 35/ 68] REFUTABLE    internal/service/service.go:84 s.AbsFollows() == set[dom.Follow]{}
+  [ 36/ 68] TIMEOUT      internal/store/memstore.go:537 !more ==> forall k int :: 0 <= k && k < s.AbsLogLen() && (c…
+  [ 37/ 68] TIMEOUT      internal/store/memstore.go:543 s.AbsFollows() == old(s.AbsFollows())
+  [ 38/ 68] REFUTABLE    internal/store/memstore.go:775 ok ==> forall i, j int :: 0 <= i && i < j && j < len(xs) ==…
+  [ 39/ 68] REFUTABLE    internal/service/service.go:82 s != nil
+  [ 40/ 68] REFUTABLE    internal/service/service.go:83 s.AbsUsers() == set[string]{}
+  [ 41/ 68] REFUTABLE    internal/service/service.go:231 s.AbsFollows() == old(s.AbsFollows()) || s.AbsFollows() == …
+  [ 42/ 68] REFUTABLE    internal/service/service.go:85 s.AbsLogLen() == 0
+  [ 43/ 68] REFUTABLE    internal/service/service.go:143 s.AbsFollows() == old(s.AbsFollows())
+  [ 44/ 68] REFUTABLE    internal/service/service.go:144 s.AbsLogLen() == old(s.AbsLogLen())
+  [ 45/ 68] REFUTABLE    internal/service/service.go:145 s.AbsUsers() == old(s.AbsUsers()) || s.AbsUsers() == old(s.…
+  [ 46/ 68] REFUTABLE    internal/service/service.go:147 (handle in old(s.AbsUsers())) ==> s.AbsUsers() == old(s.Abs…
+  [ 47/ 68] REFUTABLE    internal/service/service.go:229 s.AbsUsers() == old(s.AbsUsers())
+  [ 48/ 68] REFUTABLE    internal/service/service.go:230 s.AbsLogLen() == old(s.AbsLogLen())
+  [ 49/ 68] REFUTABLE    internal/service/service.go:315 !(from in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.Ab…
+  [ 50/ 68] REFUTABLE    internal/service/service.go:233 from == to ==> s.AbsFollows() == old(s.AbsFollows())
+  [ 51/ 68] REFUTABLE    internal/service/service.go:234 !(from in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.Ab…
+  [ 52/ 68] REFUTABLE    internal/service/service.go:235 !(to in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsF…
+  [ 53/ 68] REFUTABLE    internal/service/service.go:311 s.AbsUsers() == old(s.AbsUsers())
+  [ 54/ 68] TIMEOUT      internal/store/memstore.go:544 s.AbsLogLen() == old(s.AbsLogLen())
+  [ 55/ 68] REFUTABLE    internal/service/service.go:312 s.AbsLogLen() == old(s.AbsLogLen())
+  [ 56/ 68] REFUTABLE    internal/service/service.go:313 s.AbsFollows() == old(s.AbsFollows()) || s.AbsFollows() == …
+  [ 57/ 68] REFUTABLE    internal/service/service.go:391 forall k int :: 0 <= k && k < old(s.AbsLogLen()) ==> s.AbsL…
+  [ 58/ 68] REFUTABLE    internal/service/service.go:316 !(to in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsF…
+  [ 59/ 68] REFUTABLE    internal/service/service.go:386 s.AbsUsers() == old(s.AbsUsers())
+  [ 60/ 68] REFUTABLE    internal/service/service.go:387 s.AbsFollows() == old(s.AbsFollows())
+  [ 61/ 68] REFUTABLE    internal/service/service.go:388 s.AbsLogLen() == old(s.AbsLogLen()) || s.AbsLogLen() == old…
+  [ 62/ 68] REFUTABLE    internal/service/service.go:390 !(author in old(s.AbsUsers())) ==> s.AbsLogLen() == old(s.A…
+  [ 63/ 68] REFUTABLE    internal/service/service.go:466 forall a int :: 0 <= a && a < len(out) ==> (out[a].Author =…
+  [ 64/ 68] REFUTABLE    internal/service/service.go:455 len(out) <= limit
+  [ 65/ 68] REFUTABLE    internal/service/service.go:463 forall a, b int :: 0 <= a && a < b && b < len(out) ==> (out…
+  [ 66/ 68] REFUTABLE    internal/service/service.go:469 cursor > 0 ==> forall a int :: 0 <= a && a < len(out) ==> o…
+  [ 67/ 68] REFUTABLE    internal/service/service.go:487 s.AbsUsers() == old(s.AbsUsers())
+  [ 68/ 68] REFUTABLE    internal/service/service.go:488 s.AbsFollows() == old(s.AbsFollows())
+
+SITE                               MEMBER                     VERDICT     CLAUSE
+internal/clock/clock.go:26         New                        REFUTABLE   l != nil
+internal/clock/clock.go:35         NewAt                      REFUTABLE   l != nil
+internal/clock/clock.go:52         (*Logical).Now             REFUTABLE   unfolding acc(l.LockP()) in result == l.now
+internal/clock/clock.go:68         (*Logical).Tick            REFUTABLE   unfolding acc(l.LockP()) in l.now == old(unfolding acc(l.LockP()) in l.now) + 1
+internal/dom/dom.go:24             (*selfFollowError).Error   REFUTABLE   e.IsDuplicableMem() == old(e.IsDuplicableMem())
+internal/dom/dom.go:77             NewFollow                  REFUTABLE   from == to ==> (err == ErrSelfFollow && f == Follow{})
+internal/dom/dom.go:78             NewFollow                  REFUTABLE   from != to ==> (err == nil && f == Follow{From: from, To: to})
+internal/dom/dom.go:113            (*invalidHandleError).Error REFUTABLE   e.IsDuplicableMem() == old(e.IsDuplicableMem())
+internal/dom/dom.go:137            (*invalidTextError).Error  REFUTABLE   e.IsDuplicableMem() == old(e.IsDuplicableMem())
+internal/dom/dom.go:197            ValidHandle                REFUTABLE   result ==> (len(h) > 0 && len(h) <= MaxHandleLen)
+internal/dom/dom.go:224            ValidText                  REFUTABLE   result ==> (len(t) >= MinTextLen && len(t) <= MaxTextLen)
+internal/ids/ids.go:18             New                        REFUTABLE   g != nil
+internal/ids/ids.go:27             NewAt                      REFUTABLE   g != nil
+internal/ids/ids.go:55             (*Generator).Next          REFUTABLE   result == old(unfolding acc(g.LockP()) in g.next)
+internal/ids/ids.go:56             (*Generator).Next          REFUTABLE   unfolding acc(g.LockP()) in g.next == result + 1
+internal/ids/ids.go:57             (*Generator).Next          REFUTABLE   result >= 1
+internal/service/service.go:82     New                        REFUTABLE   s != nil
+internal/service/service.go:83     New                        REFUTABLE   s.AbsUsers() == set[string]{}
+internal/service/service.go:84     New                        REFUTABLE   s.AbsFollows() == set[dom.Follow]{}
+internal/service/service.go:85     New                        REFUTABLE   s.AbsLogLen() == 0
+internal/service/service.go:143    (*Service).CreateUser      REFUTABLE   s.AbsFollows() == old(s.AbsFollows())
+internal/service/service.go:144    (*Service).CreateUser      REFUTABLE   s.AbsLogLen() == old(s.AbsLogLen())
+internal/service/service.go:145    (*Service).CreateUser      REFUTABLE   s.AbsUsers() == old(s.AbsUsers()) || s.AbsUsers() == old(s.AbsUsers()) union se…
+internal/service/service.go:147    (*Service).CreateUser      REFUTABLE   (handle in old(s.AbsUsers())) ==> s.AbsUsers() == old(s.AbsUsers())
+internal/service/service.go:229    (*Service).Follow          REFUTABLE   s.AbsUsers() == old(s.AbsUsers())
+internal/service/service.go:230    (*Service).Follow          REFUTABLE   s.AbsLogLen() == old(s.AbsLogLen())
+internal/service/service.go:231    (*Service).Follow          REFUTABLE   s.AbsFollows() == old(s.AbsFollows()) || s.AbsFollows() == old(s.AbsFollows()) …
+internal/service/service.go:233    (*Service).Follow          REFUTABLE   from == to ==> s.AbsFollows() == old(s.AbsFollows())
+internal/service/service.go:234    (*Service).Follow          REFUTABLE   !(from in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())
+internal/service/service.go:235    (*Service).Follow          REFUTABLE   !(to in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())
+internal/service/service.go:311    (*Service).Unfollow        REFUTABLE   s.AbsUsers() == old(s.AbsUsers())
+internal/service/service.go:312    (*Service).Unfollow        REFUTABLE   s.AbsLogLen() == old(s.AbsLogLen())
+internal/service/service.go:313    (*Service).Unfollow        REFUTABLE   s.AbsFollows() == old(s.AbsFollows()) || s.AbsFollows() == old(s.AbsFollows()) …
+internal/service/service.go:315    (*Service).Unfollow        REFUTABLE   !(from in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())
+internal/service/service.go:316    (*Service).Unfollow        REFUTABLE   !(to in old(s.AbsUsers())) ==> s.AbsFollows() == old(s.AbsFollows())
+internal/service/service.go:386    (*Service).PostTweet       REFUTABLE   s.AbsUsers() == old(s.AbsUsers())
+internal/service/service.go:387    (*Service).PostTweet       REFUTABLE   s.AbsFollows() == old(s.AbsFollows())
+internal/service/service.go:388    (*Service).PostTweet       REFUTABLE   s.AbsLogLen() == old(s.AbsLogLen()) || s.AbsLogLen() == old(s.AbsLogLen()) + 1
+internal/service/service.go:390    (*Service).PostTweet       REFUTABLE   !(author in old(s.AbsUsers())) ==> s.AbsLogLen() == old(s.AbsLogLen())
+internal/service/service.go:391    (*Service).PostTweet       REFUTABLE   forall k int :: 0 <= k && k < old(s.AbsLogLen()) ==> s.AbsLogAt(k) == old(s.Abs…
+internal/service/service.go:455    (*Service).HomeTimeline    REFUTABLE   len(out) <= limit
+internal/service/service.go:463    (*Service).HomeTimeline    REFUTABLE   forall a, b int :: 0 <= a && a < b && b < len(out) ==> (out[a].CreatedAt > out[…
+internal/service/service.go:466    (*Service).HomeTimeline    REFUTABLE   forall a int :: 0 <= a && a < len(out) ==> (out[a].Author == user || (dom.Follo…
+internal/service/service.go:469    (*Service).HomeTimeline    REFUTABLE   cursor > 0 ==> forall a int :: 0 <= a && a < len(out) ==> out[a].ID < cursor
+internal/service/service.go:487    (*Service).HomeTimeline    REFUTABLE   s.AbsUsers() == old(s.AbsUsers())
+internal/service/service.go:488    (*Service).HomeTimeline    REFUTABLE   s.AbsFollows() == old(s.AbsFollows())
+internal/service/service.go:489    (*Service).HomeTimeline    REFUTABLE   s.AbsLogLen() == old(s.AbsLogLen())
+internal/store/memstore.go:97      New                        REFUTABLE   s != nil
+internal/store/memstore.go:98      New                        REFUTABLE   s.AbsUsers() == set[string]{}
+internal/store/memstore.go:99      New                        REFUTABLE   s.AbsFollows() == set[dom.Follow]{}
+internal/store/memstore.go:100     New                        REFUTABLE   s.AbsLogLen() == 0
+internal/store/memstore.go:136     (*MemStore).PutUser        REFUTABLE   !(u.Handle in old(s.AbsUsers())) ==> err == nil
+internal/store/memstore.go:137     (*MemStore).PutUser        REFUTABLE   !(u.Handle in old(s.AbsUsers())) ==> s.AbsUsers() == old(s.AbsUsers()) union se…
+internal/store/memstore.go:139     (*MemStore).PutUser        REFUTABLE   (u.Handle in old(s.AbsUsers())) ==> s.AbsUsers() == old(s.AbsUsers())
+internal/store/memstore.go:140     (*MemStore).PutUser        REFUTABLE   s.AbsFollows() == old(s.AbsFollows())
+internal/store/memstore.go:141     (*MemStore).PutUser        REFUTABLE   s.AbsLogLen() == old(s.AbsLogLen())
+internal/store/memstore.go:163     (*MemStore).HasUser        REFUTABLE   result == (handle in s.AbsUsers())
+internal/store/memstore.go:164     (*MemStore).HasUser        REFUTABLE   s.AbsUsers() == old(s.AbsUsers())
+internal/store/memstore.go:165     (*MemStore).HasUser        REFUTABLE   s.AbsFollows() == old(s.AbsFollows())
+internal/store/memstore.go:166     (*MemStore).HasUser        REFUTABLE   s.AbsLogLen() == old(s.AbsLogLen())
+internal/store/memstore.go:167     (*MemStore).HasUser        REFUTABLE   forall k int :: 0 <= k && k < old(s.AbsLogLen()) ==> s.AbsLogAt(k) == old(s.Abs…
+internal/store/memstore.go:194     (*MemStore).PutFollow      REFUTABLE   s.AbsUsers() == old(s.AbsUsers())
+internal/store/memstore.go:195     (*MemStore).PutFollow      REFUTABLE   (f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers())) ==> err == nil
+internal/store/memstore.go:196     (*MemStore).PutFollow      REFUTABLE   (f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers())) ==> s.AbsFollows()…
+internal/store/memstore.go:198     (*MemStore).PutFollow      REFUTABLE   !((f.From in old(s.AbsUsers())) && (f.To in old(s.AbsUsers()))) ==> s.AbsFollow…
+internal/store/memstore.go:200     (*MemStore).PutFollow      REFUTABLE   s.AbsLogLen() == old(s.AbsLogLen())
+internal/store/memstore.go:230     (*MemStore).DeleteFollow   REFUTABLE   s.AbsUsers() == old(s.AbsUsers())
+internal/store/memstore.go:231     (*MemStore).DeleteFollow   REFUTABLE   s.AbsFollows() == old(s.AbsFollows()) setminus set[dom.Follow]{dom.Follow{From:…
+internal/store/memstore.go:233     (*MemStore).DeleteFollow   REFUTABLE   s.AbsLogLen() == old(s.AbsLogLen())
+internal/store/memstore.go:289     (*MemStore).Follows        REFUTABLE   result == (dom.Follow{From: from, To: to} in s.AbsFollows())
+internal/store/memstore.go:290     (*MemStore).Follows        REFUTABLE   s.AbsFollows() == old(s.AbsFollows())
+internal/store/memstore.go:291     (*MemStore).Follows        REFUTABLE   s.AbsUsers() == old(s.AbsUsers())
+internal/store/memstore.go:292     (*MemStore).Follows        REFUTABLE   s.AbsLogLen() == old(s.AbsLogLen())
+internal/store/memstore.go:339     (*MemStore).PutTweet       REFUTABLE   s.AbsUsers() == old(s.AbsUsers())
+internal/store/memstore.go:340     (*MemStore).PutTweet       REFUTABLE   s.AbsFollows() == old(s.AbsFollows())
+internal/store/memstore.go:341     (*MemStore).PutTweet       REFUTABLE   s.AbsLogLen() >= old(s.AbsLogLen())
+internal/store/memstore.go:342     (*MemStore).PutTweet       REFUTABLE   forall k int :: 0 <= k && k < old(s.AbsLogLen()) ==> s.AbsLogAt(k) == old(s.Abs…
+internal/store/memstore.go:344     (*MemStore).PutTweet       REFUTABLE   old(s.AbsAcceptsTweet(t)) ==> err == nil
+internal/store/memstore.go:345     (*MemStore).PutTweet       REFUTABLE   old(s.AbsAcceptsTweet(t)) ==> s.AbsLogLen() == old(s.AbsLogLen()) + 1
+internal/store/memstore.go:346     (*MemStore).PutTweet       REFUTABLE   old(s.AbsAcceptsTweet(t)) ==> s.AbsLogAt(old(s.AbsLogLen())) == t
+internal/store/memstore.go:347     (*MemStore).PutTweet       REFUTABLE   !old(s.AbsAcceptsTweet(t)) ==> s.AbsLogLen() == old(s.AbsLogLen())
+internal/store/memstore.go:527     (*MemStore).HomeTimeline   TIMEOUT     len(out) <= limit
+internal/store/memstore.go:528     (*MemStore).HomeTimeline   REFUTABLE   forall a, b int :: 0 <= a && a < b && b < len(out) ==> (out[a].CreatedAt > out[…
+internal/store/memstore.go:531     (*MemStore).HomeTimeline   TIMEOUT     forall a int :: 0 <= a && a < len(out) ==> (out[a].Author == user || (dom.Follo…
+internal/store/memstore.go:534     (*MemStore).HomeTimeline   TIMEOUT     cursor > 0 ==> forall a int :: 0 <= a && a < len(out) ==> out[a].ID < cursor
+internal/store/memstore.go:535     (*MemStore).HomeTimeline   TIMEOUT     forall a int :: 0 <= a && a < len(out) ==> exists i int :: 0 <= i && i < s.AbsL…
+internal/store/memstore.go:537     (*MemStore).HomeTimeline   TIMEOUT     !more ==> forall k int :: 0 <= k && k < s.AbsLogLen() && (cursor <= 0 || s.AbsL…
+internal/store/memstore.go:542     (*MemStore).HomeTimeline   TIMEOUT     s.AbsUsers() == old(s.AbsUsers())
+internal/store/memstore.go:543     (*MemStore).HomeTimeline   TIMEOUT     s.AbsFollows() == old(s.AbsFollows())
+internal/store/memstore.go:544     (*MemStore).HomeTimeline   TIMEOUT     s.AbsLogLen() == old(s.AbsLogLen())
+internal/store/memstore.go:775     isMonotoneLog              REFUTABLE   ok ==> forall i, j int :: 0 <= i && i < j && j < len(xs) ==> xs[i].ID < xs[j].I…
+
+91 clauses: 83 refutable, 0 VACUOUS, 8 timed out, 0 ill-formed
+
+TIMEOUT -- the solver did not decide the negation. Neither answer was
+established, so these obligations are UNAUDITED, not verified:
+  internal/store/memstore.go:527  (*MemStore).HomeTimeline
+      len(out) <= limit
+      canary: !(len(out) <= limit)
+  internal/store/memstore.go:531  (*MemStore).HomeTimeline
+      forall a int :: 0 <= a && a < len(out) ==> (out[a].Author == user || (dom.Follow{From: user, To: out[a].Author} in s.AbsFollows()))
+      canary: forall a int :: !(0 <= a && a < len(out))
+  internal/store/memstore.go:534  (*MemStore).HomeTimeline
+      cursor > 0 ==> forall a int :: 0 <= a && a < len(out) ==> out[a].ID < cursor
+      canary: !(cursor > 0)
+  internal/store/memstore.go:535  (*MemStore).HomeTimeline
+      forall a int :: 0 <= a && a < len(out) ==> exists i int :: 0 <= i && i < s.AbsLogLen() && s.AbsLogAt(i) == out[a]
+      canary: forall a int :: !(0 <= a && a < len(out))
+  internal/store/memstore.go:537  (*MemStore).HomeTimeline
+      !more ==> forall k int :: 0 <= k && k < s.AbsLogLen() && (cursor <= 0 || s.AbsLogAt(k).ID < cursor) && (s.AbsLogAt(k).Author == user || (dom.Follow{From: user, To: s.AbsLogAt(k).Author} in s.AbsFollows())) ==> (exists a int :: 0 <= a && a < len(out) && out[a] == s.AbsLogAt(k))
+      canary: !(!more)
+  internal/store/memstore.go:542  (*MemStore).HomeTimeline
+      s.AbsUsers() == old(s.AbsUsers())
+      canary: !(s.AbsUsers() == old(s.AbsUsers()))
+  internal/store/memstore.go:543  (*MemStore).HomeTimeline
+      s.AbsFollows() == old(s.AbsFollows())
+      canary: !(s.AbsFollows() == old(s.AbsFollows()))
+  internal/store/memstore.go:544  (*MemStore).HomeTimeline
+      s.AbsLogLen() == old(s.AbsLogLen())
+      canary: !(s.AbsLogLen() == old(s.AbsLogLen()))
+
+full results: evidence/runs/gobra/negation-canaries.json

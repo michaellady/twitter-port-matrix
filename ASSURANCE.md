@@ -75,7 +75,7 @@ argued away.
 
 | Corner | R0-R3 | R4 | R5-core | R5-wire | Ceiling |
 |---|---|---|---|---|---|
-| Go | yes | Gobra, **green; 91 functional clauses, audit re-running** | **partial, audit re-running** | no | **R5-core, partial** |
+| Go | yes | Gobra, **83 of 91 clauses refutable, 0 vacuous, 8 undecided** | **26 of 42 clauses** | no | **R5-core, partial** |
 | Rust | yes | Verus, **1 property** | **no** | no | **R4, one property (F4)** |
 | Java | yes | not attempted | unknown | no | **R3** |
 | Kotlin | yes | JBMC, bounded | no | no | **R3 + bounded (measured)** |
@@ -139,12 +139,22 @@ Three members returned no verdict — `(*MemStore).HomeTimeline` (11 clauses),
 `(*MemStore).Replace` (2) and `isMonotoneLog` (2, a Gobra error rather than a
 timeout). Those 13 clauses are **unaudited, not verified**.
 
-**The per-clause negation sweep is being re-run and its numbers are not stated
-here yet.** The first run's headline was invalidated by a checkpoint key that
-collided across members carrying identical framing clauses; a figure that
-cannot distinguish TIMEOUT from REFUTABLE cannot be trusted to distinguish
-VACUOUS either. Recording it while it is unreliable is the F016 mistake, so it
-is left out until the corrected sweep lands.
+**The per-clause negation sweep**, corrected key, 12-minute budget per canary:
+
+```
+91 clauses: 83 refutable, 0 VACUOUS, 8 timed out, 0 ill-formed
+audited 83 REFUTABLE verdicts: 83 backed by an error inside the clause's
+own member, 0 backed only by an error elsewhere.
+```
+
+All eight undecided clauses are on `(*MemStore).HomeTimeline`, and three of
+them are trivial framing negations that refute in seconds on every other
+member — so it is the method's proof that is at the edge of the budget, not
+the canaries. Those eight, F1 / D10 / no-fabrication / no-loss among them, are
+**unaudited, not verified** —
+[F021](evidence/findings/F021-the-audit-fails-where-the-obligations-are-strongest.md).
+The first run of this sweep reported 86/5; that figure was produced by a
+colliding checkpoint key and is withdrawn.
 
 ### Why Rust's R4 is one property, not 23
 
@@ -237,16 +247,18 @@ concurrency semantics, or a rung would have to exist that does not consult it.
 | R1 | Not built. Phase 1 |
 | R2 | Not built. Phase 1 |
 | R3 | **PASSING.** TLC green on `twitter.tla` (8,989,719 distinct states, depth 20). `S_obs` link check green over 16 state-changing steps, and the known-bad canary is correctly rejected |
-| R4 | **Go: green.** All five packages `Gobra found no errors`, `0 error(s)`, reproduced eight times. Reachability audit clean (0 of 33 members unreachable); per-clause negation sweep re-running. Rust: Verus green over hand-written twins (F012, F016) |
-| R5-core | **Go: clause-by-clause status is derived by `gobra r5`**; awaiting the corrected sweep. Rust blocked on `RwLock` having no Verus model |
+| R4 | **Go: green and audited.** All five packages `Gobra found no errors`, `0 error(s)`, reproduced eight times. 0 of 33 members unreachable; 83 of 91 functional clauses refutable, 0 vacuous, 8 undecided (all on `HomeTimeline`, F021). Rust: Verus green over hand-written twins (F012, F016) |
+| R5-core | **Go: 26 of 42 clauses VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS** (`evidence/runs/gobra/r5-clause-status.txt`, derived by `gobra r5`). Rust blocked on `RwLock` having no Verus model |
 | R5-wire | Not reachable — the decode boundary is unverified by construction |
 | R6 | Not reachable by design |
 
-**R4 is now supported for the Go corner: green, reproduced, and free of the
-F013 failure mode.** R5-core's per-clause status is derived rather than
-asserted, and the corrected sweep that populates it has not finished; no R5
-number is stated here until it has. Everything above R5-core, and every claim
-involving the Rust corner at R5, remains unsupported.
+**R4 and R5-core are now supported for the Go corner, and bounded.** What that
+licenses precisely: on the decoded-operation alphabet, restricted to
+syntactically valid arguments, 26 of the 42 R5 clauses hold with per-clause
+evidence — Gobra's own refutation of each clause's negation, not a
+package-level green. Four more (F1, D10, no-fabrication, no-loss on the store's
+`HomeTimeline`) are unaudited for vacuity. Everything above R5-core, and every
+claim involving the Rust corner at R5, remains unsupported.
 
 `ASSURANCE.md` has twice asserted a ceiling it could not back. The numbers in
 this file are now derived from `evidence/runs/gobra/` by

@@ -15,7 +15,7 @@ recorded status. VERIFIED requires both a green package and a refutable negation
 11  go     PostTweet   (*MemStore).PutTweet       VERIFIED     AbsAcceptsTweet(t) => log length +1, t last, err == nil (F6)
 12  go     PostTweet   (*MemStore).PutTweet       VERIFIED     not AbsAcceptsTweet(t) => log length unchanged
 13  go     PostTweet   (*MemStore).PutTweet       VERIFIED     the existing log prefix is never rewritten
-14  go     Timeline    (*MemStore).HomeTimeline   UNAUDITED    F2 ordering: descending (created_at, id)
+14  go     Timeline    (*MemStore).HomeTimeline   VERIFIED     F2 ordering: descending (created_at, id)
 15  go     Timeline    (*MemStore).HomeTimeline   UNAUDITED    F1 visibility: every entry authored by user or followed by us…
 16  go     Timeline    (*MemStore).HomeTimeline   UNAUDITED    D10 cursor: cursor > 0 => every returned id < cursor
 17  go     Timeline    (*MemStore).HomeTimeline   UNAUDITED    no fabrication: every returned tweet is some log entry
@@ -45,7 +45,7 @@ recorded status. VERIFIED requires both a green package and a refutable negation
 41  rust   PostTweet   crates/ids                 UNATTEMPTED  F8
 42  rust   PostTweet   crates/store verus_proof   UNATTEMPTED  put_tweet_ensures describes the production put_tweet
 
-42 clauses: 25 VERIFIED, 5 UNAUDITED, 12 UNATTEMPTED
+42 clauses: 26 VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED
 
 Gobra's own line for each VERIFIED clause (from the negation canary that
 refuted it — this is the per-clause evidence a package-level green cannot give):
@@ -72,7 +72,9 @@ refuted it — this is the per-clause evidence a package-level green cannot give
   12  (*MemStore).PutTweet
       internal/store/memstore.go:347:9 Postcondition might not hold. 
   13  (*MemStore).PutTweet
-      internal/store/memstore.go:167:9 Postcondition might not hold. 
+      internal/store/memstore.go:342:9 Postcondition might not hold. 
+  14  (*MemStore).HomeTimeline
+      internal/store/memstore.go:528:9 Postcondition might not hold. 
   20  (*ids.Generator).Next
       internal/ids/ids.go:55:9 Postcondition might not hold. 
   21  (*Service).New
@@ -88,7 +90,7 @@ refuted it — this is the per-clause evidence a package-level green cannot give
   27  (*Service).Follow
       internal/service/service.go:234:9 Postcondition might not hold. 
   29  (*Service).Unfollow
-      internal/service/service.go:234:9 Postcondition might not hold. 
+      internal/service/service.go:313:9 Postcondition might not hold. 
   30  (*Service).PostTweet
       internal/service/service.go:392:1 Precondition of call s.AbsLogAt(k) might not hold. 
   31  (*Service).PostTweet
@@ -96,14 +98,12 @@ refuted it — this is the per-clause evidence a package-level green cannot give
   32  (*Service).PostTweet
       internal/service/service.go:391:9 Postcondition might not hold. 
   34  (*Service).HomeTimeline
-      internal/service/service.go:143:9 Postcondition might not hold. 
+      internal/service/service.go:463:9 Postcondition might not hold. 
   36  (*clock.Logical).Tick
       internal/clock/clock.go:68:9 Postcondition might not hold. 
 
 UNAUDITED — the package verifies with the clause present, but its negation
 was not decided, so nothing rules out the clause being vacuous:
-  14  (*MemStore).HomeTimeline   1 of 1 sites: the solver did not decide the negation within the budget, so reachability is unestablished
-      F2 ordering: descending (created_at, id)
   15  (*MemStore).HomeTimeline   1 of 1 sites: the solver did not decide the negation within the budget, so reachability is unestablished
       F1 visibility: every entry authored by user or followed by user
   16  (*MemStore).HomeTimeline   1 of 1 sites: the solver did not decide the negation within the budget, so reachability is unestablished

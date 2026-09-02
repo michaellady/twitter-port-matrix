@@ -119,9 +119,9 @@ unique signature of an unreachable obligation (F013).
 obligation is reachable. Every proved obligation needs both.
 
 **Applied to the Go corner, F013's mode does not replicate:** 30 of 33 members
-refute `ensures false`, so no obligation there sits on an unreachable exit. But
-three members returned no verdict at all, and they carry the store's strongest
-clauses (F021). So a third state is needed alongside "refutable" and
+refute `ensures false`, and 83 of 91 functional clauses refute their own
+negation, with 0 vacuous. But the eight that could not be decided are all on
+one member, and it carries the store's strongest clauses (F021). So a third state is needed alongside "refutable" and
 "vacuous": **unaudited**, meaning the package is green and nothing rules out
 the obligation being empty. Folding that into either neighbour is how a
 verified count goes wrong — in the F016 direction if you round it up, and in
