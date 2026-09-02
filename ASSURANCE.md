@@ -159,34 +159,47 @@ the canaries. Those eight, F1 / D10 / no-fabrication / no-loss among them, are
 The first run of this sweep reported 86/5; that figure was produced by a
 colliding checkpoint key and is withdrawn.
 
-### Why Rust's R4 is one property, not 23
+### Why Rust's R4 is one property, not 21
 
 Audited obligation by obligation (`evidence/findings/F016`). Verus counts
-**units of work, not obligations**: 11 of the 23 carry no `ensures` clause at
-all. Of the remainder, exactly **one** — `domain::Follow::new`, F4 — is
-functional, non-vacuous, about shipped code, reachable from the API, and free
-of project-local assumed axioms. Eleven have real content but are conditional
-on 15 *assumed* `external_body` postconditions over 11 uninterpreted symbols,
-and four of their twins have drifted from production.
+**units of work, not obligations**. Of the 23 units that stood when F016 was
+written, 11 carried no `ensures` clause at all. Exactly **one** —
+`domain::Follow::new`, F4 — is functional, non-vacuous, about shipped code,
+reachable from the API, and free of project-local assumed axioms. That is
+still true at 21.
 
-**One of those drifted twins is false of the shipped code.**
-`service::create_user_ensures` verifies `handle@.len() > 0 && !contains ==>
-result is Ok`, which fails for `"Alice"` — an input already in the corpus at
-step 5, on a corner passing 56/56.
+**S-14 disposed of the four drifted twins** (`evidence/findings/F024`).
+`service::create_user_ensures` was *false* of the shipped code — it verified
+`handle@.len() > 0 && !contains ==> result is Ok`, which fails for `"Alice"`,
+an input already in the corpus at step 5 on a corner passing 56/56. It now
+guards on the predicate production actually applies. `service::follow_ensures`
+had the pre-D4 ordering in its body (the F003 defect); its body now mirrors
+production and two of its clauses name *which* error, so the ordering is
+checkable rather than invisible. The two `home_timeline_ensures` twins carried
+**zero** `ensures` clauses over a drifted, cursor-less copy of the timeline
+walk, and were **deleted** — an obligation with no postcondition cannot be
+refuted, so it was count and not evidence.
 
-`crates/ids` contributes zero obligations while F8 depends on it: adding
-`false` to `next_id_ensures` still gives `0 verified, 0 errors`.
+The count is now **21 verified, 0 errors** (clock 2, ids 0, domain 9, store 6,
+service 4). It went *down* by deleting two things that proved nothing, which
+is the right direction for a number nobody should read as a guarantee.
 
-No vacuity was found — all 43 clauses were refuted by negation canary, so
-F013's Kotlin mode does not replicate here.
+`crates/ids` still contributes zero obligations while F8 depends on it: adding
+`false` to `next_id_ensures` gives `0 verified, 0 errors`.
+
+No vacuity was found — all clauses were refuted by negation canary, so F013's
+Kotlin mode does not replicate here.
 
 ### Why Rust's R4 is weaker than its count
 
 The Verus contracts are on **hand-written twins**. `MemStore::put_tweet` is at
 `crates/store/src/lib.rs:249`; `put_tweet_ensures`, the function Verus
 verifies, is at 820. They are separate functions kept in step by hand, and one
-had already drifted into falsehood. Read "23 verified, 0 errors" as *23
-obligations about copies of the shipped code*.
+had already drifted into falsehood. Read "21 verified, 0 errors" as *21
+obligations about copies of the shipped code*. S-14 audited every twin against
+its production function and fixed or deleted the four that had drifted
+(`evidence/findings/F024`); the twins are in step with production as of that
+audit, and nothing mechanical keeps them there.
 
 `crates/ids` verifies **zero** obligations while F8 depends on it: assumed
 postcondition, never-executed function, uninterpreted symbols.

@@ -197,7 +197,9 @@ whole contract.
 4. **A second catalogue from a source other than the contract** -- incident
    history, a fuzzer corpus. Until this exists the 100% rows partly measure
    that catalogue and corpus share a parent.
-5. Fix or delete the four drifted Verus twins (F012, F016).
+5. [x] **Fix or delete the four drifted Verus twins (F012, F016).** Done
+   2026-09-02 on `claude/loop-e-verus-twins`: two fixed, two deleted,
+   Verus `23 -> 21 verified, 0 errors`. See `evidence/findings/F024`.
 6. S-10 `specgen`, S-24 the adversarial refutation pass.
 
 ### Related work to feed back into
@@ -265,7 +267,7 @@ measure that alignment.
 | corner | R0 | R1 | R2 | R4 | limited by |
 |---|---|---|---|---|---|
 | Go | 56/56 | clean | pass | Gobra green; 91 functional clauses, reachability audit clean (0 of 33 unreachable), negation sweep in PR #3. **R4 and R5 are both `calibrate` rungs since 2026-09-02**, ceiling 14 of 18 mutants (F022) | Gobra ghost-language limits; 5 HomeTimeline clauses undecidable within budget; the trusted shim is 4 of 18 mutants |
-| Rust | 56/56 | clean | pass | Verus, **1 property** (F016) | `RwLock` has no vstd model |
+| Rust | 56/56 | clean | pass | Verus **21 verified, 0 errors**, still **1 property** (F016). The four drifted twins are fixed or deleted (F024); the count fell from 23 because two of them carried no `ensures` at all | `RwLock` has no vstd model; `ids::next_id_ensures` is an assumed axiom with a 0-unit count |
 | Java | 56/56 | clean | pass | not attempted | JBMC string equality (F014) |
 | Kotlin | 56/56 | clean | pass | JBMC, 7 of 15 | same JBMC defect |
 
@@ -273,6 +275,53 @@ measure that alignment.
 
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
+
+- **2026-09-02 17:45 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`, branch
+  `claude/loop-e-verus-twins`)** — **Queue item 5: DONE. The four drifted Verus
+  twins are fixed or deleted, and the count went DOWN.**
+  ```
+  before   ids 0   clock 2   domain 9   store 7   service 5     = 23 verified, 0 errors
+  after    ids 0   clock 2   domain 9   store 6   service 4     = 21 verified, 0 errors
+  ```
+  Every twin was read against its production function, not taken from the
+  findings on trust; F016's list of four is confirmed exactly.
+  - `service::create_user_ensures` — **FIXED.** It guarded on
+    `handle.as_str().is_empty()` where production guards on
+    `!domain::valid_handle`, so its accept clause was **false of the shipped
+    code** for `"Alice"` (corpus step 5) on a corner passing 56/56. Fixed
+    rather than deleted because it can be made true without touching
+    production: a `handle_valid` spec predicate pinned by a shim whose body
+    IS `domain::valid_handle(h.as_str())`.
+  - `service::follow_ensures` — **FIXED.** Body called `Follow::new` before the
+    existence checks: the pre-D4 ordering, the F003 defect. Body now mirrors
+    production, and two clauses name **which** error, so the ordering is
+    visible to Verus for the first time — F016 had shown the old contract
+    could not distinguish the two orderings at all.
+  - `store::home_timeline_ensures`, `service::home_timeline_ensures` —
+    **DELETED.** Zero `ensures` clauses each, over a drifted cursor-less second
+    copy of the timeline walk. An obligation with no postcondition cannot be
+    refuted; deleting it removes the count and no guarantee.
+  **Verus caches** — a second run over an unchanged tree prints no
+  `verification results::` line at all, which reads exactly like a pass. Every
+  run above was preceded by `touch` on the crate sources.
+  Canaries (standing rule 2), three of them:
+  ```
+  assert(false) in create_user_ensures    error: assertion failed          -> 3 verified, 1 errors
+  pre-D4 body restored in follow_ensures  error: postcondition not satisfied (D6 and D4 clauses) -> 3 verified, 1 errors
+  is_empty() guard restored in create_user_ensures  error: postcondition not satisfied -> 3 verified, 1 errors
+  ```
+  `cargo test --workspace` 94 passed / 0 failed.
+  `go run ./tools/cmd/replay -impl rust`:
+  `R0 PASSED: every step matches S_obs byte-for-byte` (56/56 exact).
+  **Two corrections in place (F020 rule):** `OBLIGATION.md` §7 stated the
+  `put_tweet_ensures` drift in the present tense when commit `4bc2706` had
+  already fixed it in the same commit that wrote the sentence — the same
+  claim-contradicts-its-own-commit shape F020 named. And `obligations.json`
+  recorded R0 as 54/54 for both Go and Rust; the corpus is 56 steps and both
+  corners re-measure at 56/56. New finding: **F024**.
+  **Next fire: queue item 1's remaining sub-step — R4 as a `calibrate` rung on
+  the Rust corner.** The verdict line and the cache-defeating `touch` are now
+  both established here, which is what that sub-step said it was missing.
 
 - **2026-09-02 16:55 (worker session `session_01Mdy8cUZTbcq2fXuZ1BRi4X`, fire
   16:13)** — **Queue item 1, second sub-step: DONE. R5 is a `calibrate` rung on
@@ -422,8 +471,16 @@ the verdict line, and what the next fire should do.
    production incidents, a fuzzer corpus, real defect history. This is what
    would turn the table from an easy case into an informative one, and it is
    the highest-value follow-up in either project.
-4. **Fix or delete the four drifted Verus twins.** One (`create_user_ensures`)
-   is actively false of shipped code; another encodes the pre-D4 defect.
+4. ~~**Fix or delete the four drifted Verus twins.**~~ **DONE 2026-09-02**
+   (`claude/loop-e-verus-twins`, `evidence/findings/F024`). Two fixed
+   (`create_user_ensures`, which was actively false of shipped code, and
+   `follow_ensures`, which encoded the pre-D4 defect), two deleted (both
+   `home_timeline_ensures` carried no `ensures` clause at all). Verus
+   `23 -> 21 verified, 0 errors`. What is left in this corner is
+   `ids::next_id_ensures`: an `external_body` function with an
+   `unimplemented!()` body, contributing 0 verified units while F8 depends on
+   it. That needs the counter lifted out of the `Mutex`, not a better
+   contract.
 5. Remaining stories: S-10 specgen, S-18/S-21 the port matrix itself, S-24 the
    adversarial refutation pass.
 

@@ -423,12 +423,16 @@ impl Default for MemStore {
 //                  result[i].created_at > result[j].created_at
 //               || (result[i].created_at == result[j].created_at
 //                  && result[i].id > result[j].id)                     // F2
-//     ^^^ DISCHARGED in Stream 3 Phase 4 sub-PR 5+6 (this PR), **framing-only**.
-//         F1 + F2 quantifier discharge requires a `vstd::vec` sort spec or a
-//         verified mergesort import; neither ships in vstd 0.0.0-2026-04-20-1748.
-//         The verified `home_timeline_ensures` pins the three ghost-view axes
-//         unchanged (it is a read) and leaves the returned `Vec<Tweet>`'s
-//         contents trusted via the read shim.
+//     ^^^ NOT DISCHARGED. Phase 4 sub-PR 5+6 landed a "framing-only"
+//         `home_timeline_ensures` for this; S-14 deleted it. It carried zero
+//         `ensures` clauses -- so nothing about F1 or F2 was stated, let alone
+//         proved -- and it delegated to a second copy of the timeline walk
+//         that had no `cursor` parameter, so D10 was outside it too. F1 and F2
+//         are trusted here; the real blocker is that `abs` is not definable
+//         while the state sits behind `std::sync::RwLock`, not a missing sort
+//         spec (there has been no sort since S-05). The Go corner proves both
+//         on the same algorithm. See evidence/findings/F024 and
+//         spec/refinement/OBLIGATION.md blockers B4/B5.
 #[cfg(verus_only)]
 mod verus_proof {
     use super::*;
@@ -929,50 +933,32 @@ mod verus_proof {
             proof_follow_set(s, from)
         }
 
-        // Trusted shim around the `MemStore::home_timeline` body: lock-acquire
-        // plus a backwards walk over the append-ordered log with a per-tweet
-        // visibility test. NOTE THE SIGNATURE DRIFT: production takes a
-        // `cursor: i64` and returns `(Vec<Tweet>, bool)`; this twin takes
-        // neither and returns only the vector. Nothing checks that the twin
-        // and the production method agree -- see
-        // spec/refinement/OBLIGATION.md section 7.
+        // -----------------------------------------------------------------
+        // DELETED S-14 (queue item 5): `proof_home_timeline` +
+        // `home_timeline_ensures`.
         //
-        // What is trusted is F1 (visibility) and F2 (ordering) on the returned
-        // vector. Not because of a missing sort spec, because there is no
-        // sort, but because `abs` is not definable over `MemStore` while the
-        // state sits behind `std::sync::RwLock`. The Go corner proves both
-        // properties on the same algorithm, which is the evidence that the
-        // obstacle is the state's shape rather than the property.
-        #[verifier::external_body]
-        pub fn proof_home_timeline(s: &MemStore, user: &String, limit: usize) -> (out: Vec<Tweet>)
-        {
-            let g = s.inner.read().expect("store poisoned");
-            let mut out: Vec<Tweet> = Vec::with_capacity(limit);
-            for t in g.tweets.iter().rev() {
-                if t.author != *user
-                    && !g.follows.contains(&(user.clone(), t.author.clone()))
-                {
-                    continue;
-                }
-                if out.len() == limit {
-                    break;
-                }
-                out.push(t.clone());
-            }
-            out
-        }
-
-        // Verified wrapper for `MemStore::home_timeline`. Body is a single
-        // delegation to `proof_home_timeline`. Framing is structural via
-        // the `&MemStore` signature. The F1 (visibility) and F2 (sort-order)
-        // postconditions remain trusted in `proof_home_timeline` — neither
-        // a `vstd::vec` sort spec nor a verified mergesort import ships in
-        // vstd 0.0.0-2026-04-20-1748, so they cannot be discharged
-        // structurally in this sub-PR.
-        pub fn home_timeline_ensures(s: &MemStore, user: &String, limit: usize) -> (result: Vec<Tweet>)
-        {
-            proof_home_timeline(s, user, limit)
-        }
+        // What stood here was a drifted twin that proved nothing.
+        //
+        //   - `home_timeline_ensures` carried ZERO `ensures` clauses. Its
+        //     whole body was one delegation to an `external_body` shim, so
+        //     Verus discharged the empty contract `true` and counted one more
+        //     "verified" unit. F016 classifies it as a contentless wrapper.
+        //   - The shim it delegated to was a SECOND, DIVERGENT COPY of the
+        //     timeline algorithm: production `MemStore::home_timeline` takes
+        //     a `cursor: i64` and returns `(Vec<Tweet>, bool)`; the copy took
+        //     neither and returned only the vector, so D10 pagination was
+        //     absent from it. No production path called it and nothing
+        //     mechanically related the two.
+        //
+        // Deleting it is a net gain in assurance, not a loss: an obligation
+        // with no postcondition cannot be refuted, so it was carrying no
+        // information while inflating the headline count and leaving a
+        // drifted copy of the timeline walk in the tree for a reader to
+        // mistake for the shipped one. F1 and F2 in this corner were, and
+        // remain, trusted -- see spec/refinement/OBLIGATION.md blockers B4/B5
+        // and evidence/findings/F024. The Go corner proves both on the same
+        // algorithm; that is where the timeline evidence lives.
+        // -----------------------------------------------------------------
     }
 }
 

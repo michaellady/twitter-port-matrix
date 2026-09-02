@@ -1,4 +1,4 @@
-# What twenty-three findings have in common
+# What twenty-four findings have in common
 
 An index, and an argument. The findings are in `evidence/findings/`; this file
 is for the patterns that only appear when you read them together — which is
@@ -33,6 +33,7 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F021 | the audit fails where the obligations are strongest | vacuity-checking cost rises with clause strength, so the five clauses most worth auditing are the five the auditor cannot decide |
 | F022 | the proof rung's denominator is set by the trusted shim | 4 of 18 Go mutants edit code no obligation covers, so R4's ceiling is 78% before a clause is written |
 | F023 | the strongest rungs cannot see a constant | an id origin shifted by one is killed by R0 and R1, and survives R2, R4 and R5 |
+| F024 | a count that goes down is the repair | two of the four drifted Verus twins carried no `ensures` at all, so deleting them took 23 verified to 21 and lost nothing |
 
 ---
 
