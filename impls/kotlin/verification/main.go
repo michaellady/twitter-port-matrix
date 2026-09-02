@@ -446,26 +446,42 @@ func classify(r *result) string {
 
 // --- toolchain discovery -----------------------------------------------------
 
+// findModels locates core-models.jar, JBMC's model of the JDK classes.
+//
+// Two packagings, two layouts, and the original version of this function knew
+// only the first:
+//
+//	Homebrew          <prefix>/libexec/lib/core-models.jar
+//	the Ubuntu .deb   /usr/lib/core-models.jar, i.e. <prefix>/lib next to bin
+//
+// On the cloud image jbmc is installed from the pinned 6.11.0 .deb and answers
+// `jbmc --version` perfectly well, while this lookup failed and the whole
+// Kotlin rung reported itself unavailable. That is the shape GOAL.md rule 1
+// warns about from the other direction: a tool being present says nothing
+// about whether it runs, and here the tool ran fine and the harness did not.
 func findModels() (string, error) {
-	out := capture("brew", "--prefix", "cbmc")
-	prefix := strings.TrimSpace(out)
-	if prefix != "" {
-		p := filepath.Join(prefix, "libexec", "lib", "core-models.jar")
+	var cands []string
+	if prefix := strings.TrimSpace(capture("brew", "--prefix", "cbmc")); prefix != "" {
+		cands = append(cands, filepath.Join(prefix, "libexec", "lib", "core-models.jar"))
+	}
+	if jbmc, err := exec.LookPath("jbmc"); err == nil {
+		real, err := filepath.EvalSymlinks(jbmc)
+		if err != nil {
+			real = jbmc
+		}
+		prefix := filepath.Dir(filepath.Dir(real)) // .../bin/jbmc -> ...
+		cands = append(cands,
+			filepath.Join(prefix, "libexec", "lib", "core-models.jar"), // Homebrew
+			filepath.Join(prefix, "lib", "core-models.jar"),            // Debian/Ubuntu .deb
+			filepath.Join(prefix, "share", "cbmc", "core-models.jar"),
+		)
+	}
+	for _, p := range cands {
 		if _, err := os.Stat(p); err == nil {
 			return p, nil
 		}
 	}
-	jbmc, err := exec.LookPath("jbmc")
-	if err == nil {
-		real, err := filepath.EvalSymlinks(jbmc)
-		if err == nil {
-			p := filepath.Join(filepath.Dir(filepath.Dir(real)), "libexec", "lib", "core-models.jar")
-			if _, err := os.Stat(p); err == nil {
-				return p, nil
-			}
-		}
-	}
-	return "", fmt.Errorf("core-models.jar not found next to jbmc")
+	return "", fmt.Errorf("core-models.jar not found; looked in %v", cands)
 }
 
 func findKotlinStdlib(kotlinc string) (string, error) {

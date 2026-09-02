@@ -12,9 +12,11 @@ Docker path below. The cloud mechanism is a **setup script**.
    [claude.ai/code](https://claude.ai/code).
 2. Paste the contents of [`cloud-setup.sh`](cloud-setup.sh) into the
    **Setup script** field.
-3. Leave network access at **Trusted** — the default allowlist already covers
-   `ghcr.io`, GitHub release assets, crates.io and apt, which is everything the
-   script fetches.
+3. Leave network access at **Trusted** — the default allowlist covers GitHub
+   release assets, crates.io and apt, which is everything the script fetches
+   **except the Gobra jar**. See "Gobra does not need Docker, but it does need
+   a blob host" below: `ghcr.io` itself is allowed and its blob storage is not,
+   so Go R4 needs an allowlist entry the Trusted default does not include.
 
 The script runs **once**, as root, on Ubuntu 24.04 x86_64. Anthropic snapshots
 the filesystem afterwards, so later sessions reuse everything it installed.
@@ -80,8 +82,18 @@ warning and continues, leaving the Go corner at R0–R3 while everything else
 works. If the whole script times out, move the Gobra block to a session-time
 step; it is the only part that can be deferred without losing a rung entirely.
 
-**This has not been run yet.** The script is syntax-checked and every URL in it
-was probed, but no cloud session has executed it.
+**It has now been run.** Everything above landed except Gobra, and the one that
+did not failed for a reason no timeout budget would have fixed — see the next
+section. Measured in a real cloud session:
+
+| tool | outcome |
+|---|---|
+| JDK, `unzip` | installed |
+| rustc | **1.95.0**, the pinned toolchain, so Verus runs |
+| Verus 0.2026.04.24.f8e1704 | present; `verify` green over all five crates |
+| CBMC/JBMC 6.11.0 | installed and runnable |
+| kotlinc 2.4.10 | installed |
+| Gobra jar | **absent — blocked, not slow** |
 
 ### Plain Docker, anywhere (not the cloud path)
 
@@ -145,13 +157,52 @@ The Verus URL took two attempts: the asset is `x86-linux`, not `x86_64-linux`,
 and the version string carries the commit hash (`0.2026.04.24.f8e1704`). The
 short form 404s.
 
-**Not verified: the directory name inside the Verus zip.** `VERUS_PATH` assumes
-`verus-x86-linux/verus`, inferred from the macOS archive unpacking to
-`verus-arm64-macos/`. If that inference is wrong the image builds and
-`matrixctl doctor` reports Verus absent — a loud failure, not a silent one, and
-`VERUS_PATH` is an env var precisely so it can be corrected without a rebuild.
+**Now verified: the directory name inside the Verus zip.** It is
+`verus-x86-linux/verus`, as inferred. `cloud-setup.sh` does not rely on the
+inference either way — it `find`s the binary — and a cloud session confirmed
+both: the path resolves and `cargo-verus verus verify` returns
+`23 verified, 0 errors` across the five verify-enabled crates.
 
-## Gobra does not need Docker
+**Also now verified: rustc must be 1.95.0 for any of that to happen.** The base
+image ships 1.94.1, on which Verus installs cleanly and then refuses to run.
+The `rustup toolchain install 1.95.0` step is not belt-and-braces; without it
+Rust R4 is unreachable no matter what `doctor` says about the Verus binary.
+
+## Gobra does not need Docker, but it does need a blob host
+
+Everything below about the jar is still true — and it is not sufficient, which
+is the part that cost a rung.
+
+**`ghcr.io` being allowlisted is not the same as the image being fetchable.**
+The registry API on `ghcr.io` answers fine: `crane manifest` on the pinned
+digest returns the manifest, layers and all. Layer *contents* are served from
+`pkg-containers.githubusercontent.com` via a redirect, and that host is not on
+the Trusted allowlist:
+
+```
+Error: reading layer contents: Get "https://pkg-containers.githubusercontent.com/ghcr1/blobs/sha256:630b3e64...": Forbidden
+```
+
+confirmed at the proxy as `connect_rejected: gateway answered 403 to CONNECT
+(policy denial or upstream failure), host pkg-containers.githubusercontent.com:443`.
+
+So `crane export` produces a **zero-byte** file, the setup script's `[ -s ]`
+test fails, and it takes the "could not be fetched" branch. Note which branch:
+the sha256 pin never gets to run, so an empty `/opt/gobra/` means *blocked*,
+not *tampered with*. Both branches `rm -f` and warn, and the distinction
+matters enough that the script now says which one it took.
+
+`viperproject/gobra` publishes no release assets, so there is no second URL to
+try. **To get Go R4 in a cloud session, add `pkg-containers.githubusercontent.com`
+to the environment's network allowlist** (Custom rather than Trusted), or
+install the jar from a host that is already allowed.
+
+The cost of not doing so is larger than one rung: R5's discharged portion is
+31 of 42 clauses and **every one of them is Gobra-backed**
+(`spec/refinement/obligations.json`), so a session without the jar reaches
+neither R4/Go nor any of R5.
+
+## The jar itself
 
 Gobra is a single 105 MB fat jar. The image entrypoint is literally
 `java -Xss128m -jar gobra.jar`, so it needs a JVM and a Z3 on `PATH` — not a
@@ -170,8 +221,11 @@ distribution channel — but that is a *build-time* concern. The Dockerfile lift
 the jar out with a multi-stage `COPY --from`, and the runtime has no Docker
 dependency at all.
 
-**Consequence: this environment reaches every ceiling the macOS host does.**
-There is no degraded mode.
+**On a host that can fetch the jar, this reaches every ceiling the macOS host
+does.** On a Trusted cloud session it does not, and that is the degraded mode
+the sentence above wrongly denied. Recorded rather than corrected away, because
+it is the same shape as `evidence/FINDINGS.md` Pattern 5: a claim that was true
+where it was written and was inherited as a fact about the world.
 
 ## What degrades, and where it degrades to
 
@@ -181,7 +235,8 @@ There is no degraded mode.
 | R3 model check | JDK + the committed jar | — always available |
 | R4 Rust (Verus) | the Verus binary | — available |
 | R4 Kotlin/Java (JBMC) | CBMC package | — available |
-| R4 Go (Gobra) | JVM + Z3 on PATH | — available |
+| R4 Go (Gobra) | JVM + Z3 on PATH + **the jar** | **unavailable in a Trusted cloud session** — the jar's blob host is blocked; see above |
+| R5 | the same jar | unavailable with it: 31 of 42 discharged clauses are Gobra-backed |
 
 **Nothing needs a Docker daemon at runtime.** That was the original design and
 it was wrong: it cost an unnecessary `docker-in-docker` feature, and it made

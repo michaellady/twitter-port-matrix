@@ -68,8 +68,19 @@ import "github.com/michaellady/twitter-port-matrix-impl-go/internal/dom"
 
 // LockP is the lock-invariant predicate for *Service. It composes the
 // component LockP() predicates of the verified primitives Service holds, plus
-// field-existence permission for the interface-typed `clk`.
+// field-existence permission for the interface-typed `clk` and for `wmu`.
+//
+// `wmu` carries field-existence permission only, exactly as `MemStore.LockP()`
+// carries `acc(&s.mu)`: the mutex stub in stubs/sync/sync.gobra is trusted and
+// models no state, so there is nothing more to say about it here. What `wmu`
+// buys is not stated in this predicate at all -- it is the F018 atomicity of
+// the compound allocate-then-write sequences in CreateUser and PostTweet, and
+// no contract in this repository can express it, because `S_obs` has no
+// concurrency semantics for a refinement obligation to quantify over. It is
+// enforced by the regression tests named in service.go and by nothing else.
+// Recorded here rather than left to look like an oversight.
 pred (s *Service) LockP() {
+	acc(&s.wmu) &&
 	acc(&s.clk) &&
 	acc(&s.idsTw) && acc(s.idsTw.LockP()) &&
 	acc(&s.idsUsr) && acc(s.idsUsr.LockP()) &&

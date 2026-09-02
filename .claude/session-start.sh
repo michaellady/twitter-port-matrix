@@ -25,7 +25,12 @@ printf '  go %s · rust %s · java %s · kotlinc %s · verus %s · z3 %s · jbmc
 # rung it costs, because that is the question the reader actually has.
 command -v verus  >/dev/null 2>&1 || echo "  ! verus absent  -> Rust R4 unavailable"
 command -v jbmc   >/dev/null 2>&1 || echo "  ! jbmc absent   -> Java/Kotlin bounded rung unavailable"
-[ -f "${GOBRA_JAR:-/opt/gobra/gobra.jar}" ] || echo "  ! gobra absent  -> Go R4 unavailable"
+# The Gobra jar is the one absence with a known, specific, non-obvious cause,
+# so it gets the cause rather than only the consequence. See CLOUD.md.
+if [ ! -f "${GOBRA_JAR:-/opt/gobra/gobra.jar}" ]; then
+  echo "  ! gobra absent  -> Go R4 unavailable, and R5 with it (31 of 42 discharged clauses are Gobra-backed)"
+  [ "$where" = "cloud" ] && echo "                     cause: ghcr.io blobs come from pkg-containers.githubusercontent.com, which Trusted blocks (403)"
+fi
 command -v kotlinc >/dev/null 2>&1 || echo "  ! kotlinc absent -> Kotlin corner cannot build"
 
 echo "  full check: go run ./tools/cmd/matrixctl doctor"

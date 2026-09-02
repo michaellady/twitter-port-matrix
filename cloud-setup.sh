@@ -121,16 +121,27 @@ log "Gobra jar (registry pull, no daemon required)"
 #
 # A daemon was never actually necessary. crane speaks the registry HTTP API
 # directly, so the jar can be exported from the pinned digest with nothing but
-# network access -- and ghcr.io is on the Trusted allowlist. Verified to
-# produce a byte-identical jar: sha256 33d2dce5...0321, the same digest the
-# docker path produced.
+# network access. Verified to produce a byte-identical jar: sha256
+# 33d2dce5...0321, the same digest the docker path produced.
+#
+# KNOWN TO FAIL ON THE TRUSTED ALLOWLIST, AND NOT FOR LACK OF TIME.
+# ghcr.io serves the manifest and then redirects layer CONTENT to
+# pkg-containers.githubusercontent.com, which Trusted refuses at CONNECT with
+# 403. `crane export` writes nothing, the `-s` test below fails, and Go R4
+# plus all 31 Gobra-backed R5 clauses are gone. viperproject/gobra publishes
+# no release assets, so there is no second URL to fall back to: the fix is to
+# add pkg-containers.githubusercontent.com to the environment's network
+# allowlist (Custom, not Trusted). Measured, not inferred -- see CLOUD.md.
 GOBRA_IMG="ghcr.io/viperproject/gobra@sha256:2ef080ccd284945829501996e6d63ed2f1c94b7cf6a30d2b934272fb8a6df2c6"
 GOBRA_SHA="33d2dce591af60c48e3b11af1bf7f41a31a70fb7578ecefe1728748b58f30321"
 mkdir -p /opt/gobra
 if go install github.com/google/go-containerregistry/cmd/crane@latest >/dev/null 2>&1; then
   CRANE="$(go env GOPATH)/bin/crane"
   if [ -x "$CRANE" ]; then
-    "$CRANE" export "$GOBRA_IMG" - 2>/dev/null | tar -xO gobra/gobra.jar > /opt/gobra/gobra.jar 2>/dev/null || true
+    # Keep crane's stderr. The first version discarded it, which is why a
+    # blocked blob host looked identical to a slow network for a whole
+    # session: the only evidence left was an empty directory.
+    "$CRANE" export "$GOBRA_IMG" - 2>/tmp/crane.err | tar -xO gobra/gobra.jar > /opt/gobra/gobra.jar 2>/dev/null || true
   fi
 fi
 if [ -s /opt/gobra/gobra.jar ]; then
@@ -145,7 +156,14 @@ if [ -s /opt/gobra/gobra.jar ]; then
   fi
 else
   rm -f /opt/gobra/gobra.jar
-  warn "gobra jar could not be fetched -> Go R4 unavailable"
+  # Say WHICH failure this was. Both this branch and the digest-mismatch branch
+  # above delete the file and leave an empty /opt/gobra, and a later reader
+  # cannot tell a blocked fetch from a tampered jar by looking at the
+  # directory. They call for opposite responses.
+  warn "gobra jar could not be FETCHED (not a digest mismatch) -> Go R4 and R5 unavailable"
+  [ -s /tmp/crane.err ] && warn "crane said: $(head -1 /tmp/crane.err)"
+  warn "if this is a Trusted cloud environment, the cause is almost certainly"
+  warn "pkg-containers.githubusercontent.com being blocked; see CLOUD.md"
 fi
 
 # --- Inventory, by running each tool ------------------------------------
