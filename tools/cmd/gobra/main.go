@@ -74,7 +74,16 @@ func usage() {
   clauses   list the ensures clauses, classified (functional / framing /
             assumed-because-trusted)
   canary    negation-canary sweep: negate each functional clause in turn and
-            record whether Gobra can refute it
+            record whether Gobra can refute it.
+            -isolate elides the clause's sibling postconditions so the solver
+            proves only the negation -- sound, because a postcondition is a
+            goal and not an assumption, so the exit state is unchanged. It is
+            what decides (*MemStore).HomeTimeline, whose clauses the default
+            shape cannot finish (F021, F029).
+            -control additionally runs each canary against an "assume false"
+            copy of its own member and requires VACUOUS: standing rule 2 per
+            member rather than once per sweep.
+            -gobra-arg passes an argument through to Gobra (repeatable)
   r5        per-clause status for the 42 R5 clauses, joined from the canary
             results rather than from what obligations.json records
   r5verify  R5 as a calibrate rung. Verifies one tree (-registry + -impl
@@ -85,7 +94,10 @@ func usage() {
   reach     probe each member with "ensures false". If it verifies, nothing
             reaches that exit and every obligation on it is vacuous -- the
             F013 shape. Cheaper and more complete than the per-clause sweep,
-            and it terminates where quantified canaries sometimes do not
+            and it terminates where quantified canaries sometimes do not.
+            -isolate applies here too: "false" implies every postcondition on
+            the member, so eliding them changes nothing about the exit state
+            and leaves the solver a single goal to decide
   audit     re-read a sweep and check every REFUTABLE verdict is backed by an
             error Gobra reported inside the clause's own member
 

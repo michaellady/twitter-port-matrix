@@ -911,11 +911,14 @@
       "Canary": "!(len(out) \u003c= limit)",
       "CanaryWhy": "the negation also verifies -- the exit state is unreachable"
     },
-    "verdict": "TIMEOUT",
+    "verdict": "REFUTABLE",
     "errors": [
-      "no verdict within 12m0s"
+      "internal/store/memstore.go:527:9 Postcondition might not hold. "
     ],
-    "elapsed_s": 722.279840974
+    "elapsed_s": 105.570579808,
+    "control_verdict": "VACUOUS",
+    "control_elapsed_s": 44.374254159,
+    "mode": "isolated"
   },
   {
     "clause": {
@@ -944,14 +947,18 @@
       "Member": "(*MemStore).HomeTimeline",
       "Text": "forall a int :: 0 \u003c= a \u0026\u0026 a \u003c len(out) ==\u003e (out[a].Author == user || (dom.Follow{From: user, To: out[a].Author} in s.AbsFollows()))",
       "Kind": "functional",
-      "Canary": "forall a int :: !(0 \u003c= a \u0026\u0026 a \u003c len(out))",
-      "CanaryWhy": "quantifier range is always empty -- the clause says nothing about any element"
+      "Canary": "len(out) == 0",
+      "CanaryWhy": "the page is always empty -- the clause says nothing about any element",
+      "CanaryEquivalence": "the derived canary is `forall a int :: !(0 \u003c= a \u0026\u0026 a \u003c len(out))`, which holds exactly when no index is in range, i.e. len(out) \u003c= 0; a slice length is non-negative, so that is len(out) == 0"
     },
-    "verdict": "TIMEOUT",
+    "verdict": "REFUTABLE",
     "errors": [
-      "no verdict within 12m0s"
+      "internal/store/memstore.go:531:9 Postcondition might not hold. "
     ],
-    "elapsed_s": 722.590204795
+    "elapsed_s": 463.973710677,
+    "control_verdict": "VACUOUS",
+    "control_elapsed_s": 25.738537379,
+    "mode": "isolated hand-written canary"
   },
   {
     "clause": {
@@ -965,11 +972,14 @@
       "Canary": "!(cursor \u003e 0)",
       "CanaryWhy": "antecedent never holds -- the clause is vacuously true"
     },
-    "verdict": "TIMEOUT",
+    "verdict": "REFUTABLE",
     "errors": [
-      "no verdict within 12m0s"
+      "internal/store/memstore.go:534:9 Postcondition might not hold. "
     ],
-    "elapsed_s": 722.349267438
+    "elapsed_s": 97.704244991,
+    "control_verdict": "VACUOUS",
+    "control_elapsed_s": 26.905168423,
+    "mode": "isolated"
   },
   {
     "clause": {
@@ -980,14 +990,18 @@
       "Member": "(*MemStore).HomeTimeline",
       "Text": "forall a int :: 0 \u003c= a \u0026\u0026 a \u003c len(out) ==\u003e exists i int :: 0 \u003c= i \u0026\u0026 i \u003c s.AbsLogLen() \u0026\u0026 s.AbsLogAt(i) == out[a]",
       "Kind": "functional",
-      "Canary": "forall a int :: !(0 \u003c= a \u0026\u0026 a \u003c len(out))",
-      "CanaryWhy": "quantifier range is always empty -- the clause says nothing about any element"
+      "Canary": "len(out) == 0",
+      "CanaryWhy": "the page is always empty -- the clause says nothing about any element",
+      "CanaryEquivalence": "the derived canary is `forall a int :: !(0 \u003c= a \u0026\u0026 a \u003c len(out))`, which holds exactly when no index is in range, i.e. len(out) \u003c= 0; a slice length is non-negative, so that is len(out) == 0"
     },
-    "verdict": "TIMEOUT",
+    "verdict": "REFUTABLE",
     "errors": [
-      "no verdict within 12m0s"
+      "internal/store/memstore.go:535:9 Postcondition might not hold. "
     ],
-    "elapsed_s": 722.33723238
+    "elapsed_s": 369.008614776,
+    "control_verdict": "VACUOUS",
+    "control_elapsed_s": 26.027718722,
+    "mode": "isolated hand-written canary"
   },
   {
     "clause": {
@@ -1001,11 +1015,14 @@
       "Canary": "!(!more)",
       "CanaryWhy": "antecedent never holds -- the clause is vacuously true"
     },
-    "verdict": "TIMEOUT",
+    "verdict": "REFUTABLE",
     "errors": [
-      "no verdict within 12m0s"
+      "internal/store/memstore.go:537:9 Postcondition might not hold. "
     ],
-    "elapsed_s": 722.539668887
+    "elapsed_s": 637.235690564,
+    "control_verdict": "VACUOUS",
+    "control_elapsed_s": 25.42350355,
+    "mode": "isolated"
   },
   {
     "clause": {
@@ -1019,11 +1036,14 @@
       "Canary": "!(s.AbsUsers() == old(s.AbsUsers()))",
       "CanaryWhy": "the negation also verifies -- the exit state is unreachable"
     },
-    "verdict": "TIMEOUT",
+    "verdict": "REFUTABLE",
     "errors": [
-      "no verdict within 12m0s"
+      "internal/store/memstore.go:542:9 Postcondition might not hold. "
     ],
-    "elapsed_s": 722.383176767
+    "elapsed_s": 138.469954398,
+    "control_verdict": "VACUOUS",
+    "control_elapsed_s": 26.333065555,
+    "mode": "isolated"
   },
   {
     "clause": {
@@ -1037,11 +1057,14 @@
       "Canary": "!(s.AbsFollows() == old(s.AbsFollows()))",
       "CanaryWhy": "the negation also verifies -- the exit state is unreachable"
     },
-    "verdict": "TIMEOUT",
+    "verdict": "REFUTABLE",
     "errors": [
-      "no verdict within 12m0s"
+      "internal/store/memstore.go:543:9 Postcondition might not hold. "
     ],
-    "elapsed_s": 722.41531337
+    "elapsed_s": 709.437840671,
+    "control_verdict": "VACUOUS",
+    "control_elapsed_s": 37.493564957,
+    "mode": "isolated"
   },
   {
     "clause": {
@@ -1055,11 +1078,14 @@
       "Canary": "!(s.AbsLogLen() == old(s.AbsLogLen()))",
       "CanaryWhy": "the negation also verifies -- the exit state is unreachable"
     },
-    "verdict": "TIMEOUT",
+    "verdict": "REFUTABLE",
     "errors": [
-      "no verdict within 12m0s"
+      "internal/store/memstore.go:544:9 Postcondition might not hold. "
     ],
-    "elapsed_s": 722.586270779
+    "elapsed_s": 39.555871653,
+    "control_verdict": "VACUOUS",
+    "control_elapsed_s": 23.238096595,
+    "mode": "isolated"
   },
   {
     "clause": {

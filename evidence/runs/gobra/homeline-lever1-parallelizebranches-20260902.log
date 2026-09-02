@@ -1,0 +1,16 @@
+negation canaries: 1 functional clauses, 0 already done, 1 to run, 1 workers, 12m0s budget each
+extra Gobra arguments: --parallelizeBranches
+  [  1/  1] TIMEOUT         723s internal/store/memstore.go:542 s.AbsUsers() == old(s.AbsUsers())
+
+SITE                               MEMBER                     VERDICT      SECONDS CONTROL    CLAUSE
+internal/store/memstore.go:542     (*MemStore).HomeTimeline   TIMEOUT        723.4 -          s.AbsUsers() == old(s.AbsUsers())
+
+1 clauses: 0 refutable, 0 VACUOUS, 1 timed out, 0 ill-formed
+
+TIMEOUT -- the solver did not decide the negation. Neither answer was
+established, so these obligations are UNAUDITED, not verified:
+  internal/store/memstore.go:542  (*MemStore).HomeTimeline
+      s.AbsUsers() == old(s.AbsUsers())
+      canary: !(s.AbsUsers() == old(s.AbsUsers()))
+
+full results: /tmp/claude-0/-home-user-twitter-port-matrix/bcd1fbd7-34e3-5ec2-b270-0c6061197557/scratchpad/lever/lever1b-542.json

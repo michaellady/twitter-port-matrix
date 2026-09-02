@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -68,6 +69,19 @@ func selfTest(implDir string) error {
 // runCanaryInfeasible runs the canary with the clause's member made
 // unreachable, which is what F013's undischargeable checkcast did by accident.
 func runCanaryInfeasible(implDir string, c clause) (canaryResult, error) {
+	return runCanaryInfeasibleIsolating(implDir, c, nil, 6*time.Minute)
+}
+
+// runCanaryInfeasibleIsolating is the per-clause control run.
+//
+// Standing rule 2 applied to the probe itself: a canary that reports REFUTABLE
+// for a clause has proved nothing unless the same canary, pointed at a copy of
+// the member whose exit really is unreachable, reports VACUOUS. The sweep's
+// self-test establishes that once, on (*clock.Logical).Tick. On a member where
+// the sweep's default shape does not terminate the question has to be asked
+// again in whatever shape did terminate, on that member -- which is what this
+// is for.
+func runCanaryInfeasibleIsolating(implDir string, c clause, siblings []clause, budget time.Duration) (canaryResult, error) {
 	ws, err := newWorkspace(implDir)
 	if err != nil {
 		return canaryResult{}, err
@@ -77,14 +91,23 @@ func runCanaryInfeasible(implDir string, c clause) (canaryResult, error) {
 	if err := substitute(path, c); err != nil {
 		return canaryResult{}, err
 	}
+	if len(siblings) > 0 {
+		if err := elide(path, siblings); err != nil {
+			return canaryResult{}, err
+		}
+	}
 	if err := injectAssumeFalse(path, c.Member); err != nil {
 		return canaryResult{}, err
 	}
-	res, err := runGobra(ws, []string{c.Pkg}, "", 6*time.Minute)
-	if err != nil {
-		return canaryResult{}, err
+	res, err := runGobra(ws, []string{c.Pkg}, "", budget)
+	r := canaryResult{Clause: c, Elapsed: res.Elapsed, ElapsedS: res.Elapsed.Seconds()}
+	if errors.Is(err, errTimeout) {
+		r.Verdict = timedOut
+		return r, nil
 	}
-	r := canaryResult{Clause: c}
+	if err != nil {
+		return r, err
+	}
 	if res.Total == 0 {
 		r.Verdict = vacuous
 	} else {

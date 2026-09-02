@@ -119,7 +119,7 @@ contradict it:
 
 | Corner | R4 | R5-core | Ceiling | Rung in `calibrate`? |
 |---|---|---|---|---|
-| Go | Gobra, 83 of 91 clauses refutable, 0 vacuous, 8 undecided | 26 of 42 clauses | R5-core, partial | **yes, both** (`rungs.go`, `Impls: ["go"]`) |
+| Go | Gobra, 91 of 91 clauses refutable, 0 vacuous, 0 undecided | 30 of 42 clauses | R5-core, partial | **yes, both** (`rungs.go`, `Impls: ["go"]`) |
 | Rust | Verus, **1 property** (F016) | no — `RwLock` has no vstd model | R4, one property (F4) | no |
 | Java | not attempted | unknown | R3 | no |
 | Kotlin | JBMC, bounded | no | R3 + bounded | no |

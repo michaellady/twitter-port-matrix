@@ -178,3 +178,87 @@ Expected, and observed:
 
 which is a timeline in ascending timestamp order -- an F2 violation reachable
 from the admin snapshot path.
+
+------------------------------------------------------------------------------
+CANARY I -- the isolated negation canary for (*MemStore).HomeTimeline (F021)
+------------------------------------------------------------------------------
+
+This one is a NEGATION canary, not an injection canary, and the distinction is
+the whole point. CANARY C and D above break the loop body and watch an
+invariant go red. Against a VACUOUS obligation that question is ill-posed
+(F013): the broken statement sits downstream of the infeasible point too, so
+the verifier reports no error for the broken version either and the canary
+passes having demonstrated nothing. The only question that separates a live
+obligation from an empty one is: ASSERT THE OPPOSITE -- can Gobra refute it?
+
+The sweep in `tools/cmd/gobra canary` asks exactly that clause by clause, and
+on this member, in its default shape, it did not come back: eight of the nine
+functional postconditions on `HomeTimeline` timed out at 722 s each (F021).
+Two things fix that and one does not.
+
+WHAT DOES NOT WORK: `--parallelizeBranches` (no verdict, 723 s) and a bigger
+budget (no verdict at 2703 s, with Gobra's own `did not terminate` and, on the
+next line, `0 error(s)`). Both measured; see F029 and
+evidence/runs/gobra/homeline-levers-20260902.txt.
+
+WHAT WORKS: ask the question with nothing else attached. Keep every `requires`,
+every `invariant` and both `acc(...)` postconditions exactly as shipped, replace
+the ONE clause under audit by its negation, and comment out the other eight
+functional `ensures`. That is `gobra canary -isolate`; by hand it is this edit.
+
+    // @ ensures acc(s.LockP())          <- keep
+    // @ ensures acc(out)                <- keep
+    // @ ensures !(s.AbsUsers() == old(s.AbsUsers()))   <- the clause, negated
+    // @ (isolated: sibling postcondition elided)       <- the other eight
+    ...
+    func (s *MemStore) HomeTimeline(user string, limit int, cursor int64) ...
+
+WHY THAT IS STILL THE SAME QUESTION. A postcondition is a goal, never an
+assumption: deleting one cannot change the path condition Gobra arrives at the
+exit with. The invariants CAN change it -- an invariant is assumed on the way
+round the loop -- so they are not touched. Because the exit state is unchanged,
+"can Gobra prove this negation there" is the same question, asked with less to
+prove alongside it. And the elision preserves the file's line count, so Gobra's
+reported positions still line up with the shipped source.
+
+ONE MORE THING IS NEEDED for three of the nine clauses. The derived negation
+of an F1-shaped clause is `forall a int :: !(0 <= a && a < len(out))`, which is
+correct -- for a quantified implication the vacuity question is whether the
+range is ever non-empty -- and which Gobra will not decide in 12 minutes. The
+SAME ASSERTION written `len(out) == 0` decides. That is the hand-written half
+of this canary, and the table lives in tools/cmd/gobra/clauses.go with the
+arithmetic that makes the two forms equal.
+
+OBSERVED RESULT (gobra 1.1-SNAPSHOT, /opt/gobra/gobra.jar), run 2026-09-02, on
+`s.AbsUsers() == old(s.AbsUsers())` at memstore.go:542 -- the same clause that
+had timed out twice at 722 s:
+
+    internal/store/memstore.go:542:9 Postcondition might not hold.
+    REFUTABLE, 138s
+
+CONTROL -- and this half is not optional. A canary that reports REFUTABLE has
+shown nothing unless the same canary, in the same shape, on the same member,
+reports VACUOUS when the exit really is unreachable. So the isolated canary was
+run again with `// @ assume false` as the first statement of `HomeTimeline`'s
+body:
+
+    Gobra found no errors
+    Gobra has found 0 error(s)
+    VACUOUS, 26s
+
+Both the clause and its negation verify there, which is only possible when
+nothing reaches the exit. The probe can see vacuity on THIS member, so its
+REFUTABLE on the shipped member means something. `gobra canary -control` runs
+this pair automatically and fails the sweep if the control does not come back
+VACUOUS.
+
+All nine clauses on the member were run this way. Nine of nine controls came
+back VACUOUS in 23-44 s, and eight of nine clauses refuted on the first pass;
+memstore.go:527 needed a second run (it refuted at 137 s, then produced no
+verdict at 723 s, then refuted at 106 s -- the same query, three times, and
+that instability is itself part of the result).
+
+The clean store package verifies in 42 s with all nine postconditions present
+and true. The lesson is in the gap between that and 2703 s: what the audit
+could not afford was not the clause. It was the other eight clauses it was
+carrying, and the spelling of the question.
