@@ -1,0 +1,1019 @@
+calibrate: 72 mutant(s) x 3 rung(s) = 216 cells
+           rungs=R0,R1,R2  out=/home/user/twitter-port-matrix/evidence/runs/calibration/four-corner  resume=false
+==============================================================================
+  floor go        562 ms/launch  (3 samples, spread 542-585 ms)
+  floor rust      101 ms/launch  (3 samples, spread 100-102 ms)
+  floor java     1071 ms/launch  (3 samples, spread 1046-1086 ms)
+  floor kotlin   8755 ms/launch  (3 samples, spread 8684-8828 ms)
+------------------------------------------------------------------------------
+
+go/id-first-is-two           e8ab361a07a3  id-alloc
+  guard    5/5 checks: go@id-first-is-two -> /tmp/calibrate-mutant-572400944/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed        1.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     32.1s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (1.5s)
+
+go/id-burned-on-reject       c7c9ada58d7e  id-alloc
+  guard    5/5 checks: go@id-burned-on-reject -> /tmp/calibrate-mutant-470455618/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       30.6s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     33.1s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=2, seed=3, seed=4  (1.8s)
+
+go/self-follow-guard-dropped 83d8901f6b4f  precedence
+  guard    5/5 checks: go@self-follow-guard-dropped -> /tmp/calibrate-mutant-763621727/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.5s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       16.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     34.2s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (1.8s)
+
+go/follow-precedence-flipped 835a5af416ca  precedence
+  guard    5/5 checks: go@follow-precedence-flipped -> /tmp/calibrate-mutant-584436197/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       12.9s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     34.1s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus  (2.1s)
+
+go/timeline-scan-reversed    5cdb25b7d5d4  ordering
+  guard    5/5 checks: go@timeline-scan-reversed -> /tmp/calibrate-mutant-1503734054/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 5 step(s) disagree with S_obs
+  R1       killed       19.2s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       32.3s  R2 FAILED
+
+go/timeline-tiebreak-by-id-asc c29b1d7388ab  ordering
+  guard    5/5 checks: go@timeline-tiebreak-by-id-asc -> /tmp/calibrate-mutant-3792344156/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 5 step(s) disagree with S_obs
+  R1       killed       18.9s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       33.1s  R2 FAILED
+
+go/follow-toggles            5864bbf5a63f  idempotence
+  guard    5/5 checks: go@follow-toggles -> /tmp/calibrate-mutant-1152209415/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 3 step(s) disagree with S_obs
+  R1       killed       27.8s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       33.6s  R2 FAILED
+
+go/unfollow-rejects-missing-edge 3d0c2dc53862  idempotence
+  guard    5/5 checks: go@unfollow-rejects-missing-edge -> /tmp/calibrate-mutant-2643147083/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 2 step(s) disagree with S_obs
+  R1       killed        6.6s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       34.2s  R2 FAILED
+
+go/orphan-author-accepted    dad4c0f1ccad  existence
+  guard    5/5 checks: go@orphan-author-accepted -> /tmp/calibrate-mutant-181822443/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.8s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 4 step(s) disagree with S_obs
+  R1       killed        6.9s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     34.1s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (1.7s)
+
+go/created-at-frozen         265ad76e2ab4  clock
+  guard    5/5 checks: go@created-at-frozen -> /tmp/calibrate-mutant-300842027/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 13 step(s) disagree with S_obs
+  R1       killed       14.6s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     32.3s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (1.5s)
+
+go/tick-advances-by-two      8d7823732944  clock
+  guard    5/5 checks: go@tick-advances-by-two -> /tmp/calibrate-mutant-1428184248/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed        4.6s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     33.8s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (1.5s)
+
+go/tick-goes-backwards       0fa8528416e8  clock
+  guard    5/5 checks: go@tick-goes-backwards -> /tmp/calibrate-mutant-2079527484/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed        4.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       31.9s  R2 FAILED
+
+go/next-cursor-always-emitted adfeff638dae  pagination
+  guard    5/5 checks: go@next-cursor-always-emitted -> /tmp/calibrate-mutant-3058534103/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 7 step(s) disagree with S_obs
+  R1       killed       15.0s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     32.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (1.6s)
+
+go/next-cursor-is-first-id   d27c150973bf  pagination
+  guard    5/5 checks: go@next-cursor-is-first-id -> /tmp/calibrate-mutant-1792214185/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       43.9s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       31.4s  R2 FAILED
+
+go/cursor-inclusive          59be7991985c  pagination
+  guard    5/5 checks: go@cursor-inclusive -> /tmp/calibrate-mutant-3821496992/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.8s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       69.6s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       31.2s  R2 FAILED
+
+go/limit-off-by-one          f2599cb385b2  pagination
+  guard    5/5 checks: go@limit-off-by-one -> /tmp/calibrate-mutant-1963874486/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       45.8s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     30.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=2, seed=3, seed=4  (1.6s)
+
+go/unknown-json-fields-accepted d9dbb30bd881  parsing
+  guard    5/5 checks: go@unknown-json-fields-accepted -> /tmp/calibrate-mutant-1966907219/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 3 step(s) disagree with S_obs
+  R1       killed        4.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     31.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (1.6s)
+
+go/repeated-query-param-accepted c9480782b32c  parsing
+  guard    5/5 checks: go@repeated-query-param-accepted -> /tmp/calibrate-mutant-183239039/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.7s -- charged to no rung
+  R0       killed        0.6s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed        5.9s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     31.8s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=3  (1.7s)
+
+rust/id-first-is-two         48ed3712031d  id-alloc
+  guard    5/5 checks: rust@id-first-is-two -> /tmp/calibrate-mutant-2344385670/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 27.3s -- charged to no rung
+  R0       killed        0.2s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed        0.3s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.7s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (26.7s)
+
+rust/id-burned-on-reject     aa2bfa3a09d7  id-alloc
+  guard    5/5 checks: rust@id-burned-on-reject -> /tmp/calibrate-mutant-2771901064/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.9s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed        7.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=2, seed=3, seed=4  (26.6s)
+
+rust/self-follow-guard-dropped 6e58487b0848  precedence
+  guard    5/5 checks: rust@self-follow-guard-dropped -> /tmp/calibrate-mutant-4207135609/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.4s -- charged to no rung
+  R0       killed        0.2s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed        3.6s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (26.7s)
+
+rust/follow-precedence-flipped 0fe58237416f  precedence
+  guard    5/5 checks: rust@follow-precedence-flipped -> /tmp/calibrate-mutant-1828659095/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.8s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed        3.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus  (26.0s)
+
+rust/timeline-scan-reversed  8807aa74840d  ordering
+  guard    5/5 checks: rust@timeline-scan-reversed -> /tmp/calibrate-mutant-82306396/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.7s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 5 step(s) disagree with S_obs
+  R1       killed        4.3s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed        7.5s  R2 FAILED
+
+rust/timeline-tiebreak-by-id-asc 91eb8f3e731a  ordering
+  guard    5/5 checks: rust@timeline-tiebreak-by-id-asc -> /tmp/calibrate-mutant-585475051/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.6s -- charged to no rung
+  R0       killed        0.2s  R0 FAILED: 4 step(s) disagree with S_obs
+  R1       killed        4.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed        7.8s  R2 FAILED
+
+rust/follow-toggles          ad9d07754f42  idempotence
+  guard    5/5 checks: rust@follow-toggles -> /tmp/calibrate-mutant-937016776/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.1s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 3 step(s) disagree with S_obs
+  R1       killed        6.2s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed        7.6s  R2 FAILED
+
+rust/unfollow-rejects-missing-edge c2afa6a44af9  idempotence
+  guard    5/5 checks: rust@unfollow-rejects-missing-edge -> /tmp/calibrate-mutant-3107490267/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.1s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 2 step(s) disagree with S_obs
+  R1       killed        1.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed        7.6s  R2 FAILED
+
+rust/orphan-author-accepted  2f8d5c9a5232  existence
+  guard    5/5 checks: rust@orphan-author-accepted -> /tmp/calibrate-mutant-2024518409/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.6s -- charged to no rung
+  R0       killed        0.2s  R0 FAILED: 4 step(s) disagree with S_obs
+  R1       killed        1.6s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (26.2s)
+
+rust/created-at-frozen       d839185c20c9  clock
+  guard    5/5 checks: rust@created-at-frozen -> /tmp/calibrate-mutant-1459119204/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.4s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 13 step(s) disagree with S_obs
+  R1       killed        3.2s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.4s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (25.4s)
+
+rust/tick-advances-by-two    95fcb0c71597  clock
+  guard    5/5 checks: rust@tick-advances-by-two -> /tmp/calibrate-mutant-3955239348/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 24.7s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed        1.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.3s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (25.5s)
+
+rust/tick-goes-backwards     99f7e2f4c1ee  clock
+  guard    5/5 checks: rust@tick-goes-backwards -> /tmp/calibrate-mutant-3801290626/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.2s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed        1.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed        7.7s  R2 FAILED
+
+rust/next-cursor-always-emitted de50955bddfe  pagination
+  guard    5/5 checks: rust@next-cursor-always-emitted -> /tmp/calibrate-mutant-1839981978/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.0s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 7 step(s) disagree with S_obs
+  R1       killed        3.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.7s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (26.7s)
+
+rust/next-cursor-is-first-id 7fb74cefdc65  pagination
+  guard    5/5 checks: rust@next-cursor-is-first-id -> /tmp/calibrate-mutant-3282259216/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.0s -- charged to no rung
+  R0       killed        0.2s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       10.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed        7.4s  R2 FAILED
+
+rust/cursor-inclusive        58495114ff87  pagination
+  guard    5/5 checks: rust@cursor-inclusive -> /tmp/calibrate-mutant-2435170469/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.0s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       16.3s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed        7.3s  R2 FAILED
+
+rust/limit-off-by-one        49796ef5fa74  pagination
+  guard    5/5 checks: rust@limit-off-by-one -> /tmp/calibrate-mutant-17105448/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.4s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       11.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.4s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=2, seed=3, seed=4  (24.9s)
+
+rust/unknown-json-fields-accepted ded0fb284be8  parsing
+  guard    5/5 checks: rust@unknown-json-fields-accepted -> /tmp/calibrate-mutant-2082410439/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 25.1s -- charged to no rung
+  R0       killed        0.1s  R0 FAILED: 2 step(s) disagree with S_obs
+  R1       killed        1.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (26.5s)
+
+rust/repeated-query-param-accepted 39e41851707f  parsing
+  guard    5/5 checks: rust@repeated-query-param-accepted -> /tmp/calibrate-mutant-3937389783/tree (baseline rust is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 26.2s -- charged to no rung
+  R0       killed        0.2s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed        1.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived      7.4s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=3  (25.8s)
+
+java/id-first-is-two         61af145de0a0  id-alloc
+  guard    5/5 checks: java@id-first-is-two -> /tmp/calibrate-mutant-3842138773/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.2s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed        2.2s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     63.4s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (2.8s)
+
+java/id-burned-on-reject     8078a2a19795  id-alloc
+  guard    5/5 checks: java@id-burned-on-reject -> /tmp/calibrate-mutant-3077916147/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.2s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       55.6s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     59.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=2, seed=3, seed=4  (3.3s)
+
+java/self-follow-guard-dropped b933dff72869  precedence
+  guard    5/5 checks: java@self-follow-guard-dropped -> /tmp/calibrate-mutant-2529185120/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       28.8s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     58.7s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (3.0s)
+
+java/follow-precedence-flipped ce3db70dfead  precedence
+  guard    5/5 checks: java@follow-precedence-flipped -> /tmp/calibrate-mutant-4110490691/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       22.6s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     59.7s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus  (3.3s)
+
+java/timeline-scan-reversed  acb3e81239fe  ordering
+  guard    5/5 checks: java@timeline-scan-reversed -> /tmp/calibrate-mutant-1296251524/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 5 step(s) disagree with S_obs
+  R1       killed       35.0s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       60.0s  R2 FAILED
+
+java/timeline-tiebreak-by-id-asc c20c9c3f2898  ordering
+  guard    5/5 checks: java@timeline-tiebreak-by-id-asc -> /tmp/calibrate-mutant-1997956273/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 4 step(s) disagree with S_obs
+  R1       killed       34.0s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       61.0s  R2 FAILED
+
+java/follow-toggles          910fb0424141  idempotence
+  guard    5/5 checks: java@follow-toggles -> /tmp/calibrate-mutant-3481166236/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 3 step(s) disagree with S_obs
+  R1       killed       50.0s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       60.1s  R2 FAILED
+
+java/unfollow-rejects-missing-edge aa1d612d2ace  idempotence
+  guard    5/5 checks: java@unfollow-rejects-missing-edge -> /tmp/calibrate-mutant-544000761/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 2 step(s) disagree with S_obs
+  R1       killed       12.3s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       60.6s  R2 FAILED
+
+java/orphan-author-accepted  7ea8f19c0f65  existence
+  guard    5/5 checks: java@orphan-author-accepted -> /tmp/calibrate-mutant-3309068948/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.2s  R0 FAILED: 4 step(s) disagree with S_obs
+  R1       killed       12.3s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     61.8s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (3.3s)
+
+java/created-at-frozen       dcaecfc0d504  clock
+  guard    5/5 checks: java@created-at-frozen -> /tmp/calibrate-mutant-1636234411/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.2s  R0 FAILED: 13 step(s) disagree with S_obs
+  R1       killed       25.9s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     60.3s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (3.0s)
+
+java/tick-advances-by-two    13ac69adfc98  clock
+  guard    5/5 checks: java@tick-advances-by-two -> /tmp/calibrate-mutant-2592831039/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.2s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed        8.7s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     60.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (3.0s)
+
+java/tick-goes-backwards     11ddf401895f  clock
+  guard    5/5 checks: java@tick-goes-backwards -> /tmp/calibrate-mutant-2894911142/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.9s -- charged to no rung
+  R0       killed        1.0s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed        8.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       60.7s  R2 FAILED
+
+java/next-cursor-always-emitted 4d68b6eb0d6e  pagination
+  guard    5/5 checks: java@next-cursor-always-emitted -> /tmp/calibrate-mutant-68767875/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 7 step(s) disagree with S_obs
+  R1       killed       28.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     59.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (2.9s)
+
+java/next-cursor-is-first-id 7b9155d7884c  pagination
+  guard    5/5 checks: java@next-cursor-is-first-id -> /tmp/calibrate-mutant-96769590/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.9s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       81.8s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       59.7s  R2 FAILED
+
+java/cursor-inclusive        4f3ef00d45f7  pagination
+  guard    5/5 checks: java@cursor-inclusive -> /tmp/calibrate-mutant-3597248062/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.9s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed      133.9s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed       59.7s  R2 FAILED
+
+java/limit-off-by-one        ceeca649f99b  pagination
+  guard    5/5 checks: java@limit-off-by-one -> /tmp/calibrate-mutant-3181965360/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       84.7s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     59.7s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=2, seed=3, seed=4  (3.3s)
+
+java/unknown-json-fields-accepted 5c6813312a95  parsing
+  guard    5/5 checks: java@unknown-json-fields-accepted -> /tmp/calibrate-mutant-845190600/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.2s  R0 FAILED: 2 step(s) disagree with S_obs
+  R1       killed       11.3s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     60.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (3.3s)
+
+java/repeated-query-param-accepted 512c29b207e4  parsing
+  guard    5/5 checks: java@repeated-query-param-accepted -> /tmp/calibrate-mutant-978530306/tree (baseline java is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 1.0s -- charged to no rung
+  R0       killed        1.1s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       11.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived     58.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=3  (3.1s)
+
+kotlin/id-first-is-two       889983a08cf4  id-alloc
+  guard    5/5 checks: kotlin@id-first-is-two -> /tmp/calibrate-mutant-1684886085/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.2s -- charged to no rung
+  R0       killed        8.6s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed       16.7s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived    455.7s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (17.6s)
+
+kotlin/id-burned-on-reject   aefbbb985025  id-alloc
+  guard    5/5 checks: kotlin@id-burned-on-reject -> /tmp/calibrate-mutant-4094963514/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.2s -- charged to no rung
+  R0       killed        8.6s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed      432.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived    459.7s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by witness, corpus, seed=2, seed=3, seed=4  (18.1s)
+
+kotlin/self-follow-guard-dropped dd1643c466a8  precedence
+  guard    5/5 checks: kotlin@self-follow-guard-dropped -> /tmp/calibrate-mutant-3621352550/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.2s -- charged to no rung
+  R0       killed        8.3s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed      231.3s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived    465.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (19.6s)
+
+kotlin/follow-precedence-flipped 8a509ffb2b79  precedence
+  guard    5/5 checks: kotlin@follow-precedence-flipped -> /tmp/calibrate-mutant-1128634119/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.6s -- charged to no rung
+  R0       killed        8.8s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed      171.9s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived    462.8s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus  (17.9s)
+
+kotlin/timeline-scan-reversed 72d3c06cb144  ordering
+  guard    5/5 checks: kotlin@timeline-scan-reversed -> /tmp/calibrate-mutant-1083092245/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.5s -- charged to no rung
+  R0       killed        8.6s  R0 FAILED: 5 step(s) disagree with S_obs
+  R1       killed      277.3s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed      470.0s  R2 FAILED
+
+kotlin/timeline-tiebreak-by-id-asc d24590b3e222  ordering
+  guard    5/5 checks: kotlin@timeline-tiebreak-by-id-asc -> /tmp/calibrate-mutant-2558392592/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.5s -- charged to no rung
+  R0       killed        8.7s  R0 FAILED: 4 step(s) disagree with S_obs
+  R1       killed      277.3s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed      470.9s  R2 FAILED
+
+kotlin/follow-toggles        3c7dfbcb934f  idempotence
+  guard    5/5 checks: kotlin@follow-toggles -> /tmp/calibrate-mutant-4282501131/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.4s -- charged to no rung
+  R0       killed        8.6s  R0 FAILED: 3 step(s) disagree with S_obs
+  R1       killed      388.0s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed      465.1s  R2 FAILED
+
+kotlin/unfollow-rejects-missing-edge 5a80280e4ffb  idempotence
+  guard    5/5 checks: kotlin@unfollow-rejects-missing-edge -> /tmp/calibrate-mutant-1845129069/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.9s -- charged to no rung
+  R0       killed        8.6s  R0 FAILED: 2 step(s) disagree with S_obs
+  R1       killed       94.0s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed      470.8s  R2 FAILED
+
+kotlin/orphan-author-accepted 0e3e76b66518  existence
+  guard    5/5 checks: kotlin@orphan-author-accepted -> /tmp/calibrate-mutant-3789655583/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.4s -- charged to no rung
+  R0       killed        8.4s  R0 FAILED: 4 step(s) disagree with S_obs
+  R1       killed       95.2s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived    466.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (18.6s)
+
+kotlin/created-at-frozen     e83f6eed53d8  clock
+  guard    5/5 checks: kotlin@created-at-frozen -> /tmp/calibrate-mutant-3916901980/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.8s -- charged to no rung
+  R0       killed        9.1s  R0 FAILED: 13 step(s) disagree with S_obs
+  R1       killed      205.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived    470.0s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (17.9s)
+
+kotlin/tick-advances-by-two  821459a3a777  clock
+  guard    5/5 checks: kotlin@tick-advances-by-two -> /tmp/calibrate-mutant-1397155149/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.2s -- charged to no rung
+  R0       killed        8.3s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed       68.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived    464.5s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (17.7s)
+
+kotlin/tick-goes-backwards   4f3f52189bf5  clock
+  guard    5/5 checks: kotlin@tick-goes-backwards -> /tmp/calibrate-mutant-3207390300/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.3s -- charged to no rung
+  R0       killed        8.7s  R0 FAILED: 17 step(s) disagree with S_obs
+  R1       killed       68.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed      472.2s  R2 FAILED
+
+kotlin/next-cursor-always-emitted ead070c5f8c8  pagination
+  guard    5/5 checks: kotlin@next-cursor-always-emitted -> /tmp/calibrate-mutant-2340277536/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.4s -- charged to no rung
+  R0       killed        8.7s  R0 FAILED: 7 step(s) disagree with S_obs
+  R1       killed      226.4s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived    467.9s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (17.7s)
+
+kotlin/next-cursor-is-first-id d38685cf6a37  pagination
+  guard    5/5 checks: kotlin@next-cursor-is-first-id -> /tmp/calibrate-mutant-2837290127/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.3s -- charged to no rung
+  R0       killed        8.4s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed      653.0s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed      467.9s  R2 FAILED
+
+kotlin/cursor-inclusive      c19954a0da28  pagination
+  guard    5/5 checks: kotlin@cursor-inclusive -> /tmp/calibrate-mutant-2294335294/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.4s -- charged to no rung
+  R0       killed        8.6s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed     1055.2s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       killed      466.2s  R2 FAILED
+
+kotlin/limit-off-by-one      812281b1ae74  pagination
+  guard    5/5 checks: kotlin@limit-off-by-one -> /tmp/calibrate-mutant-1717267816/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.3s -- charged to no rung
+  R0       killed        8.6s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed      692.6s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived    470.6s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=2, seed=3, seed=4  (18.1s)
+
+kotlin/unknown-json-fields-accepted de1aa14269cf  parsing
+  guard    5/5 checks: kotlin@unknown-json-fields-accepted -> /tmp/calibrate-mutant-3685075130/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.7s -- charged to no rung
+  R0       killed        8.5s  R0 FAILED: 2 step(s) disagree with S_obs
+  R1       killed       87.1s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived    470.8s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (18.6s)
+
+kotlin/repeated-query-param-accepted 40418f4e9648  parsing
+  guard    5/5 checks: kotlin@repeated-query-param-accepted -> /tmp/calibrate-mutant-3545226381/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 8.5s -- charged to no rung
+  R0       killed        8.6s  R0 FAILED: 1 step(s) disagree with S_obs
+  R1       killed       84.5s  R1 FAILED: at least one implementation diverges from S_obs
+  R2       survived    461.0s  R2 PASSED: every relation holds on every generated state
+  probe    live, reached by corpus, seed=1, seed=3  (18.2s)
+
+CALIBRATION -- per-rung mutation kill table
+==============================================================================
+corners   go, rust, java, kotlin
+rungs     R0, R1, R2
+R1        20 traces x 200 steps, seed 1
+R2        6 rounds x 40 setup requests, seed 1
+probe     any (4 traces x 120 steps, plus the corpus and each mutant's witness)
+window    2026-08-30T22:33:29Z .. 2026-08-31T03:30:42Z
+
+==============================================================================
+KILL TABLE
+==============================================================================
+rung             live  killed  survived  unreached  equiv   kill%   kill%     wall
+                                                            reach    live         
+R0 corpus          72      72         0          0      0    100%    100%     188s
+R1 diff-fuzz       72      72         0          0      0    100%    100%    6202s
+R2 property        72      28        40          4      0     41%     39%   10206s
+
+  live       mutants that change observable behaviour. Equivalent ones are excluded
+             from every denominator: no rung can kill them, so counting them would
+             understate every rung for a reason that is not about the rung.
+  survived   the rung's own inputs DO elicit the difference and it passed anyway.
+             A gap in the rung.
+  unreached  live, but nothing in this rung's input source elicits the difference.
+             A gap in the inputs. F009 is the worked example.
+  kill%reach killed / (killed + survived) -- the rung's oracle.
+  kill%live  killed / every live mutant -- the rung as configured, inputs included.
+
+==============================================================================
+BY CORNER
+==============================================================================
+corner   rung             live  killed  survived  unreached  equiv     wall
+go       R0 corpus          18      18         0          0      0      10s
+go       R1 diff-fuzz       18      18         0          0      0     349s
+go       R2 property        18       7        10          1      0     588s
+rust     R0 corpus          18      18         0          0      0       3s
+rust     R1 diff-fuzz       18      18         0          0      0      82s
+rust     R2 property        18       7        10          1      0     135s
+java     R0 corpus          18      18         0          0      0      20s
+java     R1 diff-fuzz       18      18         0          0      0     647s
+java     R2 property        18       7        10          1      0    1084s
+kotlin   R0 corpus          18      18         0          0      0     155s
+kotlin   R1 diff-fuzz       18      18         0          0      0    5125s
+kotlin   R2 property        18       7        10          1      0    8398s
+
+==============================================================================
+COST -- and which cost it is
+==============================================================================
+Every rung relaunches the implementation: R0 once for the whole corpus, R1 once
+per trace, R2 once per property-round. A launch is a warm build check plus a
+process start plus a health wait, and that price differs by language. So raw
+seconds mix what the RUNG costs with what the LANGUAGE costs. Both are below.
+
+  corner   floor/launch of which build  samples           spread
+  go             562 ms         539 ms        3      542-585 ms
+  java          1071 ms         993 ms        3     1046-1086 ms
+  kotlin        8755 ms        8654 ms        3     8684-8828 ms
+  rust           101 ms          79 ms        3      100-102 ms
+
+  corner   rung            launches wall killed  wall clean  tool clean
+  go       R0 corpus              -       0.6s          -          -
+  go       R1 diff-fuzz           -      19.4s          -          -
+  go       R2 property           54      32.5s      32.7s       2.4s
+  rust     R0 corpus              -       0.1s          -          -
+  rust     R1 diff-fuzz           -       4.5s          -          -
+  rust     R2 property           54       7.5s       7.5s       2.0s
+  java     R0 corpus              -       1.1s          -          -
+  java     R1 diff-fuzz           -      35.9s          -          -
+  java     R2 property           54      60.3s      60.2s       2.4s
+  kotlin   R0 corpus              -       8.6s          -          -
+  kotlin   R1 diff-fuzz           -     284.7s          -          -
+  kotlin   R2 property           54     469.0s     465.0s    -7.8s *
+
+  wall killed  mean wall for a mutant this rung caught. NOT comparable with the
+               clean column, and not reliably smaller either. R1 stops at its
+               first mismatch -- then shrinks, and every shrink attempt is
+               another server launch, so at low trace counts a kill can cost
+               several times a clean pass. The launch count of a kill depends
+               on the defect, so it is not corrected and no tool figure is
+               derived from it.
+  wall clean   mean wall for a full pass -- the worst case, and what a sweep of
+               a correct implementation actually costs.
+  tool clean   wall clean minus launches x measured floor. The rung's own cost
+               with process startup removed. Reported only where the launch
+               count is known from the configuration -- never inferred.
+  *            the correction came out at or below zero. Not an error and not
+               hidden: it means this rung's own work costs no more than the
+               servers it launches, so at this configuration the rung IS process
+               startup. Compare rungs by their launch counts, not their seconds.
+  Mutant setup (materialise + warm the build cache) is charged to no rung; see
+  the setups block in results.json.
+
+==============================================================================
+PER MUTANT
+==============================================================================
+mutant                             R0          R1          R2         
+go/id-first-is-two                 kill        kill        SURVIVED   
+go/id-burned-on-reject             kill        kill        SURVIVED   
+go/self-follow-guard-dropped       kill        kill        SURVIVED   
+go/follow-precedence-flipped       kill        kill        unreached  
+go/timeline-scan-reversed          kill        kill        kill       
+go/timeline-tiebreak-by-id-asc     kill        kill        kill       
+go/follow-toggles                  kill        kill        kill       
+go/unfollow-rejects-missing-edge   kill        kill        kill       
+go/orphan-author-accepted          kill        kill        SURVIVED   
+go/created-at-frozen               kill        kill        SURVIVED   
+go/tick-advances-by-two            kill        kill        SURVIVED   
+go/tick-goes-backwards             kill        kill        kill       
+go/next-cursor-always-emitted      kill        kill        SURVIVED   
+go/next-cursor-is-first-id         kill        kill        kill       
+go/cursor-inclusive                kill        kill        kill       
+go/limit-off-by-one                kill        kill        SURVIVED   
+go/unknown-json-fields-accepted    kill        kill        SURVIVED   
+go/repeated-query-param-accepted   kill        kill        SURVIVED   
+rust/id-first-is-two               kill        kill        SURVIVED   
+rust/id-burned-on-reject           kill        kill        SURVIVED   
+rust/self-follow-guard-dropped     kill        kill        SURVIVED   
+rust/follow-precedence-flipped     kill        kill        unreached  
+rust/timeline-scan-reversed        kill        kill        kill       
+rust/timeline-tiebreak-by-id-asc   kill        kill        kill       
+rust/follow-toggles                kill        kill        kill       
+rust/unfollow-rejects-missing-edge kill        kill        kill       
+rust/orphan-author-accepted        kill        kill        SURVIVED   
+rust/created-at-frozen             kill        kill        SURVIVED   
+rust/tick-advances-by-two          kill        kill        SURVIVED   
+rust/tick-goes-backwards           kill        kill        kill       
+rust/next-cursor-always-emitted    kill        kill        SURVIVED   
+rust/next-cursor-is-first-id       kill        kill        kill       
+rust/cursor-inclusive              kill        kill        kill       
+rust/limit-off-by-one              kill        kill        SURVIVED   
+rust/unknown-json-fields-accepted  kill        kill        SURVIVED   
+rust/repeated-query-param-accepted kill        kill        SURVIVED   
+java/id-first-is-two               kill        kill        SURVIVED   
+java/id-burned-on-reject           kill        kill        SURVIVED   
+java/self-follow-guard-dropped     kill        kill        SURVIVED   
+java/follow-precedence-flipped     kill        kill        unreached  
+java/timeline-scan-reversed        kill        kill        kill       
+java/timeline-tiebreak-by-id-asc   kill        kill        kill       
+java/follow-toggles                kill        kill        kill       
+java/unfollow-rejects-missing-edge kill        kill        kill       
+java/orphan-author-accepted        kill        kill        SURVIVED   
+java/created-at-frozen             kill        kill        SURVIVED   
+java/tick-advances-by-two          kill        kill        SURVIVED   
+java/tick-goes-backwards           kill        kill        kill       
+java/next-cursor-always-emitted    kill        kill        SURVIVED   
+java/next-cursor-is-first-id       kill        kill        kill       
+java/cursor-inclusive              kill        kill        kill       
+java/limit-off-by-one              kill        kill        SURVIVED   
+java/unknown-json-fields-accepted  kill        kill        SURVIVED   
+java/repeated-query-param-accepted kill        kill        SURVIVED   
+kotlin/id-first-is-two             kill        kill        SURVIVED   
+kotlin/id-burned-on-reject         kill        kill        SURVIVED   
+kotlin/self-follow-guard-dropped   kill        kill        SURVIVED   
+kotlin/follow-precedence-flipped   kill        kill        unreached  
+kotlin/timeline-scan-reversed      kill        kill        kill       
+kotlin/timeline-tiebreak-by-id-asc kill        kill        kill       
+kotlin/follow-toggles              kill        kill        kill       
+kotlin/unfollow-rejects-missing-edge kill        kill        kill       
+kotlin/orphan-author-accepted      kill        kill        SURVIVED   
+kotlin/created-at-frozen           kill        kill        SURVIVED   
+kotlin/tick-advances-by-two        kill        kill        SURVIVED   
+kotlin/tick-goes-backwards         kill        kill        kill       
+kotlin/next-cursor-always-emitted  kill        kill        SURVIVED   
+kotlin/next-cursor-is-first-id     kill        kill        kill       
+kotlin/cursor-inclusive            kill        kill        kill       
+kotlin/limit-off-by-one            kill        kill        SURVIVED   
+kotlin/unknown-json-fields-accepted kill        kill        SURVIVED   
+kotlin/repeated-query-param-accepted kill        kill        SURVIVED   
+
+==============================================================================
+REACHABILITY -- why each survivor survived
+==============================================================================
+  go/id-first-is-two             live
+      corpus     differs at request 0
+      seed=1     differs at request 0
+      seed=2     differs at request 0
+      seed=3     differs at request 0
+      seed=4     differs at request 0
+  go/id-burned-on-reject         live
+      witness    differs at request 2
+      corpus     differs at request 10
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 78
+      seed=3     differs at request 48
+      seed=4     differs at request 31
+  go/self-follow-guard-dropped   live
+      corpus     differs at request 11
+      seed=1     differs at request 60
+      seed=2     differs at request 19
+      seed=3     differs at request 8
+      seed=4     differs at request 3
+  go/follow-precedence-flipped   live
+      corpus     differs at request 12
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+  go/orphan-author-accepted      live
+      corpus     differs at request 31
+      seed=1     differs at request 101
+      seed=2     differs at request 38
+      seed=3     differs at request 7
+      seed=4     differs at request 4
+  go/created-at-frozen           live
+      corpus     differs at request 19
+      seed=1     differs at request 20
+      seed=2     differs at request 16
+      seed=3     differs at request 26
+      seed=4     differs at request 8
+  go/tick-advances-by-two        live
+      corpus     differs at request 17
+      seed=1     differs at request 16
+      seed=2     differs at request 5
+      seed=3     differs at request 22
+      seed=4     differs at request 7
+  go/next-cursor-always-emitted  live
+      corpus     differs at request 20
+      seed=1     differs at request 11
+      seed=2     differs at request 14
+      seed=3     differs at request 5
+      seed=4     differs at request 38
+  go/limit-off-by-one            live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+  go/unknown-json-fields-accepted live
+      corpus     differs at request 7
+      seed=1     differs at request 9
+      seed=2     differs at request 86
+      seed=3     differs at request 15
+      seed=4     differs at request 15
+  go/repeated-query-param-accepted live
+      corpus     differs at request 51
+      seed=1     differs at request 66
+      seed=2     no difference in 120 requests
+      seed=3     differs at request 10
+      seed=4     no difference in 120 requests
+  rust/id-first-is-two           live
+      corpus     differs at request 0
+      seed=1     differs at request 0
+      seed=2     differs at request 0
+      seed=3     differs at request 0
+      seed=4     differs at request 0
+  rust/id-burned-on-reject       live
+      witness    differs at request 2
+      corpus     differs at request 10
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 78
+      seed=3     differs at request 48
+      seed=4     differs at request 31
+  rust/self-follow-guard-dropped live
+      corpus     differs at request 11
+      seed=1     differs at request 60
+      seed=2     differs at request 19
+      seed=3     differs at request 8
+      seed=4     differs at request 3
+  rust/follow-precedence-flipped live
+      corpus     differs at request 12
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+  rust/orphan-author-accepted    live
+      corpus     differs at request 31
+      seed=1     differs at request 101
+      seed=2     differs at request 38
+      seed=3     differs at request 7
+      seed=4     differs at request 4
+  rust/created-at-frozen         live
+      corpus     differs at request 19
+      seed=1     differs at request 20
+      seed=2     differs at request 16
+      seed=3     differs at request 26
+      seed=4     differs at request 8
+  rust/tick-advances-by-two      live
+      corpus     differs at request 17
+      seed=1     differs at request 16
+      seed=2     differs at request 5
+      seed=3     differs at request 22
+      seed=4     differs at request 7
+  rust/next-cursor-always-emitted live
+      corpus     differs at request 20
+      seed=1     differs at request 11
+      seed=2     differs at request 14
+      seed=3     differs at request 5
+      seed=4     differs at request 38
+  rust/limit-off-by-one          live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+  rust/unknown-json-fields-accepted live
+      corpus     differs at request 7
+      seed=1     differs at request 92
+      seed=2     differs at request 86
+      seed=3     differs at request 76
+      seed=4     differs at request 94
+  rust/repeated-query-param-accepted live
+      corpus     differs at request 51
+      seed=1     differs at request 66
+      seed=2     no difference in 120 requests
+      seed=3     differs at request 10
+      seed=4     no difference in 120 requests
+  java/id-first-is-two           live
+      corpus     differs at request 0
+      seed=1     differs at request 0
+      seed=2     differs at request 0
+      seed=3     differs at request 0
+      seed=4     differs at request 0
+  java/id-burned-on-reject       live
+      witness    differs at request 2
+      corpus     differs at request 10
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 78
+      seed=3     differs at request 48
+      seed=4     differs at request 31
+  java/self-follow-guard-dropped live
+      corpus     differs at request 11
+      seed=1     differs at request 60
+      seed=2     differs at request 19
+      seed=3     differs at request 8
+      seed=4     differs at request 3
+  java/follow-precedence-flipped live
+      corpus     differs at request 12
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+  java/orphan-author-accepted    live
+      corpus     differs at request 31
+      seed=1     differs at request 101
+      seed=2     differs at request 38
+      seed=3     differs at request 7
+      seed=4     differs at request 4
+  java/created-at-frozen         live
+      corpus     differs at request 19
+      seed=1     differs at request 20
+      seed=2     differs at request 16
+      seed=3     differs at request 26
+      seed=4     differs at request 8
+  java/tick-advances-by-two      live
+      corpus     differs at request 17
+      seed=1     differs at request 16
+      seed=2     differs at request 5
+      seed=3     differs at request 22
+      seed=4     differs at request 7
+  java/next-cursor-always-emitted live
+      corpus     differs at request 20
+      seed=1     differs at request 11
+      seed=2     differs at request 14
+      seed=3     differs at request 5
+      seed=4     differs at request 38
+  java/limit-off-by-one          live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+  java/unknown-json-fields-accepted live
+      corpus     differs at request 7
+      seed=1     differs at request 92
+      seed=2     differs at request 86
+      seed=3     differs at request 76
+      seed=4     differs at request 94
+  java/repeated-query-param-accepted live
+      corpus     differs at request 51
+      seed=1     differs at request 66
+      seed=2     no difference in 120 requests
+      seed=3     differs at request 10
+      seed=4     no difference in 120 requests
+  kotlin/id-first-is-two         live
+      corpus     differs at request 0
+      seed=1     differs at request 0
+      seed=2     differs at request 0
+      seed=3     differs at request 0
+      seed=4     differs at request 0
+  kotlin/id-burned-on-reject     live
+      witness    differs at request 2
+      corpus     differs at request 10
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 78
+      seed=3     differs at request 48
+      seed=4     differs at request 31
+  kotlin/self-follow-guard-dropped live
+      corpus     differs at request 11
+      seed=1     differs at request 60
+      seed=2     differs at request 19
+      seed=3     differs at request 8
+      seed=4     differs at request 3
+  kotlin/follow-precedence-flipped live
+      corpus     differs at request 12
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+  kotlin/orphan-author-accepted  live
+      corpus     differs at request 31
+      seed=1     differs at request 101
+      seed=2     differs at request 38
+      seed=3     differs at request 7
+      seed=4     differs at request 4
+  kotlin/created-at-frozen       live
+      corpus     differs at request 19
+      seed=1     differs at request 20
+      seed=2     differs at request 16
+      seed=3     differs at request 26
+      seed=4     differs at request 8
+  kotlin/tick-advances-by-two    live
+      corpus     differs at request 17
+      seed=1     differs at request 16
+      seed=2     differs at request 5
+      seed=3     differs at request 22
+      seed=4     differs at request 7
+  kotlin/next-cursor-always-emitted live
+      corpus     differs at request 20
+      seed=1     differs at request 11
+      seed=2     differs at request 14
+      seed=3     differs at request 5
+      seed=4     differs at request 38
+  kotlin/limit-off-by-one        live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+  kotlin/unknown-json-fields-accepted live
+      corpus     differs at request 7
+      seed=1     differs at request 92
+      seed=2     differs at request 86
+      seed=3     differs at request 76
+      seed=4     differs at request 94
+  kotlin/repeated-query-param-accepted live
+      corpus     differs at request 51
+      seed=1     differs at request 66
+      seed=2     no difference in 120 requests
+      seed=3     differs at request 10
+      seed=4     no difference in 120 requests
+
+==============================================================================
+READ WITH CARE
+==============================================================================
+ 1. R0 killed EVERYTHING (72/72). Worth reading as a statement about the
+    catalogue as much as the rung: a mutant set this rung finds trivial cannot
+    distinguish it from a stronger one.
+ 2. R1 killed EVERYTHING (72/72). Worth reading as a statement about the
+    catalogue as much as the rung: a mutant set this rung finds trivial cannot
+    distinguish it from a stronger one.
+ 3. R2: 4 mutant(s) recorded as unreached on SAMPLED evidence. probe ran 4
+    trace(s) where this rung ran 20; unreached-by-tracegen is weaker evidence
+    than unreached-by-corpus, which is exact.
+ 4. R2 on kotlin: the process floor (54 launches x measured floor) accounts
+    for the whole clean wall time -- the corrected figure is -7.8s, at or
+    below zero. This rung's seconds on this corner are process startup, not
+    rung work, so comparing its wall time against another corner's compares
+    the two languages' launch costs. Compare launch counts instead.
+
+written: /home/user/twitter-port-matrix/evidence/runs/calibration/four-corner/report.txt
+         /home/user/twitter-port-matrix/evidence/runs/calibration/four-corner/results.json
+         /home/user/twitter-port-matrix/evidence/runs/calibration/four-corner/journal.jsonl
