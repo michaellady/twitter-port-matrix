@@ -1,0 +1,266 @@
+[
+  {
+    "file": "internal/clock/clock.go",
+    "member": "(*Logical).Now",
+    "clauses_on_member": 2,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.709343444
+  },
+  {
+    "file": "internal/clock/clock.go",
+    "member": "(*Logical).Tick",
+    "clauses_on_member": 2,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.740474664
+  },
+  {
+    "file": "internal/clock/clock.go",
+    "member": "New",
+    "clauses_on_member": 2,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.67378787
+  },
+  {
+    "file": "internal/clock/clock.go",
+    "member": "NewAt",
+    "clauses_on_member": 2,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.7961930609999999
+  },
+  {
+    "file": "internal/dom/dom.go",
+    "member": "(*invalidHandleError).Error",
+    "clauses_on_member": 1,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.722690813
+  },
+  {
+    "file": "internal/dom/dom.go",
+    "member": "(*invalidTextError).Error",
+    "clauses_on_member": 1,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.7150839150000001
+  },
+  {
+    "file": "internal/dom/dom.go",
+    "member": "(*selfFollowError).Error",
+    "clauses_on_member": 1,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.542449447
+  },
+  {
+    "file": "internal/dom/dom.go",
+    "member": "NewFollow",
+    "clauses_on_member": 2,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.641043107
+  },
+  {
+    "file": "internal/dom/dom.go",
+    "member": "ValidHandle",
+    "clauses_on_member": 1,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.639971707
+  },
+  {
+    "file": "internal/dom/dom.go",
+    "member": "ValidText",
+    "clauses_on_member": 1,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.69510514
+  },
+  {
+    "file": "internal/ids/ids.go",
+    "member": "(*Generator).Next",
+    "clauses_on_member": 4,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.673169339
+  },
+  {
+    "file": "internal/ids/ids.go",
+    "member": "New",
+    "clauses_on_member": 2,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.915125015
+  },
+  {
+    "file": "internal/ids/ids.go",
+    "member": "NewAt",
+    "clauses_on_member": 2,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.8207650979999999
+  },
+  {
+    "file": "internal/service/service.go",
+    "member": "(*Service).CreateUser",
+    "clauses_on_member": 5,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.485449829
+  },
+  {
+    "file": "internal/service/service.go",
+    "member": "(*Service).Follow",
+    "clauses_on_member": 7,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.7961938800000001
+  },
+  {
+    "file": "internal/service/service.go",
+    "member": "(*Service).HasUser",
+    "clauses_on_member": 1,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.7394570169999999
+  },
+  {
+    "file": "internal/service/service.go",
+    "member": "(*Service).HomeTimeline",
+    "clauses_on_member": 9,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.714017197
+  },
+  {
+    "file": "internal/service/service.go",
+    "member": "(*Service).Now",
+    "clauses_on_member": 1,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.713041606
+  },
+  {
+    "file": "internal/service/service.go",
+    "member": "(*Service).PostTweet",
+    "clauses_on_member": 6,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.5808559309999999
+  },
+  {
+    "file": "internal/service/service.go",
+    "member": "(*Service).Tick",
+    "clauses_on_member": 1,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.705411579
+  },
+  {
+    "file": "internal/service/service.go",
+    "member": "(*Service).Unfollow",
+    "clauses_on_member": 6,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.709369951
+  },
+  {
+    "file": "internal/service/service.go",
+    "member": "New",
+    "clauses_on_member": 5,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.643003256
+  },
+  {
+    "file": "internal/store/memstore.go",
+    "member": "(*MemStore).DeleteFollow",
+    "clauses_on_member": 4,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.778273402
+  },
+  {
+    "file": "internal/store/memstore.go",
+    "member": "(*MemStore).FollowSet",
+    "clauses_on_member": 1,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.703877066
+  },
+  {
+    "file": "internal/store/memstore.go",
+    "member": "(*MemStore).Follows",
+    "clauses_on_member": 5,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.6090079510000002
+  },
+  {
+    "file": "internal/store/memstore.go",
+    "member": "(*MemStore).HasUser",
+    "clauses_on_member": 6,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.678505673
+  },
+  {
+    "file": "internal/store/memstore.go",
+    "member": "(*MemStore).HomeTimeline",
+    "clauses_on_member": 11,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.589476611
+  },
+  {
+    "file": "internal/store/memstore.go",
+    "member": "(*MemStore).PutFollow",
+    "clauses_on_member": 6,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.716952662
+  },
+  {
+    "file": "internal/store/memstore.go",
+    "member": "(*MemStore).PutTweet",
+    "clauses_on_member": 9,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.6803053019999998
+  },
+  {
+    "file": "internal/store/memstore.go",
+    "member": "(*MemStore).PutUser",
+    "clauses_on_member": 6,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.647365119
+  },
+  {
+    "file": "internal/store/memstore.go",
+    "member": "(*MemStore).Replace",
+    "clauses_on_member": 2,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.7053507369999998
+  },
+  {
+    "file": "internal/store/memstore.go",
+    "member": "New",
+    "clauses_on_member": 5,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.052287003
+  },
+  {
+    "file": "internal/store/memstore.go",
+    "member": "isMonotoneLog",
+    "clauses_on_member": 2,
+    "verdict": "TIMEOUT",
+    "detail": "no verdict within 6m0s",
+    "elapsed_s": 1.691411062
+  }
+]

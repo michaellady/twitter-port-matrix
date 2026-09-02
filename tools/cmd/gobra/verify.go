@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 )
 
 func cmdVerify(args []string) error {
@@ -44,7 +45,7 @@ func cmdVerify(args []string) error {
 // re-derived every time because it is not stable run to run -- see
 // evidence/findings/F019.
 func runOnce(ws *workspace, sd string, n, repeat int, keep string) error {
-	res, err := runGobra(ws, verifiedPackages, sd)
+	res, err := runGobra(ws, verifiedPackages, sd, 20*time.Minute)
 	if err != nil {
 		return err
 	}

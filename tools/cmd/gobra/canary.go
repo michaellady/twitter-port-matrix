@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -26,6 +27,12 @@ const (
 	// illFormed: the canary did not type-check, so it asked no question.
 	// Reported rather than silently counted as either answer.
 	illFormed verdict = "ILL-FORMED"
+	// timedOut: the solver did not decide the negation inside the budget.
+	// This is a third answer, not a soft version of either other one -- an
+	// undecided query says nothing about whether the obligation is reachable,
+	// and rounding it to REFUTABLE would be exactly the false green F013 is
+	// about.
+	timedOut verdict = "TIMEOUT"
 )
 
 type canaryResult struct {
@@ -40,6 +47,8 @@ func cmdCanary(args []string) error {
 	fs := flag.NewFlagSet("canary", flag.ContinueOnError)
 	impl := fs.String("impl", "impls/go", "the Go implementation directory")
 	jobs := fs.Int("jobs", 2, "parallel Gobra invocations")
+	budget := fs.Duration("timeout", 6*time.Minute, "time budget per canary")
+	resume := fs.String("resume", "", "JSONL checkpoint to resume from and append to")
 	only := fs.String("only", "", "restrict to clauses whose file:line or member contains this")
 	out := fs.String("out", "", "write the full result set here as JSON")
 	skipSelf := fs.Bool("skip-selftest", false, "do not run the sweep's own canary first")
@@ -70,30 +79,86 @@ func cmdCanary(args []string) error {
 		}
 		todo = append(todo, c)
 	}
-	fmt.Fprintf(os.Stderr, "negation canaries: %d functional clauses, %d workers\n", len(todo), *jobs)
+	// The sweep checkpoints. It runs for the better part of an hour, and
+	// losing all of it to one wedged solver query -- which is how the first
+	// attempt ended -- is avoidable.
+	ckpt := *resume
+	if ckpt == "" && *out != "" {
+		ckpt = strings.TrimSuffix(*out, ".json") + ".jsonl"
+	}
+	done := map[string]canaryResult{}
+	if ckpt != "" {
+		var err error
+		if done, err = readCheckpoint(ckpt); err != nil {
+			return err
+		}
+	}
+	var skipped int
+	var pending []clause
+	for _, c := range todo {
+		if _, ok := done[key(c)]; ok {
+			skipped++
+			continue
+		}
+		pending = append(pending, c)
+	}
+	fmt.Fprintf(os.Stderr, "negation canaries: %d functional clauses, %d already done, %d to run, %d workers, %s budget each\n",
+		len(todo), skipped, len(pending), *jobs, *budget)
 
-	results := make([]canaryResult, len(todo))
+	var ckptMu sync.Mutex
+	var ckptFile *os.File
+	if ckpt != "" {
+		var err error
+		ckptFile, err = os.OpenFile(ckpt, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			return err
+		}
+		defer ckptFile.Close()
+	}
+
+	fresh := make([]canaryResult, len(pending))
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, *jobs)
-	var done int
+	var n int
 	var mu sync.Mutex
-	for i, c := range todo {
+	for i, c := range pending {
 		wg.Add(1)
 		go func(i int, c clause) {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			r := runCanary(implDir, c)
-			results[i] = r
+			r := runCanary(implDir, c, *budget)
+			fresh[i] = r
 			mu.Lock()
-			done++
+			n++
 			fmt.Fprintf(os.Stderr, "  [%3d/%3d] %-12s %s:%d %s\n",
-				done, len(todo), r.Verdict, c.File, c.StartLine, trunc(c.Text, 60))
+				n, len(pending), r.Verdict, c.File, c.StartLine, trunc(c.Text, 60))
 			mu.Unlock()
+			if ckptFile != nil {
+				if b, err := json.Marshal(r); err == nil {
+					ckptMu.Lock()
+					fmt.Fprintln(ckptFile, string(b))
+					_ = ckptFile.Sync()
+					ckptMu.Unlock()
+				}
+			}
 		}(i, c)
 	}
 	wg.Wait()
 
+	var results []canaryResult
+	for _, c := range todo {
+		if r, ok := done[key(c)]; ok {
+			results = append(results, r)
+			continue
+		}
+		for _, r := range fresh {
+			if key(r.Clause) == key(c) {
+				results = append(results, r)
+				break
+			}
+		}
+	}
 	report(results)
 	if *out != "" {
 		b, err := json.MarshalIndent(results, "", "  ")
@@ -126,7 +191,34 @@ func matches(c clause, pat string) bool {
 // keeps the question local: a negated postcondition that also broke a caller
 // in another package would report an error there and be scored as refutable
 // for the wrong reason.
-func runCanary(implDir string, c clause) canaryResult {
+func key(c clause) string { return c.File + ":" + c.Text }
+
+// readCheckpoint reloads a partial sweep. Each line is one finished canary;
+// a truncated final line from an interrupted run is dropped rather than
+// guessed at.
+func readCheckpoint(path string) (map[string]canaryResult, error) {
+	out := map[string]canaryResult{}
+	b, err := os.ReadFile(path)
+	if os.IsNotExist(err) {
+		return out, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	for _, ln := range strings.Split(string(b), "\n") {
+		if strings.TrimSpace(ln) == "" {
+			continue
+		}
+		var r canaryResult
+		if err := json.Unmarshal([]byte(ln), &r); err != nil {
+			continue
+		}
+		out[key(r.Clause)] = r
+	}
+	return out, nil
+}
+
+func runCanary(implDir string, c clause, budget time.Duration) canaryResult {
 	r := canaryResult{Clause: c}
 	ws, err := newWorkspace(implDir)
 	if err != nil {
@@ -139,7 +231,13 @@ func runCanary(implDir string, c clause) canaryResult {
 		r.Verdict, r.Errors = illFormed, []string{err.Error()}
 		return r
 	}
-	res, err := runGobra(ws, []string{c.Pkg}, "")
+	res, err := runGobra(ws, []string{c.Pkg}, "", budget)
+	if errors.Is(err, errTimeout) {
+		r.Verdict = timedOut
+		r.Elapsed, r.ElapsedS = res.Elapsed, res.Elapsed.Seconds()
+		r.Errors = []string{fmt.Sprintf("no verdict within %s", budget)}
+		return r
+	}
 	if err != nil {
 		r.Verdict, r.Errors = illFormed, []string{err.Error()}
 		return r
@@ -219,8 +317,20 @@ func report(rs []canaryResult) {
 			fmt.Sprintf("%s:%d", r.Clause.File, r.Clause.StartLine),
 			r.Clause.Member, r.Verdict, trunc(r.Clause.Text, 80))
 	}
-	fmt.Printf("\n%d clauses: %d refutable, %d VACUOUS, %d ill-formed\n",
-		len(rs), countVerdict(rs, refutable), countVerdict(rs, vacuous), countVerdict(rs, illFormed))
+	fmt.Printf("\n%d clauses: %d refutable, %d VACUOUS, %d timed out, %d ill-formed\n",
+		len(rs), countVerdict(rs, refutable), countVerdict(rs, vacuous),
+		countVerdict(rs, timedOut), countVerdict(rs, illFormed))
+	if n := countVerdict(rs, timedOut); n > 0 {
+		fmt.Printf("\nTIMEOUT -- the solver did not decide the negation. Neither answer was\n" +
+			"established, so these obligations are UNAUDITED, not verified:\n")
+		for _, r := range sorted {
+			if r.Verdict == timedOut {
+				fmt.Printf("  %s:%d  %s\n      %s\n      canary: %s\n",
+					r.Clause.File, r.Clause.StartLine, r.Clause.Member,
+					r.Clause.Text, r.Clause.Canary)
+			}
+		}
+	}
 	if n := countVerdict(rs, vacuous); n > 0 {
 		fmt.Printf("\nVACUOUS -- both the clause and its negation verify, so nothing reaches it:\n")
 		for _, r := range sorted {

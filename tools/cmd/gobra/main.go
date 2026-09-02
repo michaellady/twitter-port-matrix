@@ -14,6 +14,7 @@
 //	clauses  list the specification clauses the canary sweep will target
 //	canary   negate each clause in turn and report refutable / VACUOUS
 //	r5       per-clause status for the R5 refinement obligation
+//	reach    per-member `ensures false` probe: is the exit reachable at all?
 //	audit    check each REFUTABLE verdict is backed by an error in its own member
 package main
 
@@ -37,6 +38,8 @@ func main() {
 		err = cmdCanary(os.Args[2:])
 	case "r5":
 		err = cmdR5(os.Args[2:])
+	case "reach":
+		err = cmdReach(os.Args[2:])
 	case "audit":
 		err = cmdAudit(os.Args[2:])
 	default:
@@ -60,6 +63,10 @@ func usage() {
             record whether Gobra can refute it
   r5        per-clause status for the 42 R5 clauses, joined from the canary
             results rather than from what obligations.json records
+  reach     probe each member with "ensures false". If it verifies, nothing
+            reaches that exit and every obligation on it is vacuous -- the
+            F013 shape. Cheaper and more complete than the per-clause sweep,
+            and it terminates where quantified canaries sometimes do not
   audit     re-read a sweep and check every REFUTABLE verdict is backed by an
             error Gobra reported inside the clause's own member
 

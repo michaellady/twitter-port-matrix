@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // selfTest is the canary's own canary.
@@ -42,7 +43,7 @@ func selfTest(implDir string) error {
 
 	fmt.Fprintf(os.Stderr, "self-test control: %s:%d  %s\n", ctrl.File, ctrl.StartLine, ctrl.Text)
 
-	live := runCanary(implDir, *ctrl)
+	live := runCanary(implDir, *ctrl, 6*time.Minute)
 	fmt.Fprintf(os.Stderr, "  as shipped               -> %s\n", live.Verdict)
 
 	dead, err := runCanaryInfeasible(implDir, *ctrl)
@@ -79,7 +80,7 @@ func runCanaryInfeasible(implDir string, c clause) (canaryResult, error) {
 	if err := injectAssumeFalse(path, c.Member); err != nil {
 		return canaryResult{}, err
 	}
-	res, err := runGobra(ws, []string{c.Pkg}, "")
+	res, err := runGobra(ws, []string{c.Pkg}, "", 6*time.Minute)
 	if err != nil {
 		return canaryResult{}, err
 	}

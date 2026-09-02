@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,8 +11,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
+
+// errTimeout means Gobra did not finish inside the budget. It is its own
+// outcome, never folded into "verified" or "refuted": a query the solver could
+// not decide is not a claim about the code.
+var errTimeout = errors.New("gobra exceeded its time budget")
 
 // modulePath is the Go module the verified packages live in. Gobra resolves
 // an import path by looking under the directories given to -I, GOPATH-style,
@@ -85,11 +93,19 @@ var (
 	rePkgErrors = regexp.MustCompile(`Gobra has found (\d+) error\(s\) in package (\S+) - (\S+)`)
 	reTotal     = regexp.MustCompile(`Gobra has found (\d+) error\(s\)\s*$`)
 	reErrorAt   = regexp.MustCompile(`Error at: <([^:>]+):(\d+):(\d+)> (.*)$`)
+	// Gobra's own words when --packageTimeout fires.
+	reTerminated = regexp.MustCompile(`The verification of package .* got terminated after `)
 )
 
 // runGobra invokes the jar and reads the verdict out of its own output. It
 // never decides anything from the exit code -- standing rule 1.
-func runGobra(w *workspace, pkgs []string, statsDir string) (*result, error) {
+//
+// budget bounds the run. Some negated quantifier clauses send Z3 somewhere it
+// does not come back from: two canaries over (*MemStore).HomeTimeline ran 35
+// and 43 minutes at 2% CPU before being killed, which is a hung solver rather
+// than a slow one. Without a bound those two wedge every worker behind them,
+// and an unbounded sweep that never finishes reports nothing at all.
+func runGobra(w *workspace, pkgs []string, statsDir string, budget time.Duration) (*result, error) {
 	args := []string{"-Xss128m", "-jar", gobraJar(), "-p"}
 	args = append(args, pkgs...)
 	args = append(args, "-I", "stubs", w.root, "--projectRoot", ".")
@@ -99,11 +115,32 @@ func runGobra(w *workspace, pkgs []string, statsDir string) (*result, error) {
 		}
 		args = append(args, "-g", statsDir)
 	}
-	cmd := exec.Command("java", args...)
+	ctx := context.Background()
+	cancel := func() {}
+	if budget > 0 {
+		// Gobra's own --packageTimeout usually lands first and reports a
+		// timeout in its output; the context is the backstop for when the JVM
+		// stops responding to it at all.
+		// Gobra parses this with Scala's Duration, which rejects Go's
+		// "6m0s" with a NumberFormatException -- and the stack trace that
+		// produces contains "packageTimeoutDuration", which is exactly long
+		// enough to fool a naive substring check for "timeout".
+		args = append(args, "--packageTimeout", fmt.Sprintf("%d seconds", int(budget.Seconds())))
+		ctx, cancel = context.WithTimeout(ctx, budget+30*time.Second)
+	}
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "java", args...)
 	cmd.Dir = w.module
+	// Put the JVM in its own process group and kill the group, so a wedged
+	// Z3 child does not outlive the java process that spawned it.
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	cmd.Cancel = func() error { return syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) }
 	start := time.Now()
 	out, _ := cmd.CombinedOutput() // exit code deliberately ignored; see above
 	elapsed := time.Since(start)
+	if ctx.Err() != nil {
+		return &result{Elapsed: elapsed, Total: -1, Raw: string(out)}, errTimeout
+	}
 
 	res := &result{Packages: map[string]string{}, Elapsed: elapsed, Total: -1}
 	var kept []string
@@ -141,6 +178,15 @@ func runGobra(w *workspace, pkgs []string, statsDir string) (*result, error) {
 	res.Raw = strings.Join(kept, "\n")
 	if statsDir != "" {
 		res.StatsFile = filepath.Join(statsDir, "stats.json")
+	}
+	// A package that times out prints "got terminated after ..." and then
+	// "Gobra has found 0 error(s)". Reading the count alone would score a
+	// verification that never ran as a clean pass -- and in a negation sweep
+	// that becomes "the negation verified", i.e. VACUOUS. The termination
+	// line has to be checked first, and matched exactly: any looser test also
+	// matches the stack trace above.
+	if reTerminated.MatchString(res.Raw) {
+		return res, errTimeout
 	}
 	if res.Total < 0 && len(res.Packages) == 0 {
 		return res, fmt.Errorf("gobra produced no verdict line; output was:\n%s", res.Raw)
