@@ -1,0 +1,173 @@
+mutate probe: 11 mutant(s) against 5 probe traces (536 requests each pass)
+========================================================================
+
+kotlin/handle-bound-off-by-one  (boundary)
+  tree      sha256:ea0aa5fc41745fe4  (build 8.5s, copy walk)
+  witness   DIFFERS at request 0
+            request   POST /users {"handle":"abcdefghijabcdefghijabcdefghijab"}
+            original  201 {"handle":"abcdefghijabcdefghijabcdefghijab","id":1}
+            mutant    400 {"error":"invalid_handle"}
+            S_obs     agrees with the original; the mutant diverges from the spec
+  corpus    no difference in 56 requests
+  seed=1    no difference in 120 requests
+  seed=2    no difference in 120 requests
+  seed=3    no difference in 120 requests
+  seed=4    no difference in 120 requests
+  verdict   LIVE -- changes observable behaviour (witness)
+            REACHED ONLY BY ITS OWN WITNESS. Neither the R0 corpus nor
+            4 tracegen traces produce a request that tells it apart, so
+            no rung driven by those inputs can kill it. That is a fact
+            about the inputs, not about the rungs.
+
+kotlin/limit-bound-off-by-one  (boundary)
+  tree      sha256:7d05bc16d1bec59d  (build 8.5s, copy walk)
+  witness   DIFFERS at request 1
+            request   GET /timeline?user=alice&limit=100 
+            original  200 {"tweets":[],"next_cursor":null}
+            mutant    400 {"error":"invalid_limit"}
+            S_obs     agrees with the original; the mutant diverges from the spec
+  corpus    no difference in 56 requests
+  seed=1    no difference in 120 requests
+  seed=2    no difference in 120 requests
+  seed=3    no difference in 120 requests
+  seed=4    no difference in 120 requests
+  verdict   LIVE -- changes observable behaviour (witness)
+            REACHED ONLY BY ITS OWN WITNESS. Neither the R0 corpus nor
+            4 tracegen traces produce a request that tells it apart, so
+            no rung driven by those inputs can kill it. That is a fact
+            about the inputs, not about the rungs.
+
+kotlin/text-rejects-space  (boundary)
+  tree      sha256:12f6ced22d34370c  (build 8.8s, copy walk)
+  witness   DIFFERS at request 1
+            request   POST /tweets {"author":"alice","text":"a b"}
+            original  201 {"id":1,"author":"alice","text":"a b","created_at":0}
+            mutant    400 {"error":"invalid_text"}
+            S_obs     agrees with the original; the mutant diverges from the spec
+  corpus    also differs, at request 19
+  seed=1    also differs, at request 33
+  seed=2    also differs, at request 4
+  seed=3    also differs, at request 3
+  seed=4    also differs, at request 80
+  verdict   LIVE -- changes observable behaviour (witness, corpus, seed=1, seed=2, seed=3, seed=4)
+
+kotlin/timeline-drops-oldest  (collection-bound)
+  tree      sha256:519754dd5b5151cb  (build 8.8s, copy walk)
+  witness   DIFFERS at request 3
+            request   GET /timeline?user=alice 
+            original  200 {"tweets":[{"id":2,"author":"alice","text":"two","created_at":0},{"id":1,"author":"alice","text":"one","created_at":0}],"next_cursor":null}
+            mutant    200 {"tweets":[{"id":2,"author":"alice","text":"two","created_at":0}],"next_cursor":null}
+            S_obs     agrees with the original; the mutant diverges from the spec
+  corpus    also differs, at request 20
+  seed=1    also differs, at request 11
+  seed=2    also differs, at request 14
+  seed=3    also differs, at request 5
+  seed=4    also differs, at request 38
+  verdict   LIVE -- changes observable behaviour (witness, corpus, seed=1, seed=2, seed=3, seed=4)
+
+kotlin/visibility-args-swapped  (swapped-arguments)
+  tree      sha256:a79fea23336eef5f  (build 8.9s, copy walk)
+  witness   DIFFERS at request 4
+            request   GET /timeline?user=alice 
+            original  200 {"tweets":[{"id":1,"author":"bob","text":"hi","created_at":0}],"next_cursor":null}
+            mutant    200 {"tweets":[],"next_cursor":null}
+            S_obs     agrees with the original; the mutant diverges from the spec
+  corpus    also differs, at request 20
+  seed=1    also differs, at request 11
+  seed=2    also differs, at request 21
+  seed=3    also differs, at request 89
+  seed=4    also differs, at request 64
+  verdict   LIVE -- changes observable behaviour (witness, corpus, seed=1, seed=2, seed=3, seed=4)
+
+kotlin/visibility-negation-dropped  (dropped-negation)
+  tree      sha256:53e96ee8c8b302af  (build 9.0s, copy walk)
+  witness   DIFFERS at request 4
+            request   GET /timeline?user=alice 
+            original  200 {"tweets":[{"id":1,"author":"bob","text":"hi","created_at":0}],"next_cursor":null}
+            mutant    200 {"tweets":[],"next_cursor":null}
+            S_obs     agrees with the original; the mutant diverges from the spec
+  corpus    also differs, at request 20
+  seed=1    also differs, at request 11
+  seed=2    also differs, at request 7
+  seed=3    also differs, at request 75
+  seed=4    also differs, at request 18
+  verdict   LIVE -- changes observable behaviour (witness, corpus, seed=1, seed=2, seed=3, seed=4)
+
+kotlin/wrong-error-branch-cursor  (wrong-error-branch)
+  tree      sha256:97012a801a82b887  (build 8.8s, copy walk)
+  witness   DIFFERS at request 1
+            request   GET /timeline?user=alice&cursor=0 
+            original  400 {"error":"invalid_cursor"}
+            mutant    400 {"error":"invalid_limit"}
+            S_obs     agrees with the original; the mutant diverges from the spec
+  corpus    also differs, at request 48
+  seed=1    also differs, at request 39
+  seed=2    no difference in 120 requests
+  seed=3    also differs, at request 9
+  seed=4    also differs, at request 48
+  verdict   LIVE -- changes observable behaviour (witness, corpus, seed=1, seed=3, seed=4)
+
+kotlin/handle-case-folded  (normalisation)
+  tree      sha256:2145bdf016fd1a71  (build 8.8s, copy walk)
+  witness   DIFFERS at request 0
+            request   POST /users {"handle":"Alice"}
+            original  400 {"error":"invalid_handle"}
+            mutant    201 {"handle":"Alice","id":1}
+            S_obs     agrees with the original; the mutant diverges from the spec
+  corpus    also differs, at request 4
+  seed=1    no difference in 120 requests
+  seed=2    also differs, at request 13
+  seed=3    also differs, at request 39
+  seed=4    also differs, at request 75
+  verdict   LIVE -- changes observable behaviour (witness, corpus, seed=2, seed=3, seed=4)
+
+kotlin/next-cursor-off-by-one  (pagination)
+  tree      sha256:d25b729075bced42  (build 8.4s, copy walk)
+  witness   DIFFERS at request 3
+            request   GET /timeline?user=alice&limit=1 
+            original  200 {"tweets":[{"id":2,"author":"alice","text":"two","created_at":0}],"next_cursor":2}
+            mutant    200 {"tweets":[{"id":2,"author":"alice","text":"two","created_at":0}],"next_cursor":3}
+            S_obs     agrees with the original; the mutant diverges from the spec
+  corpus    also differs, at request 42
+  seed=1    no difference in 120 requests
+  seed=2    also differs, at request 51
+  seed=3    also differs, at request 11
+  seed=4    also differs, at request 66
+  verdict   LIVE -- changes observable behaviour (witness, corpus, seed=2, seed=3, seed=4)
+
+kotlin/text-length-in-code-points  (encoding)
+  tree      sha256:33b54ba346c8ed51  (build 9.0s, copy walk)
+  witness   DIFFERS at request 1
+            request   POST /tweets {"author":"alice","text":"éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"}
+            original  400 {"error":"invalid_text"}
+            mutant    201 {"id":1,"author":"alice","text":"ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé�... (450 bytes)
+            S_obs     agrees with the original; the mutant diverges from the spec
+  corpus    no difference in 56 requests
+  seed=1    no difference in 120 requests
+  seed=2    no difference in 120 requests
+  seed=3    no difference in 120 requests
+  seed=4    no difference in 120 requests
+  verdict   LIVE -- changes observable behaviour (witness)
+            REACHED ONLY BY ITS OWN WITNESS. Neither the R0 corpus nor
+            4 tracegen traces produce a request that tells it apart, so
+            no rung driven by those inputs can kill it. That is a fact
+            about the inputs, not about the rungs.
+
+kotlin/jvm-string-identity-compare  (language-idiom)
+  tree      sha256:8e16a18eec60e631  (build 8.5s, copy walk)
+  witness   DIFFERS at request 2
+            request   GET /timeline?user=alice 
+            original  200 {"tweets":[{"id":1,"author":"alice","text":"one","created_at":0}],"next_cursor":null}
+            mutant    200 {"tweets":[],"next_cursor":null}
+            S_obs     agrees with the original; the mutant diverges from the spec
+  corpus    also differs, at request 30
+  seed=1    also differs, at request 11
+  seed=2    also differs, at request 14
+  seed=3    also differs, at request 5
+  seed=4    also differs, at request 38
+  verdict   LIVE -- changes observable behaviour (witness, corpus, seed=1, seed=2, seed=3, seed=4)
+
+========================================================================
+live: 11/11   no observable change: 0
+
+probe PASSED: every mutant answers some request differently from the original

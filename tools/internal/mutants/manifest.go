@@ -105,8 +105,19 @@ type Mutant struct {
 	Impl        string `json:"impl"`
 	Family      string `json:"family"`
 	Description string `json:"description"`
-	Witness     []Step `json:"witness,omitempty"`
-	Edits       []Edit `json:"edits"`
+
+	// Source names the PROVENANCE class the defect idea came from -- a key of
+	// Manifest.Sources. It exists because a mutation catalogue drawn from the
+	// same specification as the rungs measures how well the rungs cover their
+	// own specification, not how well they catch defects, and the two look
+	// identical in a kill table. Recording where each defect idea came from is
+	// what makes that distinction checkable rather than asserted. Optional, so
+	// the original catalogue (whose provenance is stated once in its note) is
+	// unchanged; required by the independent catalogue's own test.
+	Source string `json:"source,omitempty"`
+
+	Witness []Step `json:"witness,omitempty"`
+	Edits   []Edit `json:"edits"`
 }
 
 // Key is the catalogue-wide unique name of a mutant.
@@ -116,7 +127,14 @@ func (m Mutant) Key() string { return m.Impl + "/" + m.ID }
 type Manifest struct {
 	Note     string            `json:"note"`
 	Families map[string]string `json:"families"`
-	Mutants  []Mutant          `json:"mutants"`
+
+	// Sources maps a provenance class to the argument for why defects drawn
+	// from it are (or are not) independent of spec/s_obs/. Declared like
+	// Families: a mutant naming a class that is not declared here is a
+	// manifest error, so a provenance claim cannot be invented per mutant.
+	Sources map[string]string `json:"sources,omitempty"`
+
+	Mutants []Mutant `json:"mutants"`
 }
 
 // Load reads and validates a manifest.
@@ -159,6 +177,12 @@ func (m *Manifest) validate() error {
 		seen[where] = true
 		if _, ok := m.Families[mu.Family]; !ok {
 			return fmt.Errorf("%s: unknown family %q", where, mu.Family)
+		}
+		if mu.Source != "" {
+			if _, ok := m.Sources[mu.Source]; !ok {
+				return fmt.Errorf("%s: unknown source %q -- declare it in the manifest's `sources` map, "+
+					"where the argument for its independence can be read", where, mu.Source)
+			}
 		}
 		if mu.Description == "" {
 			return fmt.Errorf("%s: description is required -- an unexplained mutant is unreadable in the kill table", where)
