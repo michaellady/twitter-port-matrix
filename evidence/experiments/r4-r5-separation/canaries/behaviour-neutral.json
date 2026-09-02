@@ -1,0 +1,20 @@
+{
+  "note": "GATE CANARY, not a defect. Refutes `mutate probe`: the edit is a pure reordering of a short-circuit-free disjunction, so the mutant compiles, differs textually, and answers every request identically. probe must report it as NOT live. Standing rule 2.",
+  "families": {"canary": "gate refutation only"},
+  "mutants": [
+    {
+      "id": "canary-observationally-identical",
+      "impl": "go",
+      "family": "canary",
+      "description": "ValidHandle's length guard has its two disjuncts swapped. Same truth value on every input, no side effects in either disjunct.",
+      "witness": [{"method": "POST", "path": "/users", "body": "{\"handle\":\"alice\"}"}],
+      "edits": [
+        {
+          "file": "internal/dom/dom.go",
+          "anchor": ["\tif len(b) == 0 || len(b) > MaxHandleLen {"],
+          "replacement": ["\tif len(b) > MaxHandleLen || len(b) == 0 {"]
+        }
+      ]
+    }
+  ]
+}

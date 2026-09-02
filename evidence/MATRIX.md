@@ -100,7 +100,7 @@ pairs.
 | `cap←X` | **capped by X**: corner X has no rung of this kind that yields a kill verdict, so the pair has no cell. Not a measurement, in no denominator. `cap←X,Y` means neither end has it |
 | `pending` | the rung exists at both ends and no run has produced this cell. **Four cells are in this state**, all of them waiting on the same thing: the Kotlin corner's R4 sweep. Its rung exists and has been gated on five mutants; the 18-mutant run has not been made |
 | `n/a` | R3 is a claim about the TLA⁺ model and the `S_obs` link, not about either corner's code (`ASSURANCE.md`: *"Says nothing about code"*). `calibrate` has no R3 rung and is not getting one |
-| `†` | one end of this pair is **Go**, whose own R4/R5 evidence is now a completed 18-mutant sweep (9 killed, 5 survived, 4 unreached, 9/14 = 64% killed/reached, R4 and R5 agreeing on all 18 — F028). The cell is capped by the other end regardless, so the mark changes no cell; it records that the Go end's half of the pair is not what is missing |
+| `†` | one end of this pair is **Go**, whose own R4/R5 evidence is now a completed 18-mutant sweep (9 killed, 5 survived, 4 unreached, 9/14 = 64% killed/reached, R4 and R5 agreeing on all 18 — F028; that agreement is a fact about the shipped catalogue, and a scratch catalogue aimed at the perimeter difference separates the two columns on all three of its mutants — F038, F039). The cell is capped by the other end regardless, so the mark changes no cell; it records that the Go end's half of the pair is not what is missing |
 | `‡` | **the two ends' numbers are not comparable in meaning**, so the weaker-end rule produces an arithmetically correct cell that a reader will misread. See "What the two R4 cells actually say" below. Applies to both R4 cells that carry a number today |
 
 **Cell census.** 72 cells: **38 measured**, **18 capped**, **4 pending**,
@@ -196,8 +196,26 @@ effort:
 The `†` rows: the Go end's own R4/R5 evidence exists, but it is a gate, not a
 sweep — `evidence/runs/calibration/r45-gate/` covers **5 of 18** Go mutants and
 reports R4 3/4 = 75% and R5 3/4 = 75% (killed/reached; 1 unreached in the
-trusted shim). Five is a gate, not a rate, and R4 and R5 agreed on all five, so
-it is not yet known whether the two rows discriminate at all. F022 bounds where
+trusted shim). Five is a gate, not a rate, and R4 and R5 agreed on all five.
+
+**Whether the two rows discriminate at all is now settled, and they do.** The
+18-mutant sweep still shows 0 disagreements (F028), but that is a property of
+`tools/cmd/mutate/mutants.json`, not of the rungs. A scratch catalogue built to
+straddle the two perimeters — `evidence/experiments/r4-r5-separation/` — puts
+the columns apart in both ways they can differ:
+
+| scratch mutant | edits | R4 | R5 |
+|---|---|---|---|
+| `handle-alphabet-widened` | `internal/dom/dom.go` | kill | unreached |
+| `text-control-chars-accepted` | `internal/dom/dom.go` | kill | unreached |
+| `clock-now-off-by-one` | `internal/clock/clock.go` | kill | **SURVIVED** |
+
+The first two separate by **reach**: `internal/dom/` is in `gobraVerified` and
+`dom.go` is in no `r5Files` entry (F038). The third separates by **verdict**:
+`clock.go` *is* in `r5Files`, and R5 reached the defect, read Gobra's own
+failing postcondition, found no refinement clause on it and passed — R5's
+`killed/reached` is `0/1` (F039). These three ids are deliberately **not** in
+the shipped catalogue, so no denominator on this page moves. F022 bounds where
 that sweep can land before it is run: 4 of 18 Go mutants edit only
 `internal/httpshim`, which no obligation covers, so **R4's ceiling on the Go end
 is 14 of 18 — a killed/reached denominator of 14, not 18 — before a single
@@ -214,6 +232,7 @@ means. Each invocation is run from the repository root.
 |---|---|---|
 | R0, R1, R2 | `go run ./tools/cmd/calibrate -impls go,rust,java,kotlin -rungs R0,R1,R2 -out evidence/runs/calibration/four-corner -resume` | **done**, 216 cells, window 2026-08-30T22:33:29Z .. 2026-08-31T03:30:42Z |
 | R4, R5 (Go end) | `go run ./tools/cmd/calibrate -impls go -rungs R4,R5 -out evidence/runs/calibration/go-proof -resume` | **done**, 18 mutants x 2 rungs, 36 cells, 2043s + 1059s. 9 killed / 5 survived / 4 unreached at both rungs, 0 disagreements (F028) |
+| R4/R5 separation (Go end, scratch catalogue) | `go run ./tools/cmd/calibrate -manifest evidence/experiments/r4-r5-separation/manifest.json -impls go -rungs R4,R5 -out evidence/runs/calibration/dom-separation -resume` | **done**, 3 mutants x 2 rungs, 6 cells, 203s + 197s. R4 3/3 killed; R5 2 unreached and 1 survived, `killed/reached 0/1`. Not part of any published denominator — its ids are outside `tools/cmd/mutate/mutants.json` on purpose (F038, F039) |
 | R4 (Rust end) | `go run ./tools/cmd/calibrate -impls rust -rungs R4 -out evidence/runs/calibration/rust-proof -resume` | **done**, all 14 covered mutants, 1 killed (F027). Vacuity audited: `go run ./tools/cmd/verus canary` reports REFUTABLE 5, VACUOUS 0 (F030) |
 | R4 (Kotlin end) | `go run ./tools/cmd/calibrate -impls kotlin -rungs R4 -out evidence/runs/calibration/kotlin-proof -resume` | **rung exists, sweep not run** — gate only, 5 mutants in `kotlin-r4-gate`. This is what the four `pending` cells are waiting on, and it is the cheapest cell-filling move on this table |
 | R4 (Java end) | *does not exist, and not for want of a tool.* `impls/java` carries no obligation set, so there is nothing for a JBMC rung to run. Writing one is a Java-corner job, not a rung job | blocked |
@@ -255,6 +274,14 @@ another's. When the R4/R5 columns start carrying numbers, **those two defects'
 cells are not comparable across rows**, and the coverage denominator is where
 that shows up: they are `unreached` on one end and reachable on the other, so
 the two ends' denominators are not the same 18.
+
+**F038 and F039 bound what the R5 column adds.** The two columns are one Gobra
+invocation read twice, and the R5 reading is the strictly narrower question. On
+the shipped catalogue that makes the R5 column carry nothing the R4 column does
+not (F028); on defects aimed at the perimeter difference it makes R5 the weaker
+row, not the stronger one — `clock-now-off-by-one` is a live, spec-violating,
+R4-killed defect that R5 passes. Read the R5 column as *"a refinement obligation
+is what broke"*, never as *"R4 plus more"*.
 
 **F023 warns against reading the columns as ordered.** `id-first-is-two` is
 killed by R0 and R1 and survives R2, R4 *and* R5 on the Go corner. A rung

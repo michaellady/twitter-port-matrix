@@ -1,0 +1,20 @@
+{
+  "note": "GATE CANARY, not a defect. Refutes the anchor arm of `mutate verify`: the anchor text appears nowhere in internal/dom/dom.go, so verify must FAIL. Standing rule 2.",
+  "families": {"canary": "gate refutation only"},
+  "mutants": [
+    {
+      "id": "canary-anchor-never-matches",
+      "impl": "go",
+      "family": "canary",
+      "description": "Anchor is a line that does not exist in dom.go.",
+      "witness": [],
+      "edits": [
+        {
+          "file": "internal/dom/dom.go",
+          "anchor": ["\t\tif !((c >= 'q' && c <= 'q') || c == '~') {"],
+          "replacement": ["\t\tif false {"]
+        }
+      ]
+    }
+  ]
+}

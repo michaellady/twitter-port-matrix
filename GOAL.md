@@ -376,6 +376,69 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 20:15 (fan-out task, branch `claude/task-dom-separation`)** —
+  **The R4 and R5 columns disagree for the first time, in both of the two ways
+  they can.** F028 measured 18 mutants x 2 rungs and got zero disagreements,
+  then said why: R4's perimeter is the five Gobra-verified packages, R5's is the
+  four files carrying a refinement clause, the only file between them is
+  `internal/dom/dom.go`, and no shipped mutant is confined to it. The columns had
+  never been given the chance. `evidence/experiments/r4-r5-separation/` is a
+  **scratch** catalogue that gives it — its ids stay out of
+  `tools/cmd/mutate/mutants.json`, whose ids are shared across four corners so a
+  defect can be compared port-to-port, and a Go-only id would shift every
+  published denominator. Both gates passed and **all three of their arms were
+  shown refutable first** (`canaries/`): `anchors: 0/1 match exactly one site`,
+  `compile: 0/1 build clean`, `verdict NO OBSERVABLE CHANGE in 537 requests`.
+  Worth recording that both `verify` canaries printed `exit status 1` into a
+  pipeline whose own exit code was `0` — standing rule 1, in one line.
+  **F038 — separation by REACH.** Two mutants confined to `dom.go`
+  (`ValidHandle` accepts `A..z`; `ValidText` drops the control-character guard),
+  each breaking a loop invariant that is the only place its property is proved,
+  because Gobra rejects the string indexing a postcondition would need:
+  ```
+  go/handle-alphabet-widened      R4 killed     R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [1m15.2s]
+  go/handle-alphabet-widened      R5 unreached  R5 PASSED: 1 failing obligation(s), none in a member carrying a refinement clause   [1m10.5s]
+  go/text-control-chars-accepted  R4 killed     R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [1m3.3s]
+  go/text-control-chars-accepted  R5 unreached  R5 PASSED: 1 failing obligation(s), none in a member carrying a refinement clause   [1m3.4s]
+  ```
+  The reach half is bookkeeping — `r5Files` is hand-maintained, so of course a
+  `dom.go` mutant is outside it. **The content is that R4 actually kills:** the
+  wider perimeter catches a defect that registers `"Alice"` and one that posts a
+  NUL, and the narrower perimeter has no obligation for either.
+  **F039 — separation by VERDICT, which is the stronger claim.**
+  `clock-now-off-by-one` makes `(*clock.Logical).Now` return `l.now + 1`. It sits
+  in `internal/clock/clock.go`, which **is** in `r5Files`, on a member carrying no
+  refinement clause (`clock.go`'s one clause site is on `Tick`). `R4 killed` /
+  **`R5 SURVIVED`**, and R5's `killed/reached` denominator stops being empty at
+  `0/1`. `gobra r5verify` by hand:
+  `internal/clock/clock.go:52 (*Logical).Now      not an R5 clause: unfolding acc(l.LockP()) in result == l.now`.
+  No list was consulted to get there. What it costs is now visible too: a live,
+  observable, spec-violating defect — every tweet's `created_at` one ahead — that
+  the R5 row passes. R5 is the **narrower** row, never "R4 plus more".
+  **F040 — found while reading Gobra's own error, and left unfixed on purpose.**
+  `memberSpans` ends a member's span at the next line that is exactly `}`, so a
+  one-line function body (`func (e invalidHandleError) Error() string { ... }`)
+  swallows everything up to the next bare brace, and `memberAt` resolves the
+  resulting overlap by **unordered map iteration**. That is why the F038 run
+  printed `dom.go:206 (*invalidHandleError).Error` for an error inside
+  `ValidHandle`. It flips no verdict recorded so far and the bound is derived,
+  not assumed: the only overlaps in the four clause-carrying files are three
+  clause-free error constructors in `memstore.go` 70–89, and `clock.go`, `ids.go`
+  and `service.go` have none. But the condition making it harmless is an accident
+  of source layout that nothing tests for, and one one-liner above a
+  clause-carrying member would produce a **random false survival** in the R5
+  column. `audit.go` is shared machinery five concurrent agents are measuring
+  against, so this branch reports it with a proposed patch and a reproduction
+  probe rather than changing the instrument mid-measurement.
+  **Next fire:** apply F040's fix (clamp each member span to the next member's
+  start; break ties narrowest-first) together with the assertion form of
+  `evidence/experiments/r4-r5-separation/memberspans-overlap-probe_test.go.txt`,
+  which fails on the current tree and is therefore the gate proving the fix
+  landed. The `attribution` family of F039 is a template: any member in a
+  clause-carrying file with a functional postcondition and no clause site gives
+  another verdict-separating cell, and the three `// @ trusted` shims are not
+  candidates because R4 would survive them too.
+
 - **2026-09-02 19:45 (parent session `session_01ExaVft3sZPUuETJXKVZK1J`, branch
   `claude/goal-loop`)** — **The Rust corner had no vacuity instrument at all,
   and the R4 column is no longer entirely capped.** Two results, plus one
