@@ -161,7 +161,11 @@ short form 404s.
 `verus-x86-linux/verus`, as inferred. `cloud-setup.sh` does not rely on the
 inference either way — it `find`s the binary — and a cloud session confirmed
 both: the path resolves and `cargo-verus verus verify` returns
-`23 verified, 0 errors` across the five verify-enabled crates.
+`21 verified, 0 errors` across the five verify-enabled crates (`23` when that
+session ran; S-14 deleted two contentless twins -- see `evidence/findings/F024`).
+**Verus caches.** A second run over an unchanged tree prints no
+`verification results::` line at all, which reads exactly like a pass. `touch`
+the crate sources before every run.
 
 **Also now verified: rustc must be 1.95.0 for any of that to happen.** The base
 image ships 1.94.1, on which Verus installs cleanly and then refuses to run.

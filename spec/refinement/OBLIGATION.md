@@ -236,26 +236,31 @@ That the module is live was confirmed: injecting `assert(false)` into
 `error: assertion failed` and `verification results:: 6 verified, 1 errors`.
 So Verus really is checking those twins.
 
-The twins have drifted from the code. `put_tweet_ensures` claims
+**Because nothing mechanically relates a twin to its function, twins drift.**
+Four had. S-14 (GOAL.md queue item 5) audited every twin against its
+production function line by line and disposed of all four; the audit is
+`evidence/findings/F024`. Two were repaired and two were deleted:
 
-```
-users_keys(old(s)).contains(t.author@)  ==> result is Ok
-```
+| twin | disposition |
+|---|---|
+| `service::create_user_ensures` | **fixed.** Guarded on `handle.as_str().is_empty()` where production guards on `!domain::valid_handle(handle)`, so its accept clause was *false* of the shipped function for `"Alice"` — corpus step 5. The guard is now a shim whose body is the production call |
+| `service::follow_ensures` | **fixed.** Body called `Follow::new` before the existence checks — the pre-D4 ordering, i.e. the F003 defect. Body now mirrors production, and two clauses name *which* error, so the ordering is visible to the verifier for the first time |
+| `store::home_timeline_ensures` | **deleted.** Zero `ensures` clauses, delegating to a second, cursor-less copy of the timeline walk |
+| `service::home_timeline_ensures` | **deleted.** Same, one layer up; the shim passed `cursor = 0` and dropped the `more` flag |
 
-but the production `MemStore::put_tweet` has a **third** branch — it returns
-`Err(StoreError::NonMonotonic)` when the append would break the log invariant.
-Adding that branch to the twin makes Verus reject the clause:
+`put_tweet_ensures` was the fifth drift and is **already repaired** — S-13
+replaced its `users_keys(old(s)).contains(t.author@) ==> result is Ok` with
+`accepts_tweet(old(s), t) ==> result is Ok`, conjoining the monotonicity guard
+that production's third branch applies. An earlier revision of this section
+stated that drift in the present tense after it had been fixed; that sentence
+was wrong and is replaced by this one (F020).
 
-```
-error: postcondition not satisfied
-   --> crates/store/src/lib.rs:750:17
-750 |    users_keys(old(s)).contains(t.author@)  ==> result is Ok,
-766 |    return Err(StoreError::NonMonotonic);   at this exit
-```
-
-So that Verus contract is false of the function it claims to describe, and the
-verifier could not notice, because it never sees that function. Any refinement
-claim built on this shape would be a claim about the twins.
+The count over the five verify-enabled crates is now
+**clock 2, ids 0, domain 9, store 6, service 4 — 21 verified, 0 errors**,
+down from 23 because the two deletions removed two contentless units. Read
+that number with F016's decomposition beside it: it counts units of work, not
+guarantees, and what it counts is still copies rather than shipped functions.
+Any refinement claim built on this shape would be a claim about the twins.
 
 ## 8. Status of R5-core, per clause
 
@@ -340,7 +345,7 @@ discharged but unaudited by a different route than the five above. Its canary
 |---|---|
 | `abs_rust` has a body | — B4, B5 |
 | any commutation clause | — not stated; would be an axiom over an uninterpreted `abs`, per B4 |
-| what the 23 verified obligations cover | the `verus_proof` twins, not the production functions — §7 |
+| what the 21 verified obligations cover | the `verus_proof` twins, not the production functions — §7 |
 
 ### `init` commutation
 

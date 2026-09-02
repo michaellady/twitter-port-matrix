@@ -27,11 +27,12 @@
     "verus": {
       "version": "0.2026.04.24.f8e1704",
       "vstd": "0.0.0-2026-04-20-1748",
-      "final_result": "clock 2, ids 0, domain 9, store 7, service 5 verified; 0 errors. Unchanged from baseline: the S-13 work on this corner corrected a false contract and documented blockers; it did not add discharged obligations."
+      "final_result": "clock 2, ids 0, domain 9, store 6, service 4 verified; 0 errors -- 21 total. Down from 23 at S-13: S-14 (GOAL.md queue item 5, evidence/findings/F024) audited every *_ensures twin against its production function and disposed of the four that had drifted. service::create_user_ensures and service::follow_ensures were FIXED (the first was false of the shipped code for handle=\"Alice\", corpus step 5; the second encoded the pre-D4 ordering, i.e. the F003 defect). store::home_timeline_ensures and service::home_timeline_ensures were DELETED: both carried zero ensures clauses over a drifted, cursor-less second copy of the timeline walk, so each was one count of work and no obligation. The count fell because two empty units were removed, not because a proof was lost. Canaries: assert(false) in the repaired create_user_ensures gives 'error: assertion failed' / '3 verified, 1 errors'; restoring the pre-D4 body in follow_ensures gives 'error: postcondition not satisfied' on both the D6 and D4 clauses -- the old contract could not distinguish the two orderings (F016) and the new one can."
     },
     "r0": {
-      "go": "R0 PASSED: every step matches S_obs byte-for-byte (54/54)",
-      "rust": "R0 PASSED: every step matches S_obs byte-for-byte (54/54)"
+      "go": "R0 PASSED: every step matches S_obs byte-for-byte (56/56)",
+      "rust": "R0 PASSED: every step matches S_obs byte-for-byte (56/56)",
+      "note": "S-14 correction (F020): both entries read 54/54, the corpus size before it grew to 56. Re-measured at S-14 by `go run ./tools/cmd/replay -impl {go,rust}`; both print 'R0 result: 56/56 exact, 0 whitespace-only, 0 differ'."
     },
     "unit_tests": {
       "go": "go test ./... ok, all packages",
