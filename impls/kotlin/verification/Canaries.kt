@@ -131,6 +131,45 @@ object Canaries {
         assert(r is twitterport.service.Outcome.Err && r.code.compareTo("unknown_user") == 0)
     }
 
+    // --- canaries added with the R4 calibrate rung ---------------------------
+    //
+    // Before these three, `o1a`, `o1b` and `o3c` were CLAIMED VERIFIED with no
+    // canary naming them. That is exactly the state F013 says cannot be trusted: the claim had
+    // never been shown refutable, so a vacuous one would have read as a proof and nothing in the
+    // run would have said otherwise. A rung that reports a kill rate is making the claim in
+    // public, so every obligation in its denominator now carries a negation.
+
+    /**
+     * Negation of O1a over a specific non-digit. O1a quantifies over ALL one-character strings;
+     * this fixes one that must be rejected, so a refutation here witnesses that the accept-set
+     * assertion is reachable with a concrete counterexample rather than only over nondeterministic
+     * input.
+     */
+    @JvmStatic
+    fun c10_nonDigitIsANumber() {
+        assert(parseInt64("x") != null)
+    }
+
+    /** Negation of O1b: claims a sign followed by a sign is a legal two-character integer. */
+    @JvmStatic
+    fun c11_signThenSignIsANumber() {
+        assert(parseInt64("+-") != null)
+    }
+
+    /**
+     * Negation of O3c at the THIRD append. O3c is the monotonicity lemma over a three-entry log,
+     * and c2 only reaches the second: a checkcast JBMC cannot discharge at the third append would
+     * leave O3c vacuous while c2 stayed refutable.
+     */
+    @JvmStatic
+    fun c12_thirdAppendDoesNotIncrease() {
+        val s = Store()
+        s.appendTweet("a", "x")
+        val t2 = s.appendTweet("a", "y")
+        val t3 = s.appendTweet("a", "z")
+        assert(t2.id >= t3.id)
+    }
+
     /** Keeps the calls above live; a discarded expression could in principle be elided. */
     @JvmStatic
     var sink: Boolean = false

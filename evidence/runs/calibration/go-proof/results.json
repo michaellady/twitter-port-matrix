@@ -1,0 +1,1361 @@
+{
+  "tool": "calibrate",
+  "started_at": "2026-09-02T17:56:28Z",
+  "finished_at": "2026-09-02T18:48:46Z",
+  "config": {
+    "root": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34",
+    "manifest": "tools/cmd/mutate/mutants.json",
+    "registry": "impls/registry.json",
+    "corpus": "generated/conformance.jsonl",
+    "impls": [
+      "go"
+    ],
+    "rungs": [
+      "R4",
+      "R5"
+    ],
+    "r1_traces": 20,
+    "r1_steps": 200,
+    "r1_seed": 1,
+    "r2_rounds": 6,
+    "r2_setup": 40,
+    "r2_seed": 1,
+    "probe_mode": "any",
+    "probe_traces": 4,
+    "probe_steps": 120,
+    "floor_samples": 3,
+    "rung_timeout": "20m0s"
+  },
+  "launch_floors": {
+    "go": {
+      "impl": "go",
+      "samples": 3,
+      "launch_ms": 884.4526666666666,
+      "build_ms": 860.736,
+      "min_ms": 811.774,
+      "max_ms": 940.68
+    }
+  },
+  "setups": [
+    {
+      "mutant": "go/id-first-is-two",
+      "tree_hash": "sha256:4f7e6b8a002a80e4673e854f3c940cbd3af9f3d051883267e8164ebf99caa135",
+      "apply_ms": 27.952,
+      "warm_build_ms": 1313.058,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/id-burned-on-reject",
+      "tree_hash": "sha256:116719ed18c4f5e6286b15fe9e49af9fad08c63ba63e47a09dc193de7529336a",
+      "apply_ms": 14.752,
+      "warm_build_ms": 946.299,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/self-follow-guard-dropped",
+      "tree_hash": "sha256:c64f6b550d5f3c308ce448c2f3174dd3cdfdccecb531482ceb2d588512910f25",
+      "apply_ms": 46.861,
+      "warm_build_ms": 1396.19,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/follow-precedence-flipped",
+      "tree_hash": "sha256:edd90a166a984e3c862f27f6bf7c1a59bc97c807b163f133743310492018bb69",
+      "apply_ms": 70.855,
+      "warm_build_ms": 1185.024,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/timeline-scan-reversed",
+      "tree_hash": "sha256:f75338503dcaf45ccaa434904421f01f2e21f94119c1dfd8a6fff0442242897e",
+      "apply_ms": 15.571,
+      "warm_build_ms": 922.74,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/timeline-tiebreak-by-id-asc",
+      "tree_hash": "sha256:c35a74b16e11765ce3db1bfffe3d0af6b2d7e7f65b4afc136c822e1b54353275",
+      "apply_ms": 21.456,
+      "warm_build_ms": 814.618,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/follow-toggles",
+      "tree_hash": "sha256:788ebc115b20439050ef8c5120a0e42476c10a7cdf2d239c899d0b2a3093207f",
+      "apply_ms": 13.869,
+      "warm_build_ms": 854.461,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/unfollow-rejects-missing-edge",
+      "tree_hash": "sha256:204c8dbada44409ae4d59a01005687a8e735c67c9742dfe7a8771072bd81ebb3",
+      "apply_ms": 12.672,
+      "warm_build_ms": 982.687,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/orphan-author-accepted",
+      "tree_hash": "sha256:036faaba382808e1b4b01fcf08004187c02e476b26e02d565ed62046f190880c",
+      "apply_ms": 11.508,
+      "warm_build_ms": 939.652,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/created-at-frozen",
+      "tree_hash": "sha256:45f1de04f44ea9aa780ad1b8f5bbbddba9bfc8e3070aa6ab97d9a9311cdea793",
+      "apply_ms": 10.534,
+      "warm_build_ms": 696.284,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/tick-advances-by-two",
+      "tree_hash": "sha256:b46b624d432ee6a619f31ddde903fc9072356d420fb5faeb2d51a574bba8005a",
+      "apply_ms": 10.301,
+      "warm_build_ms": 672.149,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/tick-goes-backwards",
+      "tree_hash": "sha256:81633c1b0a8ecb2a3f81bdd2571fab1419ad88b4e18ba182ea928ce9048694f9",
+      "apply_ms": 10.441,
+      "warm_build_ms": 653.911,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/next-cursor-always-emitted",
+      "tree_hash": "sha256:432197baed95d75104183b28ab7b0e7cf3aec3c3e63afbbf04f365f1f7d73ded",
+      "apply_ms": 9.98,
+      "warm_build_ms": 634.123,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/next-cursor-is-first-id",
+      "tree_hash": "sha256:6a66a65235e58787a557aa2cfc13810bef52acfb967405dc1900145c27203025",
+      "apply_ms": 8.928,
+      "warm_build_ms": 607.86,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/cursor-inclusive",
+      "tree_hash": "sha256:89cfdba35c1a9a602c1b3a7eb46ec9e17ff604fdc20037c1f847755383332cf6",
+      "apply_ms": 9.004,
+      "warm_build_ms": 581.891,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/limit-off-by-one",
+      "tree_hash": "sha256:b2d0b61f969e77e9ddb521fa95af3b1bde8a6c0dc09ec5fd8d60e49664ac6653",
+      "apply_ms": 12.685,
+      "warm_build_ms": 660.217,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/unknown-json-fields-accepted",
+      "tree_hash": "sha256:f72c28875da2a5e60d2cf25823b1976fd5266826c83d58857bde13982e3a6430",
+      "apply_ms": 9.958,
+      "warm_build_ms": 584.116,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/repeated-query-param-accepted",
+      "tree_hash": "sha256:084df32decd24cf26999dae8b55bab59f7fb246363e826e071fd454fa1b5bd2f",
+      "apply_ms": 8.932,
+      "warm_build_ms": 638.006,
+      "copy_mode": "walk"
+    }
+  ],
+  "cells": [
+    {
+      "mutant": "go/id-first-is-two",
+      "impl": "go",
+      "id": "id-first-is-two",
+      "family": "id-alloc",
+      "tree_hash": "sha256:4f7e6b8a002a80e4673e854f3c940cbd3af9f3d051883267e8164ebf99caa135",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 86024.208,
+      "verdict_line": "R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [1m26s]",
+      "guard": {
+        "impl_name": "go@id-first-is-two",
+        "dir": "/tmp/calibrate-mutant-775743438/tree",
+        "tree_hash": "sha256:4f7e6b8a002a80e4673e854f3c940cbd3af9f3d051883267e8164ebf99caa135",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (internal/ids/ids.go), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "go/id-first-is-two",
+      "impl": "go",
+      "id": "id-first-is-two",
+      "family": "id-alloc",
+      "tree_hash": "sha256:4f7e6b8a002a80e4673e854f3c940cbd3af9f3d051883267e8164ebf99caa135",
+      "rung": "R5",
+      "outcome": "survived",
+      "wall_ms": 73886.514,
+      "verdict_line": "R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [1m13.9s]",
+      "guard": {
+        "impl_name": "go@id-first-is-two",
+        "dir": "/tmp/calibrate-mutant-775743438/tree",
+        "tree_hash": "sha256:4f7e6b8a002a80e4673e854f3c940cbd3af9f3d051883267e8164ebf99caa135",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (internal/ids/ids.go), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "go/id-burned-on-reject",
+      "impl": "go",
+      "id": "id-burned-on-reject",
+      "family": "id-alloc",
+      "tree_hash": "sha256:116719ed18c4f5e6286b15fe9e49af9fad08c63ba63e47a09dc193de7529336a",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 82259.558,
+      "verdict_line": "R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [1m22.2s]",
+      "guard": {
+        "impl_name": "go@id-burned-on-reject",
+        "dir": "/tmp/calibrate-mutant-1577448190/tree",
+        "tree_hash": "sha256:116719ed18c4f5e6286b15fe9e49af9fad08c63ba63e47a09dc193de7529336a",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by witness, corpus, seed=2, seed=3, seed=4) and inside the verified core (internal/service/service.go), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "go/id-burned-on-reject",
+      "impl": "go",
+      "id": "id-burned-on-reject",
+      "family": "id-alloc",
+      "tree_hash": "sha256:116719ed18c4f5e6286b15fe9e49af9fad08c63ba63e47a09dc193de7529336a",
+      "rung": "R5",
+      "outcome": "survived",
+      "wall_ms": 85233.584,
+      "verdict_line": "R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [1m25.2s]",
+      "guard": {
+        "impl_name": "go@id-burned-on-reject",
+        "dir": "/tmp/calibrate-mutant-1577448190/tree",
+        "tree_hash": "sha256:116719ed18c4f5e6286b15fe9e49af9fad08c63ba63e47a09dc193de7529336a",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by witness, corpus, seed=2, seed=3, seed=4) and inside the verified core (internal/service/service.go), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "go/self-follow-guard-dropped",
+      "impl": "go",
+      "id": "self-follow-guard-dropped",
+      "family": "precedence",
+      "tree_hash": "sha256:c64f6b550d5f3c308ce448c2f3174dd3cdfdccecb531482ceb2d588512910f25",
+      "rung": "R4",
+      "outcome": "killed",
+      "wall_ms": 83922.736,
+      "verdict_line": "R4 FAILED: Gobra has found 2 error(s) over 5 package(s)   [1m23.9s]",
+      "guard": {
+        "impl_name": "go@self-follow-guard-dropped",
+        "dir": "/tmp/calibrate-mutant-3085411297/tree",
+        "tree_hash": "sha256:c64f6b550d5f3c308ce448c2f3174dd3cdfdccecb531482ceb2d588512910f25",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/self-follow-guard-dropped",
+      "impl": "go",
+      "id": "self-follow-guard-dropped",
+      "family": "precedence",
+      "tree_hash": "sha256:c64f6b550d5f3c308ce448c2f3174dd3cdfdccecb531482ceb2d588512910f25",
+      "rung": "R5",
+      "outcome": "killed",
+      "wall_ms": 88931.015,
+      "verdict_line": "R5 FAILED: 1 of 2 failing obligation(s) hit a refinement clause (1 on the clause itself, 0 elsewhere in its member)   [1m28.9s]",
+      "guard": {
+        "impl_name": "go@self-follow-guard-dropped",
+        "dir": "/tmp/calibrate-mutant-3085411297/tree",
+        "tree_hash": "sha256:c64f6b550d5f3c308ce448c2f3174dd3cdfdccecb531482ceb2d588512910f25",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/follow-precedence-flipped",
+      "impl": "go",
+      "id": "follow-precedence-flipped",
+      "family": "precedence",
+      "tree_hash": "sha256:edd90a166a984e3c862f27f6bf7c1a59bc97c807b163f133743310492018bb69",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 78393.429,
+      "verdict_line": "R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [1m18.4s]",
+      "guard": {
+        "impl_name": "go@follow-precedence-flipped",
+        "dir": "/tmp/calibrate-mutant-3088954006/tree",
+        "tree_hash": "sha256:edd90a166a984e3c862f27f6bf7c1a59bc97c807b163f133743310492018bb69",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus) and inside the verified core (internal/service/service.go), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "go/follow-precedence-flipped",
+      "impl": "go",
+      "id": "follow-precedence-flipped",
+      "family": "precedence",
+      "tree_hash": "sha256:edd90a166a984e3c862f27f6bf7c1a59bc97c807b163f133743310492018bb69",
+      "rung": "R5",
+      "outcome": "survived",
+      "wall_ms": 91233.953,
+      "verdict_line": "R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [1m31.2s]",
+      "guard": {
+        "impl_name": "go@follow-precedence-flipped",
+        "dir": "/tmp/calibrate-mutant-3088954006/tree",
+        "tree_hash": "sha256:edd90a166a984e3c862f27f6bf7c1a59bc97c807b163f133743310492018bb69",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus) and inside the verified core (internal/service/service.go), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "go/timeline-scan-reversed",
+      "impl": "go",
+      "id": "timeline-scan-reversed",
+      "family": "ordering",
+      "tree_hash": "sha256:f75338503dcaf45ccaa434904421f01f2e21f94119c1dfd8a6fff0442242897e",
+      "rung": "R4",
+      "outcome": "killed",
+      "wall_ms": 57435.093,
+      "verdict_line": "R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [57.4s]",
+      "guard": {
+        "impl_name": "go@timeline-scan-reversed",
+        "dir": "/tmp/calibrate-mutant-4194055005/tree",
+        "tree_hash": "sha256:f75338503dcaf45ccaa434904421f01f2e21f94119c1dfd8a6fff0442242897e",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/timeline-scan-reversed",
+      "impl": "go",
+      "id": "timeline-scan-reversed",
+      "family": "ordering",
+      "tree_hash": "sha256:f75338503dcaf45ccaa434904421f01f2e21f94119c1dfd8a6fff0442242897e",
+      "rung": "R5",
+      "outcome": "killed",
+      "wall_ms": 50286.251,
+      "verdict_line": "R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (0 on the clause itself, 1 elsewhere in its member)   [50.3s]",
+      "guard": {
+        "impl_name": "go@timeline-scan-reversed",
+        "dir": "/tmp/calibrate-mutant-4194055005/tree",
+        "tree_hash": "sha256:f75338503dcaf45ccaa434904421f01f2e21f94119c1dfd8a6fff0442242897e",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/timeline-tiebreak-by-id-asc",
+      "impl": "go",
+      "id": "timeline-tiebreak-by-id-asc",
+      "family": "ordering",
+      "tree_hash": "sha256:c35a74b16e11765ce3db1bfffe3d0af6b2d7e7f65b4afc136c822e1b54353275",
+      "rung": "R4",
+      "outcome": "killed",
+      "wall_ms": 57770.761,
+      "verdict_line": "R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [57.8s]",
+      "guard": {
+        "impl_name": "go@timeline-tiebreak-by-id-asc",
+        "dir": "/tmp/calibrate-mutant-3538954921/tree",
+        "tree_hash": "sha256:c35a74b16e11765ce3db1bfffe3d0af6b2d7e7f65b4afc136c822e1b54353275",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/timeline-tiebreak-by-id-asc",
+      "impl": "go",
+      "id": "timeline-tiebreak-by-id-asc",
+      "family": "ordering",
+      "tree_hash": "sha256:c35a74b16e11765ce3db1bfffe3d0af6b2d7e7f65b4afc136c822e1b54353275",
+      "rung": "R5",
+      "outcome": "killed",
+      "wall_ms": 59564.65,
+      "verdict_line": "R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (0 on the clause itself, 1 elsewhere in its member)   [59.5s]",
+      "guard": {
+        "impl_name": "go@timeline-tiebreak-by-id-asc",
+        "dir": "/tmp/calibrate-mutant-3538954921/tree",
+        "tree_hash": "sha256:c35a74b16e11765ce3db1bfffe3d0af6b2d7e7f65b4afc136c822e1b54353275",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/follow-toggles",
+      "impl": "go",
+      "id": "follow-toggles",
+      "family": "idempotence",
+      "tree_hash": "sha256:788ebc115b20439050ef8c5120a0e42476c10a7cdf2d239c899d0b2a3093207f",
+      "rung": "R4",
+      "outcome": "killed",
+      "wall_ms": 37068.165,
+      "verdict_line": "R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [37s]",
+      "guard": {
+        "impl_name": "go@follow-toggles",
+        "dir": "/tmp/calibrate-mutant-1944671470/tree",
+        "tree_hash": "sha256:788ebc115b20439050ef8c5120a0e42476c10a7cdf2d239c899d0b2a3093207f",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/follow-toggles",
+      "impl": "go",
+      "id": "follow-toggles",
+      "family": "idempotence",
+      "tree_hash": "sha256:788ebc115b20439050ef8c5120a0e42476c10a7cdf2d239c899d0b2a3093207f",
+      "rung": "R5",
+      "outcome": "killed",
+      "wall_ms": 36928.836,
+      "verdict_line": "R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (0 on the clause itself, 1 elsewhere in its member)   [36.9s]",
+      "guard": {
+        "impl_name": "go@follow-toggles",
+        "dir": "/tmp/calibrate-mutant-1944671470/tree",
+        "tree_hash": "sha256:788ebc115b20439050ef8c5120a0e42476c10a7cdf2d239c899d0b2a3093207f",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/unfollow-rejects-missing-edge",
+      "impl": "go",
+      "id": "unfollow-rejects-missing-edge",
+      "family": "idempotence",
+      "tree_hash": "sha256:204c8dbada44409ae4d59a01005687a8e735c67c9742dfe7a8771072bd81ebb3",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 71767.141,
+      "verdict_line": "R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [1m11.7s]",
+      "guard": {
+        "impl_name": "go@unfollow-rejects-missing-edge",
+        "dir": "/tmp/calibrate-mutant-3899303010/tree",
+        "tree_hash": "sha256:204c8dbada44409ae4d59a01005687a8e735c67c9742dfe7a8771072bd81ebb3",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (internal/service/service.go), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "go/unfollow-rejects-missing-edge",
+      "impl": "go",
+      "id": "unfollow-rejects-missing-edge",
+      "family": "idempotence",
+      "tree_hash": "sha256:204c8dbada44409ae4d59a01005687a8e735c67c9742dfe7a8771072bd81ebb3",
+      "rung": "R5",
+      "outcome": "survived",
+      "wall_ms": 70075.736,
+      "verdict_line": "R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [1m10s]",
+      "guard": {
+        "impl_name": "go@unfollow-rejects-missing-edge",
+        "dir": "/tmp/calibrate-mutant-3899303010/tree",
+        "tree_hash": "sha256:204c8dbada44409ae4d59a01005687a8e735c67c9742dfe7a8771072bd81ebb3",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (internal/service/service.go), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "go/orphan-author-accepted",
+      "impl": "go",
+      "id": "orphan-author-accepted",
+      "family": "existence",
+      "tree_hash": "sha256:036faaba382808e1b4b01fcf08004187c02e476b26e02d565ed62046f190880c",
+      "rung": "R4",
+      "outcome": "killed",
+      "wall_ms": 1033058.071,
+      "verdict_line": "R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [17m13s]",
+      "guard": {
+        "impl_name": "go@orphan-author-accepted",
+        "dir": "/tmp/calibrate-mutant-1597228905/tree",
+        "tree_hash": "sha256:036faaba382808e1b4b01fcf08004187c02e476b26e02d565ed62046f190880c",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/orphan-author-accepted",
+      "impl": "go",
+      "id": "orphan-author-accepted",
+      "family": "existence",
+      "tree_hash": "sha256:036faaba382808e1b4b01fcf08004187c02e476b26e02d565ed62046f190880c",
+      "rung": "R5",
+      "outcome": "killed",
+      "wall_ms": 61856.645,
+      "verdict_line": "R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (1 on the clause itself, 0 elsewhere in its member)   [1m1.8s]",
+      "guard": {
+        "impl_name": "go@orphan-author-accepted",
+        "dir": "/tmp/calibrate-mutant-1597228905/tree",
+        "tree_hash": "sha256:036faaba382808e1b4b01fcf08004187c02e476b26e02d565ed62046f190880c",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/created-at-frozen",
+      "impl": "go",
+      "id": "created-at-frozen",
+      "family": "clock",
+      "tree_hash": "sha256:45f1de04f44ea9aa780ad1b8f5bbbddba9bfc8e3070aa6ab97d9a9311cdea793",
+      "rung": "R4",
+      "outcome": "survived",
+      "wall_ms": 57752.67,
+      "verdict_line": "R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [57.7s]",
+      "guard": {
+        "impl_name": "go@created-at-frozen",
+        "dir": "/tmp/calibrate-mutant-3258288429/tree",
+        "tree_hash": "sha256:45f1de04f44ea9aa780ad1b8f5bbbddba9bfc8e3070aa6ab97d9a9311cdea793",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (internal/service/service.go), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "go/created-at-frozen",
+      "impl": "go",
+      "id": "created-at-frozen",
+      "family": "clock",
+      "tree_hash": "sha256:45f1de04f44ea9aa780ad1b8f5bbbddba9bfc8e3070aa6ab97d9a9311cdea793",
+      "rung": "R5",
+      "outcome": "survived",
+      "wall_ms": 51397.229,
+      "verdict_line": "R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [51.4s]",
+      "guard": {
+        "impl_name": "go@created-at-frozen",
+        "dir": "/tmp/calibrate-mutant-3258288429/tree",
+        "tree_hash": "sha256:45f1de04f44ea9aa780ad1b8f5bbbddba9bfc8e3070aa6ab97d9a9311cdea793",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4) and inside the verified core (internal/service/service.go), yet the proof passed: the contract does not constrain the mutated behaviour"
+    },
+    {
+      "mutant": "go/tick-advances-by-two",
+      "impl": "go",
+      "id": "tick-advances-by-two",
+      "family": "clock",
+      "tree_hash": "sha256:b46b624d432ee6a619f31ddde903fc9072356d420fb5faeb2d51a574bba8005a",
+      "rung": "R4",
+      "outcome": "killed",
+      "wall_ms": 54811.21,
+      "verdict_line": "R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [54.8s]",
+      "guard": {
+        "impl_name": "go@tick-advances-by-two",
+        "dir": "/tmp/calibrate-mutant-1632354986/tree",
+        "tree_hash": "sha256:b46b624d432ee6a619f31ddde903fc9072356d420fb5faeb2d51a574bba8005a",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/tick-advances-by-two",
+      "impl": "go",
+      "id": "tick-advances-by-two",
+      "family": "clock",
+      "tree_hash": "sha256:b46b624d432ee6a619f31ddde903fc9072356d420fb5faeb2d51a574bba8005a",
+      "rung": "R5",
+      "outcome": "killed",
+      "wall_ms": 51995.29,
+      "verdict_line": "R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (1 on the clause itself, 0 elsewhere in its member)   [52s]",
+      "guard": {
+        "impl_name": "go@tick-advances-by-two",
+        "dir": "/tmp/calibrate-mutant-1632354986/tree",
+        "tree_hash": "sha256:b46b624d432ee6a619f31ddde903fc9072356d420fb5faeb2d51a574bba8005a",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/tick-goes-backwards",
+      "impl": "go",
+      "id": "tick-goes-backwards",
+      "family": "clock",
+      "tree_hash": "sha256:81633c1b0a8ecb2a3f81bdd2571fab1419ad88b4e18ba182ea928ce9048694f9",
+      "rung": "R4",
+      "outcome": "killed",
+      "wall_ms": 48899.412,
+      "verdict_line": "R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [48.9s]",
+      "guard": {
+        "impl_name": "go@tick-goes-backwards",
+        "dir": "/tmp/calibrate-mutant-1819519343/tree",
+        "tree_hash": "sha256:81633c1b0a8ecb2a3f81bdd2571fab1419ad88b4e18ba182ea928ce9048694f9",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/tick-goes-backwards",
+      "impl": "go",
+      "id": "tick-goes-backwards",
+      "family": "clock",
+      "tree_hash": "sha256:81633c1b0a8ecb2a3f81bdd2571fab1419ad88b4e18ba182ea928ce9048694f9",
+      "rung": "R5",
+      "outcome": "killed",
+      "wall_ms": 50136.813,
+      "verdict_line": "R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (1 on the clause itself, 0 elsewhere in its member)   [50.1s]",
+      "guard": {
+        "impl_name": "go@tick-goes-backwards",
+        "dir": "/tmp/calibrate-mutant-1819519343/tree",
+        "tree_hash": "sha256:81633c1b0a8ecb2a3f81bdd2571fab1419ad88b4e18ba182ea928ce9048694f9",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/next-cursor-always-emitted",
+      "impl": "go",
+      "id": "next-cursor-always-emitted",
+      "family": "pagination",
+      "tree_hash": "sha256:432197baed95d75104183b28ab7b0e7cf3aec3c3e63afbbf04f365f1f7d73ded",
+      "rung": "R4",
+      "outcome": "unreached",
+      "wall_ms": 50762.101,
+      "verdict_line": "R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [50.8s]",
+      "guard": {
+        "impl_name": "go@next-cursor-always-emitted",
+        "dir": "/tmp/calibrate-mutant-160053546/tree",
+        "tree_hash": "sha256:432197baed95d75104183b28ab7b0e7cf3aec3c3e63afbbf04f365f1f7d73ded",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4), but the verifier reads none of the files this mutant edits (internal/httpshim/shim.go); no obligation covers it"
+    },
+    {
+      "mutant": "go/next-cursor-always-emitted",
+      "impl": "go",
+      "id": "next-cursor-always-emitted",
+      "family": "pagination",
+      "tree_hash": "sha256:432197baed95d75104183b28ab7b0e7cf3aec3c3e63afbbf04f365f1f7d73ded",
+      "rung": "R5",
+      "outcome": "unreached",
+      "wall_ms": 50048.434,
+      "verdict_line": "R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [50s]",
+      "guard": {
+        "impl_name": "go@next-cursor-always-emitted",
+        "dir": "/tmp/calibrate-mutant-160053546/tree",
+        "tree_hash": "sha256:432197baed95d75104183b28ab7b0e7cf3aec3c3e63afbbf04f365f1f7d73ded",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4), but the verifier reads none of the files this mutant edits (internal/httpshim/shim.go); no obligation covers it"
+    },
+    {
+      "mutant": "go/next-cursor-is-first-id",
+      "impl": "go",
+      "id": "next-cursor-is-first-id",
+      "family": "pagination",
+      "tree_hash": "sha256:6a66a65235e58787a557aa2cfc13810bef52acfb967405dc1900145c27203025",
+      "rung": "R4",
+      "outcome": "unreached",
+      "wall_ms": 55086.218,
+      "verdict_line": "R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [55.1s]",
+      "guard": {
+        "impl_name": "go@next-cursor-is-first-id",
+        "dir": "/tmp/calibrate-mutant-2348812296/tree",
+        "tree_hash": "sha256:6a66a65235e58787a557aa2cfc13810bef52acfb967405dc1900145c27203025",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=2, seed=3, seed=4), but the verifier reads none of the files this mutant edits (internal/httpshim/shim.go); no obligation covers it"
+    },
+    {
+      "mutant": "go/next-cursor-is-first-id",
+      "impl": "go",
+      "id": "next-cursor-is-first-id",
+      "family": "pagination",
+      "tree_hash": "sha256:6a66a65235e58787a557aa2cfc13810bef52acfb967405dc1900145c27203025",
+      "rung": "R5",
+      "outcome": "unreached",
+      "wall_ms": 52210.01,
+      "verdict_line": "R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [52.2s]",
+      "guard": {
+        "impl_name": "go@next-cursor-is-first-id",
+        "dir": "/tmp/calibrate-mutant-2348812296/tree",
+        "tree_hash": "sha256:6a66a65235e58787a557aa2cfc13810bef52acfb967405dc1900145c27203025",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=2, seed=3, seed=4), but the verifier reads none of the files this mutant edits (internal/httpshim/shim.go); no obligation covers it"
+    },
+    {
+      "mutant": "go/cursor-inclusive",
+      "impl": "go",
+      "id": "cursor-inclusive",
+      "family": "pagination",
+      "tree_hash": "sha256:89cfdba35c1a9a602c1b3a7eb46ec9e17ff604fdc20037c1f847755383332cf6",
+      "rung": "R4",
+      "outcome": "killed",
+      "wall_ms": 51753.893,
+      "verdict_line": "R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [51.7s]",
+      "guard": {
+        "impl_name": "go@cursor-inclusive",
+        "dir": "/tmp/calibrate-mutant-889699349/tree",
+        "tree_hash": "sha256:89cfdba35c1a9a602c1b3a7eb46ec9e17ff604fdc20037c1f847755383332cf6",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/cursor-inclusive",
+      "impl": "go",
+      "id": "cursor-inclusive",
+      "family": "pagination",
+      "tree_hash": "sha256:89cfdba35c1a9a602c1b3a7eb46ec9e17ff604fdc20037c1f847755383332cf6",
+      "rung": "R5",
+      "outcome": "killed",
+      "wall_ms": 50312.961,
+      "verdict_line": "R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (0 on the clause itself, 1 elsewhere in its member)   [50.3s]",
+      "guard": {
+        "impl_name": "go@cursor-inclusive",
+        "dir": "/tmp/calibrate-mutant-889699349/tree",
+        "tree_hash": "sha256:89cfdba35c1a9a602c1b3a7eb46ec9e17ff604fdc20037c1f847755383332cf6",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/limit-off-by-one",
+      "impl": "go",
+      "id": "limit-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:b2d0b61f969e77e9ddb521fa95af3b1bde8a6c0dc09ec5fd8d60e49664ac6653",
+      "rung": "R4",
+      "outcome": "killed",
+      "wall_ms": 32919.744,
+      "verdict_line": "R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [32.9s]",
+      "guard": {
+        "impl_name": "go@limit-off-by-one",
+        "dir": "/tmp/calibrate-mutant-3530287346/tree",
+        "tree_hash": "sha256:b2d0b61f969e77e9ddb521fa95af3b1bde8a6c0dc09ec5fd8d60e49664ac6653",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/limit-off-by-one",
+      "impl": "go",
+      "id": "limit-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:b2d0b61f969e77e9ddb521fa95af3b1bde8a6c0dc09ec5fd8d60e49664ac6653",
+      "rung": "R5",
+      "outcome": "killed",
+      "wall_ms": 35466.226,
+      "verdict_line": "R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (0 on the clause itself, 1 elsewhere in its member)   [35.5s]",
+      "guard": {
+        "impl_name": "go@limit-off-by-one",
+        "dir": "/tmp/calibrate-mutant-3530287346/tree",
+        "tree_hash": "sha256:b2d0b61f969e77e9ddb521fa95af3b1bde8a6c0dc09ec5fd8d60e49664ac6653",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/unknown-json-fields-accepted",
+      "impl": "go",
+      "id": "unknown-json-fields-accepted",
+      "family": "parsing",
+      "tree_hash": "sha256:f72c28875da2a5e60d2cf25823b1976fd5266826c83d58857bde13982e3a6430",
+      "rung": "R4",
+      "outcome": "unreached",
+      "wall_ms": 52854.644,
+      "verdict_line": "R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [52.8s]",
+      "guard": {
+        "impl_name": "go@unknown-json-fields-accepted",
+        "dir": "/tmp/calibrate-mutant-691847050/tree",
+        "tree_hash": "sha256:f72c28875da2a5e60d2cf25823b1976fd5266826c83d58857bde13982e3a6430",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4), but the verifier reads none of the files this mutant edits (internal/httpshim/shim.go); no obligation covers it"
+    },
+    {
+      "mutant": "go/unknown-json-fields-accepted",
+      "impl": "go",
+      "id": "unknown-json-fields-accepted",
+      "family": "parsing",
+      "tree_hash": "sha256:f72c28875da2a5e60d2cf25823b1976fd5266826c83d58857bde13982e3a6430",
+      "rung": "R5",
+      "outcome": "unreached",
+      "wall_ms": 50257.386,
+      "verdict_line": "R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [50.2s]",
+      "guard": {
+        "impl_name": "go@unknown-json-fields-accepted",
+        "dir": "/tmp/calibrate-mutant-691847050/tree",
+        "tree_hash": "sha256:f72c28875da2a5e60d2cf25823b1976fd5266826c83d58857bde13982e3a6430",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=2, seed=3, seed=4), but the verifier reads none of the files this mutant edits (internal/httpshim/shim.go); no obligation covers it"
+    },
+    {
+      "mutant": "go/repeated-query-param-accepted",
+      "impl": "go",
+      "id": "repeated-query-param-accepted",
+      "family": "parsing",
+      "tree_hash": "sha256:084df32decd24cf26999dae8b55bab59f7fb246363e826e071fd454fa1b5bd2f",
+      "rung": "R4",
+      "outcome": "unreached",
+      "wall_ms": 50846.156,
+      "verdict_line": "R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [50.8s]",
+      "guard": {
+        "impl_name": "go@repeated-query-param-accepted",
+        "dir": "/tmp/calibrate-mutant-1520929993/tree",
+        "tree_hash": "sha256:084df32decd24cf26999dae8b55bab59f7fb246363e826e071fd454fa1b5bd2f",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=3), but the verifier reads none of the files this mutant edits (internal/httpshim/shim.go); no obligation covers it"
+    },
+    {
+      "mutant": "go/repeated-query-param-accepted",
+      "impl": "go",
+      "id": "repeated-query-param-accepted",
+      "family": "parsing",
+      "tree_hash": "sha256:084df32decd24cf26999dae8b55bab59f7fb246363e826e071fd454fa1b5bd2f",
+      "rung": "R5",
+      "outcome": "unreached",
+      "wall_ms": 49491,
+      "verdict_line": "R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [49.5s]",
+      "guard": {
+        "impl_name": "go@repeated-query-param-accepted",
+        "dir": "/tmp/calibrate-mutant-1520929993/tree",
+        "tree_hash": "sha256:084df32decd24cf26999dae8b55bab59f7fb246363e826e071fd454fa1b5bd2f",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/.claude/worktrees/agent-ae87f33a0f19fce34/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=1, seed=3), but the verifier reads none of the files this mutant edits (internal/httpshim/shim.go); no obligation covers it"
+    }
+  ],
+  "probes": [
+    {
+      "mutant": "go/id-first-is-two",
+      "tree_hash": "sha256:4f7e6b8a002a80e4673e854f3c940cbd3af9f3d051883267e8164ebf99caa135",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 2068.866
+    },
+    {
+      "mutant": "go/id-burned-on-reject",
+      "tree_hash": "sha256:116719ed18c4f5e6286b15fe9e49af9fad08c63ba63e47a09dc193de7529336a",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 2,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 10,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 78,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 48,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 31,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 2449.965
+    },
+    {
+      "mutant": "go/follow-precedence-flipped",
+      "tree_hash": "sha256:edd90a166a984e3c862f27f6bf7c1a59bc97c807b163f133743310492018bb69",
+      "live": true,
+      "reached_by": [
+        "corpus"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 12,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 2175.518
+    },
+    {
+      "mutant": "go/unfollow-rejects-missing-edge",
+      "tree_hash": "sha256:204c8dbada44409ae4d59a01005687a8e735c67c9742dfe7a8771072bd81ebb3",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 34,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 6,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 30,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 4,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 16,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 1913.939
+    },
+    {
+      "mutant": "go/created-at-frozen",
+      "tree_hash": "sha256:45f1de04f44ea9aa780ad1b8f5bbbddba9bfc8e3070aa6ab97d9a9311cdea793",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 19,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 20,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 16,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 26,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 8,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 1464.634
+    },
+    {
+      "mutant": "go/next-cursor-always-emitted",
+      "tree_hash": "sha256:432197baed95d75104183b28ab7b0e7cf3aec3c3e63afbbf04f365f1f7d73ded",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 20,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 14,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 5,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 38,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 1376.121
+    },
+    {
+      "mutant": "go/next-cursor-is-first-id",
+      "tree_hash": "sha256:6a66a65235e58787a557aa2cfc13810bef52acfb967405dc1900145c27203025",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 42,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 51,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 66,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 1437.148
+    },
+    {
+      "mutant": "go/unknown-json-fields-accepted",
+      "tree_hash": "sha256:f72c28875da2a5e60d2cf25823b1976fd5266826c83d58857bde13982e3a6430",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 7,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 9,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 86,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 15,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 15,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 1402.639
+    },
+    {
+      "mutant": "go/repeated-query-param-accepted",
+      "tree_hash": "sha256:084df32decd24cf26999dae8b55bab59f7fb246363e826e071fd454fa1b5bd2f",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=1",
+        "seed=3"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 51,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 66,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 10,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 1424.1
+    }
+  ],
+  "summary": [
+    {
+      "rung": "R4",
+      "label": "proof",
+      "inputs": "contract",
+      "live": 18,
+      "killed": 9,
+      "survived": 5,
+      "unreached": 4,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0.6428571428571429,
+      "kill_rate_live": 0.5,
+      "wall_ms_total": 2043385.21,
+      "wall_ms_mean_killed": 161959.89833333332,
+      "wall_ms_mean_clean": 65082.90277777778,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    },
+    {
+      "rung": "R5",
+      "label": "refinement",
+      "inputs": "contract",
+      "live": 18,
+      "killed": 9,
+      "survived": 5,
+      "unreached": 4,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0.6428571428571429,
+      "kill_rate_live": 0.5,
+      "wall_ms_total": 1059312.533,
+      "wall_ms_mean_killed": 53942.07633333334,
+      "wall_ms_mean_clean": 63759.31622222222,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    },
+    {
+      "rung": "R4",
+      "label": "proof",
+      "inputs": "contract",
+      "impl": "go",
+      "live": 18,
+      "killed": 9,
+      "survived": 5,
+      "unreached": 4,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0.6428571428571429,
+      "kill_rate_live": 0.5,
+      "wall_ms_total": 2043385.21,
+      "wall_ms_mean_killed": 161959.89833333332,
+      "wall_ms_mean_clean": 65082.90277777778,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    },
+    {
+      "rung": "R5",
+      "label": "refinement",
+      "inputs": "contract",
+      "impl": "go",
+      "live": 18,
+      "killed": 9,
+      "survived": 5,
+      "unreached": 4,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 0.6428571428571429,
+      "kill_rate_live": 0.5,
+      "wall_ms_total": 1059312.533,
+      "wall_ms_mean_killed": 53942.07633333334,
+      "wall_ms_mean_clean": 63759.31622222222,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+F021's three levers, tried on (*MemStore).HomeTimeline — 2026-09-02
+==================================================================
+
+F021 recorded eight clauses on this member that the negation sweep could not
+decide (722 s each, twice) and named three levers as untried. All three were
+tried. This file is the raw record; F029 is the finding.
+
+Build: gobra 1.1-SNAPSHOT, /opt/gobra/gobra.jar, z3 on PATH, OpenJDK 21.0.10,
+4 CPUs. Every run below is `-jobs 1`, so no run competes with itself; the box
+was shared with other agents at times and the load conditions per run are at the
+bottom of this file.
+
+Standing rule 1 throughout: no verdict is read from an exit code. Gobra prints
+`Gobra has found 0 error(s)` on a timed-out package, so the termination lines
+are quoted with it every time they appear.
+
+
+BASELINE — what the proof itself costs
+--------------------------------------
+The shipped store package, all nine of HomeTimeline's functional
+postconditions present and true:
+
+    Verifying package .../internal/store - store [18:54:20]
+    Gobra found no errors
+    Gobra has found 0 error(s)
+    ELAPSED_SECONDS=42
+
+42 s to PROVE the nine clauses. Everything below is the cost of AUDITING one
+of them.
+
+
+LEVER 1 — `--parallelizeBranches`
+---------------------------------
+Default canary shape (all nine postconditions present, one negated), 12-minute
+budget, clause memstore.go:542 `s.AbsUsers() == old(s.AbsUsers())`.
+
+The flag does parallelise: two z3 processes at ~90% CPU each, against one for
+every other run in this file. It changes nothing about the answer.
+
+    [  1/  1] TIMEOUT      internal/store/memstore.go:542 s.AbsUsers() == old(s.AbsUsers())
+    1 clauses: 0 refutable, 0 VACUOUS, 1 timed out, 0 ill-formed
+    elapsed 723.3 s
+
+Run again at 21:00 with the same flag and budget, to capture Gobra's own
+wording rather than the tool's summary of it:
+
+    The verification of package .../internal/store - store got terminated after 720 seconds
+    The verification of member .../store.*MemStore.HomeTimeline(string, int, int64) did not terminate
+    The verification of 1 members timed out
+    Gobra has found 0 error(s)
+
+    elapsed 723.4 s
+
+The sweep's own self-test ran first, with the flag on, and passed — so the
+flag does not blind the instrument:
+
+    self-test control: internal/clock/clock.go:68  unfolding acc(l.LockP()) in l.now == old(...) + 1
+      as shipped               -> REFUTABLE
+      behind `assume false`    -> VACUOUS
+      self-test PASSED: the sweep distinguishes a live obligation from a vacuous one
+
+
+LEVER 2 — a budget an order of magnitude larger
+-----------------------------------------------
+Default canary shape, 45-minute budget, same clause, on an otherwise idle box.
+This is the run F021 says was started twice and lost to container restarts
+both times. It has now been run to completion, and Gobra's own words are:
+
+    The verification of package .../internal/store - store got terminated after 2700 seconds
+    The verification of member .../store.*MemStore.HomeTimeline(string, int, int64) did not terminate
+    The verification of 1 members timed out
+    Gobra has found 0 error(s)
+
+    1 clauses: 0 refutable, 0 VACUOUS, 1 timed out, 0 ill-formed
+    elapsed 2703.0 s
+
+Note the last line of Gobra's own output: ZERO errors, on a run that verified
+nothing. That is the trap `tools/cmd/gobra` reads the wording to avoid.
+
+A 3.75x budget does not decide it. This is not a slow proof; it is one the
+solver does not come back from.
+
+
+LEVER 3 — a cheaper, targeted probe
+-----------------------------------
+Two changes, both of which keep the question identical:
+
+  (a) `-isolate` — elide the member's OTHER functional postconditions. A
+      postcondition is a goal, never an assumption, so the path condition at
+      the member's exit is untouched. Every `requires`, every `invariant` and
+      both `acc(...)` postconditions stay exactly as shipped. Line count is
+      preserved so Gobra's positions still line up.
+
+  (b) a hand-written negation for three clauses whose DERIVED negation is a
+      spelling the solver will not decide. `forall a int :: !(0 <= a && a <
+      len(out))` and `len(out) == 0` are the same assertion; only the second
+      terminates. The table is in tools/cmd/gobra/clauses.go, each entry
+      carrying the arithmetic that makes the two forms equal.
+
+Full sweep, `-isolate -control`, 12-minute budget, one job, idle box
+(homeline-isolated-sweep-20260902.log):
+
+    [  1/  9] REFUTABLE       150s (control VACUOUS, 23s) memstore.go:528 F2 ordering          [hand]
+    [  2/  9] REFUTABLE        40s (control VACUOUS, 23s) memstore.go:544 AbsLogLen framing
+    [  3/  9] REFUTABLE       464s (control VACUOUS, 26s) memstore.go:531 F1 visibility        [hand]
+    [  4/  9] REFUTABLE        98s (control VACUOUS, 27s) memstore.go:534 D10 cursor
+    [  5/  9] REFUTABLE       369s (control VACUOUS, 26s) memstore.go:535 no fabrication       [hand]
+    [  6/  9] REFUTABLE       637s (control VACUOUS, 25s) memstore.go:537 no loss
+    [  7/  9] REFUTABLE       138s (control VACUOUS, 26s) memstore.go:542 AbsUsers framing
+    [  8/  9] REFUTABLE       709s (control VACUOUS, 37s) memstore.go:543 AbsFollows framing
+    [  9/  9] TIMEOUT         723s (control VACUOUS, 31s) memstore.go:527 len(out) <= limit
+    9 clauses: 8 refutable, 0 VACUOUS, 1 timed out, 0 ill-formed
+
+memstore.go:527 re-run alone at a 25-minute budget, same shape
+(homeline-527-retry-20260902.log):
+
+    [  1/  1] REFUTABLE       106s (control VACUOUS, 44s) memstore.go:527 len(out) <= limit
+    1 clauses: 1 refutable, 0 VACUOUS, 0 timed out, 0 ill-formed
+    internal/store/memstore.go:527:9 Postcondition might not hold.
+
+527 is the instability case and is worth its own line: the same clause, the
+same shape, three runs — REFUTABLE at 137 s, TIMEOUT at 723 s, REFUTABLE at
+106 s. Two independent refutations, each with Gobra's own error line, decide
+it; a run that produced no verdict does not un-decide it. But it shows what
+the budget boundary really is on this member, and the same spread appears
+across the three near-identical framing clauses: 40 s, 138 s and 709 s for
+what is syntactically the same assertion about three different abstraction
+axes.
+
+
+VERBATIM PER-CLAUSE EVIDENCE — the eight F021 left undecided
+------------------------------------------------------------
+Each line is Gobra's, from the run that decided the clause. Each is inside
+`(*MemStore).HomeTimeline`'s own span; `gobra audit` checks that and reports
+91 of 91 so backed.
+
+    internal/store/memstore.go:527:9 Postcondition might not hold.   len(out) <= limit
+    internal/store/memstore.go:531:9 Postcondition might not hold.   F1 visibility          [R5 15]
+    internal/store/memstore.go:534:9 Postcondition might not hold.   D10 cursor             [R5 16]
+    internal/store/memstore.go:535:9 Postcondition might not hold.   no fabrication         [R5 17]
+    internal/store/memstore.go:537:9 Postcondition might not hold.   no loss                [R5 18]
+    internal/store/memstore.go:542:9 Postcondition might not hold.   AbsUsers unchanged
+    internal/store/memstore.go:543:9 Postcondition might not hold.   AbsFollows unchanged
+    internal/store/memstore.go:544:9 Postcondition might not hold.   AbsLogLen unchanged
+
+And the control for each, on a copy of the member with `// @ assume false` as
+the first statement of the body — the shape that must report VACUOUS or the
+REFUTABLE above means nothing:
+
+    Gobra found no errors
+    Gobra has found 0 error(s)
+
+Nine of nine controls came back VACUOUS, in 23-44 s each.
+
+
+WHOLE-CORNER RESULT AFTER THIS
+------------------------------
+    91 clauses: 91 refutable, 0 VACUOUS, 0 timed out, 0 ill-formed
+    audited 91 REFUTABLE verdicts: 91 backed by an error inside the clause's own
+    member, 0 backed only by an error elsewhere. (0 results were not REFUTABLE.)
+
+    42 clauses: 30 VERIFIED, 12 UNATTEMPTED
+
+
+LOAD CONDITIONS
+---------------
+The box has 4 cores and was shared. Verdicts are unaffected by load — a
+refutation is a refutation — but wall times are not, and are quoted here only
+where the run had the box to itself or close to it.
+
+  - Baseline (42 s): idle.
+  - Lever 1 (723 s, twice): one other single-core job for the last 3 of 12
+    minutes on the first run; another agent's rustc on the second. Both ran
+    out the full budget, so neither wall time is a measurement of anything
+    except that the query does not finish.
+  - Lever 2 (2703 s): idle for its whole 45 minutes.
+  - Lever 3 full sweep: idle for clauses 1-6; a second single-core job from
+    clause 7 onward. Clause 543's 709 s therefore carries the widest error bar
+    of the nine.
+  - Clause 527's 106 s retry: ran against another agent's rustc, so 106 s is
+    an upper bound.
+  - An EARLIER lever-3 sweep, discarded for timing purposes and kept only
+    where it was the sole run that decided a clause, was measured against a
+    load of up to 9.4 on 4 cores and against an orphaned z3 that had escaped a
+    killed run and held a core and 3.4 GB for 49 minutes. Its wall times are
+    inflated by 2-7x and are not quoted. Its VERDICTS agree with the clean
+    sweep on every clause both decided.

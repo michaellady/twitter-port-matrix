@@ -41,10 +41,12 @@ undischargeable erased checkcast made everything downstream infeasible. An
 Only asserting the **negation** exposes it: a claim and its negation both
 verifying is the unique signature of a vacuous proof. ([F013](evidence/findings/F013-six-obligations-verified-because-nothing-reached-them.md))
 
-**"23 verified, 0 errors" is one property proved.** Eleven of the 23 carry no
+**"23 verified, 0 errors" is one property proved.** Eleven of the 23 carried no
 postcondition at all; eleven more are conditional on assumed axioms about
-hand-written copies of the shipped code — and one of those copies is *false* of
+hand-written copies of the shipped code — and one of those copies was *false* of
 the code it stands for, falsified by an input already in the corpus. ([F016](evidence/findings/F016-twenty-three-verified-means-one-property-proved.md))
+The four drifted copies have since been fixed or deleted and the count is now
+**21** — it went down, because two of them proved nothing at all. ([F024](evidence/findings/F024-a-count-that-goes-down-is-the-repair.md))
 
 **`"abc".equals("abc")` verifies as FALSE** on JBMC 6.11.0 — reproduced in
 plain Java. The Kotlin corner's ceiling turned out to be a tool defect, not a

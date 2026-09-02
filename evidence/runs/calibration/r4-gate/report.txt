@@ -1,0 +1,97 @@
+CALIBRATION -- per-rung mutation kill table
+==============================================================================
+corners   go, rust
+rungs     R4
+R1        20 traces x 200 steps, seed 1
+R2        6 rounds x 40 setup requests, seed 1
+probe     any (4 traces x 120 steps, plus the corpus and each mutant's witness)
+window    2026-09-02T14:19:54Z .. 2026-09-02T14:23:06Z
+
+==============================================================================
+KILL TABLE
+==============================================================================
+rung             live  killed  survived  unreached  equiv   kill%   kill%     wall
+                                                            reach    live         
+R4 proof            2       1         0          1      0    100%     50%     184s
+
+  live       mutants that change observable behaviour. Equivalent ones are excluded
+             from every denominator: no rung can kill them, so counting them would
+             understate every rung for a reason that is not about the rung.
+  survived   the rung's own inputs DO elicit the difference and it passed anyway.
+             A gap in the rung.
+  unreached  live, but nothing in this rung's input source elicits the difference.
+             A gap in the inputs. F009 is the worked example. For a proof rung the
+             input source is the contract: unreached means the verifier reads none
+             of the files the mutant edits.
+  capped     the corner has no verifier for this rung. Not a measurement; shown
+             per mutant and per corner, in no denominator.
+  kill%reach killed / (killed + survived) -- the rung's oracle.
+  kill%live  killed / every live mutant -- the rung as configured, inputs included.
+
+==============================================================================
+BY CORNER
+==============================================================================
+corner   rung             live  killed  survived  unreached  equiv     wall
+go       R4 proof            2       1         0          1      0     184s
+rust     R4 proof            0       0         0          0      0       0s
+
+==============================================================================
+COST -- and which cost it is
+==============================================================================
+Every rung relaunches the implementation: R0 once for the whole corpus, R1 once
+per trace, R2 once per property-round. A launch is a warm build check plus a
+process start plus a health wait, and that price differs by language. So raw
+seconds mix what the RUNG costs with what the LANGUAGE costs. Both are below.
+
+  no floor measured; only raw wall time is available.
+
+  corner   rung            launches wall killed  wall clean  tool clean
+  go       R4 proof               -      69.9s     113.8s          -
+  rust     R4 proof               -          -          -          -
+
+  wall killed  mean wall for a mutant this rung caught. NOT comparable with the
+               clean column, and not reliably smaller either. R1 stops at its
+               first mismatch -- then shrinks, and every shrink attempt is
+               another server launch, so at low trace counts a kill can cost
+               several times a clean pass. The launch count of a kill depends
+               on the defect, so it is not corrected and no tool figure is
+               derived from it.
+  wall clean   mean wall for a full pass -- the worst case, and what a sweep of
+               a correct implementation actually costs.
+  tool clean   wall clean minus launches x measured floor. The rung's own cost
+               with process startup removed. Reported only where the launch
+               count is known from the configuration -- never inferred.
+  *            the correction came out at or below zero. Not an error and not
+               hidden: it means this rung's own work costs no more than the
+               servers it launches, so at this configuration the rung IS process
+               startup. Compare rungs by their launch counts, not their seconds.
+  Mutant setup (materialise + warm the build cache) is charged to no rung; see
+  the setups block in results.json.
+
+==============================================================================
+PER MUTANT
+==============================================================================
+mutant                             R4         
+go/next-cursor-is-first-id         unreached  
+go/limit-off-by-one                kill       
+rust/next-cursor-is-first-id       capped     
+rust/limit-off-by-one              capped     
+
+==============================================================================
+REACHABILITY -- why each survivor survived
+==============================================================================
+  go/next-cursor-is-first-id     live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+
+==============================================================================
+READ WITH CARE
+==============================================================================
+ 1. R4: 2 cell(s) are capped -- the corner has no verifier this rung drives.
+    They are in no denominator; the row measures only the corners that reach
+    the rung.
+ 2. no launch floor was measured, so the wall column mixes rung cost with
+    process-startup cost and the corners are not comparable.

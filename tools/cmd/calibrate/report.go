@@ -32,26 +32,75 @@ type Run struct {
 // first and poorly on the second, and both facts are worth having. Equivalent
 // mutants appear in neither.
 type RungSummary struct {
-	Rung         string  `json:"rung"`
-	Label        string  `json:"label"`
-	Inputs       string  `json:"inputs"`
-	Impl         string  `json:"impl,omitempty"` // empty means "all corners"
-	Live         int     `json:"live"`
-	Killed       int     `json:"killed"`
-	Survived     int     `json:"survived"`
-	Unreached    int     `json:"unreached"`
-	Equivalent   int     `json:"equivalent"`
-	Unclassified int     `json:"unclassified"`
-	Errors       int     `json:"errors"`
-	KillReach    float64 `json:"kill_rate_reachable"`
-	KillLive     float64 `json:"kill_rate_live"`
-	WallMS       float64 `json:"wall_ms_total"`
-	KilledWallMS float64 `json:"wall_ms_mean_killed"`
-	CleanWallMS  float64 `json:"wall_ms_mean_clean"`
-	ToolMS       float64 `json:"tool_ms_mean_clean"`
-	ToolSamples  int     `json:"tool_samples"`
-	Launches     int     `json:"launches_per_clean_run"`
+	Rung   string `json:"rung"`
+	Label  string `json:"label"`
+	Inputs string `json:"inputs"`
+	Impl   string `json:"impl,omitempty"` // empty means "all corners"
+	// Cells is every cell this row was computed from, including the ones no
+	// denominator contains. Cells - Reached is exactly what Excluded explains.
+	Cells        int `json:"cells"`
+	Live         int `json:"live"`
+	Killed       int `json:"killed"`
+	Survived     int `json:"survived"`
+	Unreached    int `json:"unreached"`
+	Equivalent   int `json:"equivalent"`
+	Unclassified int `json:"unclassified"`
+	Errors       int `json:"errors"`
+	Capped       int `json:"capped,omitempty"` // cells the corner has no verifier for; in no denominator
+	// Reached is the denominator of KillReach: killed + survived, which is
+	// live minus unreached. Equivalent mutants are already outside live, so
+	// subtracting them again would double-count them out.
+	//
+	// It is a stored field rather than a derivation at render time because
+	// F008's point is that a rate travels and its denominator does not: a
+	// percentage quoted out of results.json with no divisor beside it is the
+	// number this project exists to stop producing.
+	Reached int `json:"reached"`
+	// Excluded names every cell that is in Cells and not in Reached, with the
+	// reason. It is the machine-readable half of "84% of what".
+	Excluded     []Exclusion `json:"excluded,omitempty"`
+	KillReach    float64     `json:"kill_rate_reachable"`
+	KillLive     float64     `json:"kill_rate_live"`
+	WallMS       float64     `json:"wall_ms_total"`
+	KilledWallMS float64     `json:"wall_ms_mean_killed"`
+	CleanWallMS  float64     `json:"wall_ms_mean_clean"`
+	ToolMS       float64     `json:"tool_ms_mean_clean"`
+	ToolSamples  int         `json:"tool_samples"`
+	Launches     int         `json:"launches_per_clean_run"`
 }
+
+// An Exclusion is one reason a cell is not in the rate's denominator, with the
+// count. A rate whose exclusions are not stated is not readable: 100% over two
+// reached cells out of eighteen is not the same claim as 100% over eighteen,
+// and nothing in the percentage distinguishes them (F008, F009, F022).
+type Exclusion struct {
+	Outcome string `json:"outcome"`
+	Count   int    `json:"count"`
+	Reason  string `json:"reason"`
+}
+
+// rate renders a rate as its own arithmetic. The fraction leads and the
+// percentage follows, because the fraction is the part that survives being
+// quoted somewhere else.
+//
+// A zero denominator prints "0/0 = n/a", never "0%". This is not cosmetic: a
+// rung with nothing reached scored 0.0 in the float, and 0% is the same string
+// a rung that reached everything and killed none would print. One is a missing
+// measurement and the other is a total failure of the rung.
+func rate(num, den int) string {
+	if den <= 0 {
+		return fmt.Sprintf("%d/%d = n/a", num, den)
+	}
+	return fmt.Sprintf("%d/%d = %.0f%%", num, den, 100*float64(num)/float64(den))
+}
+
+// HasReach reports whether kill%reach is a measurement at all.
+func (s RungSummary) HasReach() bool { return s.Reached > 0 }
+
+// RateReach and RateLive are the two rates this table reports, each carrying
+// its own denominator.
+func (s RungSummary) RateReach() string { return rate(s.Killed, s.Reached) }
+func (s RungSummary) RateLive() string  { return rate(s.Killed, s.Live) }
 
 // HasTool distinguishes "no tool figure was derivable" from "the tool figure
 // came out at or below zero". Collapsing the two would hide the more
@@ -83,7 +132,7 @@ func summarize(run *Run, rungs []rung) []RungSummary {
 	for _, impl := range run.Config.Impls {
 		for _, r := range rungs {
 			s := aggregate(run, r, impl)
-			if s.Live+s.Equivalent+s.Errors+s.Unclassified > 0 {
+			if s.Live+s.Equivalent+s.Errors+s.Unclassified+s.Capped > 0 {
 				out = append(out, s)
 			}
 		}
@@ -103,6 +152,7 @@ func aggregate(run *Run, r rung, impl string) RungSummary {
 		if impl != "" && c.Impl != impl {
 			continue
 		}
+		s.Cells++
 		s.WallMS += c.WallMS
 		switch c.Outcome {
 		case outcomeKilled:
@@ -122,6 +172,10 @@ func aggregate(run *Run, r rung, impl string) RungSummary {
 			s.Unclassified++
 		case outcomeError:
 			s.Errors++
+		case outcomeCapped:
+			// Not run, not timed, not in any denominator.
+			s.Capped++
+			continue
 		}
 		if c.Outcome != outcomeKilled && c.Outcome != outcomeError {
 			cleanWall += c.WallMS
@@ -133,8 +187,10 @@ func aggregate(run *Run, r rung, impl string) RungSummary {
 			}
 		}
 	}
-	if d := s.Killed + s.Survived; d > 0 {
-		s.KillReach = float64(s.Killed) / float64(d)
+	s.Reached = s.Killed + s.Survived
+	s.Excluded = exclusionsOf(s, r)
+	if s.Reached > 0 {
+		s.KillReach = float64(s.Killed) / float64(s.Reached)
 	}
 	if s.Live > 0 {
 		s.KillLive = float64(s.Killed) / float64(s.Live)
@@ -150,6 +206,39 @@ func aggregate(run *Run, r rung, impl string) RungSummary {
 		s.ToolMS = toolWall / float64(toolN)
 	}
 	return s
+}
+
+// exclusionsOf accounts for every cell between Cells and Reached.
+//
+// The invariant it maintains is arithmetic, not editorial:
+//
+//	Cells = Reached + sum(Excluded.Count)
+//
+// TestExclusionsAccountForEveryCell checks it, so a new outcome word cannot be
+// added without either landing in a denominator or being explained here.
+func exclusionsOf(s RungSummary, r rung) []Exclusion {
+	inputs := r.Inputs
+	if inputs == "" {
+		inputs = "this rung's inputs"
+	}
+	unreached := fmt.Sprintf("live, but nothing in this rung's input source (%s) elicits the difference -- an input gap, not a rung weakness (F009)", inputs)
+	if inputs == "contract" {
+		unreached = "live, but the verifier reads none of the files the mutant edits, so no obligation could have covered it (F022)"
+	}
+	candidates := []Exclusion{
+		{outcomeUnreached, s.Unreached, unreached},
+		{outcomeEquivalent, s.Equivalent, "no input tells the mutant from the original, so no rung can kill it; in no denominator at all"},
+		{outcomeUnclassified, s.Unclassified, "survived, but never probed, so whether it is a rung gap or an input gap is not known"},
+		{outcomeError, s.Errors, "no verdict was read; a missing measurement, never a pass"},
+		{outcomeCapped, s.Capped, "the corner has no verifier this rung drives; not a measurement and in no denominator"},
+	}
+	var out []Exclusion
+	for _, e := range candidates {
+		if e.Count > 0 {
+			out = append(out, e)
+		}
+	}
+	return out
 }
 
 // warnings names the numbers a reader should not accept at face value.
@@ -189,6 +278,11 @@ func warnings(run *Run, rungs []rung) []string {
 		if s.Errors > 0 {
 			w = append(w, fmt.Sprintf("%s: %d cell(s) errored. Those are missing measurements, not passes.", s.Rung, s.Errors))
 		}
+		if s.Capped > 0 {
+			w = append(w, fmt.Sprintf(
+				"%s: %d cell(s) are capped -- the corner has no verifier this rung drives. They are in no denominator; "+
+					"the row measures only the corners that reach the rung.", s.Rung, s.Capped))
+		}
 		if s.Unreached > 0 && s.Inputs == "tracegen" {
 			w = append(w, fmt.Sprintf(
 				"%s: %d mutant(s) recorded as unreached on SAMPLED evidence. probe ran %d trace(s) where this rung ran %d; "+
@@ -227,17 +321,15 @@ func renderReport(run *Run, rungs []rung) string {
 	fmt.Fprintf(&b, "window    %s .. %s\n", run.StartedAt, run.FinishedAt)
 
 	fmt.Fprintf(&b, "\n%s\nKILL TABLE\n%s\n", line, line)
-	fmt.Fprintf(&b, "%-14s %6s %7s %9s %10s %6s %7s %7s %8s\n",
-		"rung", "live", "killed", "survived", "unreached", "equiv", "kill%", "kill%", "wall")
-	fmt.Fprintf(&b, "%-14s %6s %7s %9s %10s %6s %7s %7s %8s\n",
-		"", "", "", "", "", "", "reach", "live", "")
+	fmt.Fprintf(&b, "%-14s %6s %7s %9s %10s %6s %15s %15s %8s\n",
+		"rung", "live", "killed", "survived", "unreached", "equiv", "killed/reached", "killed/live", "wall")
 	for _, s := range run.Summary {
 		if s.Impl != "" {
 			continue
 		}
-		fmt.Fprintf(&b, "%-14s %6d %7d %9d %10d %6d %6.0f%% %6.0f%% %7.0fs\n",
+		fmt.Fprintf(&b, "%-14s %6d %7d %9d %10d %6d %15s %15s %7.0fs\n",
 			s.Rung+" "+s.Label, s.Live, s.Killed, s.Survived, s.Unreached, s.Equivalent,
-			100*s.KillReach, 100*s.KillLive, s.WallMS/1000)
+			s.RateReach(), s.RateLive(), s.WallMS/1000)
 	}
 	fmt.Fprint(&b, "\n  live       mutants that change observable behaviour. Equivalent ones are excluded\n")
 	fmt.Fprint(&b, "             from every denominator: no rung can kill them, so counting them would\n")
@@ -245,20 +337,34 @@ func renderReport(run *Run, rungs []rung) string {
 	fmt.Fprint(&b, "  survived   the rung's own inputs DO elicit the difference and it passed anyway.\n")
 	fmt.Fprint(&b, "             A gap in the rung.\n")
 	fmt.Fprint(&b, "  unreached  live, but nothing in this rung's input source elicits the difference.\n")
-	fmt.Fprint(&b, "             A gap in the inputs. F009 is the worked example.\n")
-	fmt.Fprint(&b, "  kill%reach killed / (killed + survived) -- the rung's oracle.\n")
-	fmt.Fprint(&b, "  kill%live  killed / every live mutant -- the rung as configured, inputs included.\n")
+	fmt.Fprint(&b, "             A gap in the inputs. F009 is the worked example. For a proof rung the\n")
+	fmt.Fprint(&b, "             input source is the contract: unreached means the verifier reads none\n")
+	fmt.Fprint(&b, "             of the files the mutant edits.\n")
+	fmt.Fprint(&b, "  capped     the corner has no verifier for this rung. Not a measurement; shown\n")
+	fmt.Fprint(&b, "             per mutant and per corner, in no denominator.\n")
+	fmt.Fprint(&b, "  killed/reached  the rung's ORACLE. reached = live - unreached = killed +\n")
+	fmt.Fprint(&b, "                  survived. Every rate is printed as its own fraction because a\n")
+	fmt.Fprint(&b, "                  percentage travels and its denominator does not: 100% over two\n")
+	fmt.Fprint(&b, "                  reached cells and 100% over eighteen are the same string and not\n")
+	fmt.Fprint(&b, "                  the same claim (F008).\n")
+	fmt.Fprint(&b, "  killed/live     the rung AS CONFIGURED, inputs included.\n")
+	fmt.Fprint(&b, "  n/a             the denominator is zero -- nothing was reached, so there is no\n")
+	fmt.Fprint(&b, "                  rate. Printed rather than shown as 0%, which is the rate of a\n")
+	fmt.Fprint(&b, "                  rung that saw everything and killed nothing.\n")
+
+	b.WriteString(renderDenominators(run))
 
 	if len(run.Config.Impls) > 1 {
 		fmt.Fprintf(&b, "\n%s\nBY CORNER\n%s\n", line, line)
-		fmt.Fprintf(&b, "%-8s %-14s %6s %7s %9s %10s %6s %8s\n",
-			"corner", "rung", "live", "killed", "survived", "unreached", "equiv", "wall")
+		fmt.Fprintf(&b, "%-8s %-14s %6s %7s %9s %10s %6s %15s %8s\n",
+			"corner", "rung", "live", "killed", "survived", "unreached", "equiv", "killed/reached", "wall")
 		for _, s := range run.Summary {
 			if s.Impl == "" {
 				continue
 			}
-			fmt.Fprintf(&b, "%-8s %-14s %6d %7d %9d %10d %6d %7.0fs\n",
-				s.Impl, s.Rung+" "+s.Label, s.Live, s.Killed, s.Survived, s.Unreached, s.Equivalent, s.WallMS/1000)
+			fmt.Fprintf(&b, "%-8s %-14s %6d %7d %9d %10d %6d %15s %7.0fs\n",
+				s.Impl, s.Rung+" "+s.Label, s.Live, s.Killed, s.Survived, s.Unreached, s.Equivalent,
+				s.RateReach(), s.WallMS/1000)
 		}
 	}
 
@@ -272,6 +378,41 @@ func renderReport(run *Run, rungs []rung) string {
 	}
 	for i, w := range run.Warnings {
 		fmt.Fprintf(&b, "%2d. %s\n", i+1, wrap(w, 74, "    "))
+	}
+	return b.String()
+}
+
+// renderDenominators states, per rung, what the rate is a percentage OF and
+// which cells were left out of it.
+//
+// This section exists because of F008 and F022. A kill rate is a fraction whose
+// numerator is easy to defend and whose denominator is where every interesting
+// mistake lives: R4 on the Go corner cannot exceed 14 of 18 because four
+// mutants edit a file no obligation covers, and the difference between "78%"
+// and "100% of what could be reached, of a possible 78%" is the difference
+// between a rung that is weak and a rung that is not pointed at the code.
+// Neither is visible in a bare percentage, so the bare percentage is never the
+// only thing printed.
+func renderDenominators(run *Run) string {
+	var b strings.Builder
+	line := strings.Repeat("=", 78)
+	fmt.Fprintf(&b, "\n%s\nDENOMINATORS -- what each rate is a percentage of\n%s\n", line, line)
+	for _, s := range run.Summary {
+		if s.Impl != "" {
+			continue
+		}
+		fmt.Fprintf(&b, "\n  %-14s killed/reached %s   killed/live %s\n",
+			s.Rung+" "+s.Label, s.RateReach(), s.RateLive())
+		excluded := s.Cells - s.Reached
+		fmt.Fprintf(&b, "  %-14s %d cell(s) measured, %d in the killed/reached denominator, %d excluded\n",
+			"", s.Cells, s.Reached, excluded)
+		if excluded == 0 {
+			fmt.Fprintf(&b, "  %-14s   nothing excluded: every cell of this rung is in its denominator.\n", "")
+			continue
+		}
+		for _, e := range s.Excluded {
+			fmt.Fprintf(&b, "  %-14s   %2d %-12s %s\n", "", e.Count, e.Outcome, wrap(e.Reason, 56, strings.Repeat(" ", 35)))
+		}
 	}
 	return b.String()
 }
@@ -401,6 +542,8 @@ func mark(outcome string) string {
 		return "equivalent"
 	case outcomeUnclassified:
 		return "survived?"
+	case outcomeCapped:
+		return "capped"
 	default:
 		return "ERROR"
 	}

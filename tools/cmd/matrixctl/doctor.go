@@ -101,7 +101,14 @@ func reportRungs(cs []check) {
 		{"R3 model check", "java", "TLC over twitter.tla + the S_obs link check"},
 		{"R4 proof / Rust", "verus", "cargo-verus over the five verify-enabled crates"},
 		{"R4 proof / Go", "gobra jar", "java -Xss128m -jar gobra.jar"},
-		{"R4 bounded / JVM", "jbmc", "JBMC over Kotlin and Java bytecode"},
+		// Both JVM corners. The Java corner had the same checker available and
+		// the same F014 wall from the start; what it lacked until F034 was an
+		// obligation set for the rung to run, and naming it here before then
+		// would have reported a rung that did not exist as runnable. It has
+		// one now, and its partition is the same 7/8 measured rather than
+		// assumed.
+		{"R4 bounded / Kotlin", "jbmc", "jbmc verify -impl kotlin: 7 decidable obligations, 8 blocked by F014"},
+		{"R4 bounded / Java", "jbmc", "jbmc verify -impl java: 7 decidable obligations, 8 blocked by F014 (F034)"},
 		{"R5 refinement", "gobra jar", "31 of 42 discharged clauses are Gobra-backed"},
 	}
 	for _, r := range rows {

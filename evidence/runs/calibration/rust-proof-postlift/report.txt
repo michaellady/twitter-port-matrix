@@ -1,0 +1,189 @@
+CALIBRATION -- per-rung mutation kill table
+==============================================================================
+corners   rust
+rungs     R4
+R1        20 traces x 200 steps, seed 1
+R2        6 rounds x 40 setup requests, seed 1
+probe     any (4 traces x 120 steps, plus the corpus and each mutant's witness)
+window    2026-09-02T21:36:44Z .. 2026-09-02T22:12:48Z
+
+==============================================================================
+KILL TABLE
+==============================================================================
+rung             live  killed  survived  unreached  equiv  killed/reached     killed/live     wall
+R4 proof           18       5         9          4      0      5/14 = 36%      5/18 = 28%    1942s
+
+  live       mutants that change observable behaviour. Equivalent ones are excluded
+             from every denominator: no rung can kill them, so counting them would
+             understate every rung for a reason that is not about the rung.
+  survived   the rung's own inputs DO elicit the difference and it passed anyway.
+             A gap in the rung.
+  unreached  live, but nothing in this rung's input source elicits the difference.
+             A gap in the inputs. F009 is the worked example. For a proof rung the
+             input source is the contract: unreached means the verifier reads none
+             of the files the mutant edits.
+  capped     the corner has no verifier for this rung. Not a measurement; shown
+             per mutant and per corner, in no denominator.
+  killed/reached  the rung's ORACLE. reached = live - unreached = killed +
+                  survived. Every rate is printed as its own fraction because a
+                  percentage travels and its denominator does not: 100% over two
+                  reached cells and 100% over eighteen are the same string and not
+                  the same claim (F008).
+  killed/live     the rung AS CONFIGURED, inputs included.
+  n/a             the denominator is zero -- nothing was reached, so there is no
+                  rate. Printed rather than shown as 0%, which is the rate of a
+                  rung that saw everything and killed nothing.
+
+==============================================================================
+DENOMINATORS -- what each rate is a percentage of
+==============================================================================
+
+  R4 proof       killed/reached 5/14 = 36%   killed/live 5/18 = 28%
+                 18 cell(s) measured, 14 in the killed/reached denominator, 4 excluded
+                    4 unreached    live, but the verifier reads none of the files the
+                                   mutant edits, so no obligation could have covered it
+                                   (F022)
+
+==============================================================================
+COST -- and which cost it is
+==============================================================================
+Every rung relaunches the implementation: R0 once for the whole corpus, R1 once
+per trace, R2 once per property-round. A launch is a warm build check plus a
+process start plus a health wait, and that price differs by language. So raw
+seconds mix what the RUNG costs with what the LANGUAGE costs. Both are below.
+
+  corner   floor/launch of which build  samples           spread
+  rust            94 ms          72 ms        3       93-94 ms
+
+  corner   rung            launches wall killed  wall clean  tool clean
+  rust     R4 proof               -     104.7s     109.1s          -
+
+  wall killed  mean wall for a mutant this rung caught. NOT comparable with the
+               clean column, and not reliably smaller either. R1 stops at its
+               first mismatch -- then shrinks, and every shrink attempt is
+               another server launch, so at low trace counts a kill can cost
+               several times a clean pass. The launch count of a kill depends
+               on the defect, so it is not corrected and no tool figure is
+               derived from it.
+  wall clean   mean wall for a full pass -- the worst case, and what a sweep of
+               a correct implementation actually costs.
+  tool clean   wall clean minus launches x measured floor. The rung's own cost
+               with process startup removed. Reported only where the launch
+               count is known from the configuration -- never inferred.
+  *            the correction came out at or below zero. Not an error and not
+               hidden: it means this rung's own work costs no more than the
+               servers it launches, so at this configuration the rung IS process
+               startup. Compare rungs by their launch counts, not their seconds.
+  Mutant setup (materialise + warm the build cache) is charged to no rung; see
+  the setups block in results.json.
+
+==============================================================================
+PER MUTANT
+==============================================================================
+mutant                             R4         
+rust/id-first-is-two               SURVIVED   
+rust/id-burned-on-reject           SURVIVED   
+rust/self-follow-guard-dropped     kill       
+rust/follow-precedence-flipped     SURVIVED   
+rust/timeline-scan-reversed        SURVIVED   
+rust/timeline-tiebreak-by-id-asc   SURVIVED   
+rust/follow-toggles                kill       
+rust/unfollow-rejects-missing-edge SURVIVED   
+rust/orphan-author-accepted        kill       
+rust/created-at-frozen             SURVIVED   
+rust/tick-advances-by-two          kill       
+rust/tick-goes-backwards           kill       
+rust/next-cursor-always-emitted    unreached  
+rust/next-cursor-is-first-id       unreached  
+rust/cursor-inclusive              SURVIVED   
+rust/limit-off-by-one              SURVIVED   
+rust/unknown-json-fields-accepted  unreached  
+rust/repeated-query-param-accepted unreached  
+
+==============================================================================
+REACHABILITY -- why each survivor survived
+==============================================================================
+  rust/id-first-is-two           live
+      corpus     differs at request 0
+      seed=1     differs at request 0
+      seed=2     differs at request 0
+      seed=3     differs at request 0
+      seed=4     differs at request 0
+  rust/id-burned-on-reject       live
+      witness    differs at request 2
+      corpus     differs at request 10
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 78
+      seed=3     differs at request 48
+      seed=4     differs at request 31
+  rust/follow-precedence-flipped live
+      corpus     differs at request 12
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+  rust/timeline-scan-reversed    live
+      corpus     differs at request 25
+      seed=1     differs at request 11
+      seed=2     differs at request 25
+      seed=3     differs at request 5
+      seed=4     differs at request 38
+  rust/timeline-tiebreak-by-id-asc live
+      corpus     differs at request 25
+      seed=1     differs at request 11
+      seed=2     differs at request 51
+      seed=3     differs at request 5
+      seed=4     differs at request 117
+  rust/unfollow-rejects-missing-edge live
+      corpus     differs at request 34
+      seed=1     differs at request 6
+      seed=2     differs at request 30
+      seed=3     differs at request 4
+      seed=4     differs at request 16
+  rust/created-at-frozen         live
+      corpus     differs at request 19
+      seed=1     differs at request 20
+      seed=2     differs at request 16
+      seed=3     differs at request 26
+      seed=4     differs at request 8
+  rust/next-cursor-always-emitted live
+      corpus     differs at request 20
+      seed=1     differs at request 11
+      seed=2     differs at request 14
+      seed=3     differs at request 5
+      seed=4     differs at request 38
+  rust/next-cursor-is-first-id   live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+  rust/cursor-inclusive          live
+      corpus     differs at request 44
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 22
+      seed=3     differs at request 17
+      seed=4     differs at request 110
+  rust/limit-off-by-one          live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+  rust/unknown-json-fields-accepted live
+      corpus     differs at request 7
+      seed=1     differs at request 92
+      seed=2     differs at request 86
+      seed=3     differs at request 76
+      seed=4     differs at request 94
+  rust/repeated-query-param-accepted live
+      corpus     differs at request 51
+      seed=1     differs at request 66
+      seed=2     no difference in 120 requests
+      seed=3     differs at request 10
+      seed=4     no difference in 120 requests
+
+==============================================================================
+READ WITH CARE
+==============================================================================
+  nothing flagged.

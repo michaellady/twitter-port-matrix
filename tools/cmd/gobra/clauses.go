@@ -22,6 +22,88 @@ type clause struct {
 	Kind      clauseKind `json:"Kind"`
 	Canary    string     `json:"Canary"`    // the expression the canary substitutes
 	CanaryWhy string     `json:"CanaryWhy"` // what verifying the canary would mean
+	// CanaryEquivalence is set when the canary above was written by hand
+	// rather than derived, and states why the hand-written form asks the same
+	// question as the derived one. Empty for a derived canary.
+	CanaryEquivalence string `json:"CanaryEquivalence,omitempty"`
+}
+
+// handCanary replaces one clause's derived negation with a logically
+// equivalent one that the solver can actually decide.
+//
+// This is not a licence to weaken a canary, and the Equivalence field is what
+// keeps it honest: the hand-written form must ask the SAME question, and the
+// entry has to say why in a sentence a reader can check. What it buys is
+// spelling. On (*MemStore).HomeTimeline the derived negation of an F1-shaped
+// clause is `forall a int :: !(0 <= a && a < len(out))`, which Gobra does not
+// decide in 12 minutes; `len(out) == 0` says exactly the same thing about
+// exactly the same state, and it decides. See F029.
+type handCanary struct {
+	File, Member, Text string // identifies the clause, same key the sweep uses
+	Canary             string
+	Why                string
+	Equivalence        string
+}
+
+// handCanaries is deliberately tiny and deliberately explicit. Every entry is
+// a clause the derived spelling left UNAUDITED, and every entry names the
+// arithmetic that makes the two forms the same assertion.
+var handCanaries = []handCanary{{
+	File:   "internal/store/memstore.go",
+	Member: "(*MemStore).HomeTimeline",
+	Text: "forall a int :: 0 <= a && a < len(out) ==> (out[a].Author == user || " +
+		"(dom.Follow{From: user, To: out[a].Author} in s.AbsFollows()))",
+	Canary: "len(out) == 0",
+	Why:    "the page is always empty -- the clause says nothing about any element",
+	Equivalence: "the derived canary is `forall a int :: !(0 <= a && a < len(out))`, " +
+		"which holds exactly when no index is in range, i.e. len(out) <= 0; a slice " +
+		"length is non-negative, so that is len(out) == 0",
+}, {
+	File:   "internal/store/memstore.go",
+	Member: "(*MemStore).HomeTimeline",
+	Text: "forall a int :: 0 <= a && a < len(out) ==> exists i int :: 0 <= i && " +
+		"i < s.AbsLogLen() && s.AbsLogAt(i) == out[a]",
+	Canary: "len(out) == 0",
+	Why:    "the page is always empty -- the clause says nothing about any element",
+	Equivalence: "the derived canary is `forall a int :: !(0 <= a && a < len(out))`, " +
+		"which holds exactly when no index is in range, i.e. len(out) <= 0; a slice " +
+		"length is non-negative, so that is len(out) == 0",
+}, {
+	File:   "internal/store/memstore.go",
+	Member: "(*MemStore).HomeTimeline",
+	Text: "forall a, b int :: 0 <= a && a < b && b < len(out) ==> " +
+		"(out[a].CreatedAt > out[b].CreatedAt || (out[a].CreatedAt == out[b].CreatedAt && " +
+		"out[a].ID > out[b].ID))",
+	Canary: "len(out) <= 1",
+	Why:    "the page never holds two entries -- the ordering clause relates nothing",
+	Equivalence: "the derived canary is `forall a, b int :: !(0 <= a && a < b && b < len(out))`, " +
+		"which holds exactly when no pair of distinct indices is in range, i.e. len(out) <= 1",
+}}
+
+// applyHandCanaries swaps in the hand-written negations. It reports an entry
+// that matched nothing, because a hand canary that has silently stopped
+// applying -- a clause reworded, a method renamed -- leaves the sweep quietly
+// back on the spelling that does not terminate.
+func applyHandCanaries(all []clause) error {
+	for _, h := range handCanaries {
+		hits := 0
+		for i := range all {
+			c := &all[i]
+			if c.File != h.File || c.Member != h.Member || c.Text != h.Text {
+				continue
+			}
+			if c.Kind != kindFunctional {
+				return fmt.Errorf("hand canary for %s %s targets a %s clause", h.File, h.Member, c.Kind)
+			}
+			c.Canary, c.CanaryWhy, c.CanaryEquivalence = h.Canary, h.Why, h.Equivalence
+			hits++
+		}
+		if hits != 1 {
+			return fmt.Errorf("hand canary for %s %s matched %d clauses, want exactly 1 "+
+				"(the clause it names has been reworded or removed)", h.File, h.Member, hits)
+		}
+	}
+	return nil
 }
 
 type clauseKind string
@@ -316,6 +398,9 @@ func allClauses(implDir string) ([]clause, error) {
 			return nil, err
 		}
 		all = append(all, cs...)
+	}
+	if err := applyHandCanaries(all); err != nil {
+		return nil, err
 	}
 	return all, nil
 }

@@ -10,14 +10,17 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/michaellady/twitter-port-matrix/tools/internal/mutants"
 )
 
 // A rung is one verification layer, described as data rather than as a branch.
 //
-// Adding R4 (deductive proof) and R5 (refinement) has to be an entry here, not
-// a new code path through the sweep, or the two rungs the repository exists to
-// reach would arrive with their own bespoke accounting and stop being
-// comparable with the three that already work.
+// R4 (deductive proof) is an entry here, not a new code path through the
+// sweep, so it arrives with the same accounting as the three empirical rungs
+// and stays comparable with them. R5 (refinement) will be another entry. Both
+// are per corner: a rung names the corners whose verifier it drives, and the
+// other corners get a "capped" cell rather than an error or a blank.
 type rung struct {
 	ID    string // "R0"
 	Label string // "corpus" -- the column heading
@@ -28,9 +31,36 @@ type rung struct {
 	// the rung. R0 replays a fixed corpus; R1 and R2 draw from tracegen. A
 	// mutant no corpus step distinguishes cannot be killed by R0 however good
 	// R0's oracle is.
-	Inputs string // "corpus" | "tracegen"
+	Inputs string // "corpus" | "tracegen" | "contract"
+
+	// Impls names the corners this rung exists for; nil means every corner.
+	// A deductive rung is per verifier, and a corner without one gets a
+	// "capped" cell rather than an error or a blank -- the cap is a result.
+	Impls []string
+
+	// Covers, when set, says whether the verifier READS any file the mutant
+	// edits. It is the proof rung's reachability: a proof has no input
+	// distribution to sample, so the analogue of "the corpus never elicits
+	// it" is "the verifier never sees it" -- internal/httpshim is trusted
+	// transport and no obligation is discharged over it. Without this a
+	// survivor in the shim would be scored against the contract, which never
+	// had a chance at it (F008's coverage denominator).
+	Covers func(m mutants.Mutant) bool
 
 	Args func(cfg Config, implName, regPath string) []string
+
+	// Drivers holds the per-corner overrides for Tool, Args and Covers.
+	//
+	// One rung, several verifiers: R4 is Gobra on the Go corner and JBMC on
+	// the JVM corners, and they are the SAME rung -- a bounded proof and a
+	// deductive proof both answer "can this tree still be verified against its
+	// contract", and splitting them into two rows would put the same question
+	// in two columns and make the corners incomparable. What differs is the
+	// binary, its argv and what it reads, so those three are what a corner may
+	// override; the verdict sentence (Pass/Fail) is deliberately NOT
+	// overridable, because a rung whose corners answer in different words is a
+	// rung whose column heading means two things.
+	Drivers map[string]driver
 
 	// Pass and Fail are the tool's OWN verdict sentences. The outcome is read
 	// from these, never from the exit code alone -- GOAL.md standing rule 1.
@@ -100,6 +130,219 @@ var allRungs = []rung{
 			return n * cfg.R2Rounds, true
 		},
 	},
+	{
+		// R4 on the Go corner is Gobra over the verified core. The rung tool
+		// is `gobra verify`: it lays the mutant tree out GOPATH-style, runs
+		// the jar with a --packageTimeout, reads Gobra's own
+		// "Gobra has found N error(s)" line, and ends with one R4 verdict
+		// sentence. A run that exhausts its budget prints "R4 UNDECIDED"
+		// and no verdict, which this tool records as an error cell -- a
+		// proof the solver did not finish is a missing measurement, never
+		// a survival (see gobraTimedOut in tools/cmd/gobra/run.go).
+		//
+		// This rung's verdict on a mutant is only as good as the contract
+		// it discharges. Whether the clauses are refutable at all is the
+		// `gobra canary` / `gobra reach` audit (F013, F021), which is
+		// prior to this table, not part of it.
+		// On the Kotlin corner the same rung is JBMC over the compiled
+		// bytecode, and it is NOT the same instrument: it is bounded, so a
+		// PASS means "no counterexample within the unwinding bound" rather
+		// than "no counterexample". It is also the only corner whose rung has
+		// to exclude obligations from its own denominator -- JBMC 6.11.0
+		// cannot compare two strings (F014), which blocks 8 of the 15 Kotlin
+		// obligations, and an obligation the tool cannot decide must not
+		// become a kill (a spurious FAILURE) or a survival (a spurious
+		// SUCCESS). `jbmc verify` does that accounting and quotes its own
+		// counts in the verdict sentence.
+		// The Java corner joined this rung when impls/java got an obligation
+		// set. Until then its cell was capped -- not because no verifier
+		// existed for it (JBMC reads its bytecode, and F014's own repros were
+		// written in Java) but because there was nothing for a rung to run,
+		// and a row over an empty denominator is worse than a capped cell. It
+		// is the SAME driver value as Kotlin's: one tool, one obligation set
+		// per corner, resolved by the corner name in the argv.
+		ID: "R4", Label: "proof", Tool: "gobra", Inputs: "contract",
+		Impls:  []string{"go", "java", "kotlin", "rust"},
+		Covers: gobraReads,
+		Drivers: map[string]driver{
+			"java":   jbmcJavaR4,
+			"kotlin": jbmcKotlinR4,
+			"rust":   verusRustR4,
+		},
+		Args: func(cfg Config, implName, regPath string) []string {
+			// Gobra's own timeout lands a minute before calibrate's, so an
+			// undecidable tree is reported in Gobra's words (UNDECIDED)
+			// rather than as a killed subprocess.
+			b := cfg.rungTimeout() - time.Minute
+			if b < time.Minute {
+				b = time.Minute
+			}
+			return []string{"verify", "-impl=" + implName, "-registry=" + regPath, "-budget=" + b.String()}
+		},
+		Pass: "R4 PASSED", Fail: "R4 FAILED",
+		// No server is launched: the tree is verified, not run. Zero is a
+		// known count, so the wall column is the rung's whole cost.
+		Launches: func(Config, string) (int, bool) { return 0, true },
+	},
+	{
+		// R5 is the same Gobra run asking a narrower question: is a
+		// REFINEMENT clause what broke? `gobra r5verify` attributes each
+		// failing obligation to a clause by line -- Gobra reports a failing
+		// postcondition at the postcondition's own line -- and joins it
+		// against spec/refinement/clause-sites.json.
+		//
+		// R5 is deliberately NOT credited with every R4 kill. A mutant that
+		// breaks some functional postcondition is killed by the proof; only
+		// one that breaks a clause carrying an S_obs refinement obligation is
+		// killed by the refinement layer. Crediting R5 with R4's kills would
+		// make the two rows identical by construction, which is the opposite
+		// of the per-judge attribution this table is for: a mutant both rungs
+		// notice gets credited to both, and a mutant only one notices
+		// separates them.
+		//
+		// The tool prints R5 UNDECIDED, and no verdict, in exactly ONE case:
+		// an error it cannot place in any member of any contract file, so it
+		// is not known whether a refinement obligation is among the failures.
+		// calibrate records that as an error cell.
+		//
+		// This paragraph previously named a second undecided case -- "a
+		// non-R5 clause failing on a member that also carries R5 sites" --
+		// and stated the first over clause spans rather than member spans.
+		// Neither has been the tool's behaviour since its first run: both are
+		// attributed to the member and counted as a KILL, which r5rung.go's
+		// own header explains at length and TestAttribute pins. The comment
+		// was describing a version that no longer existed, in the file that
+		// tells calibrate what the rung means. Corrected here rather than
+		// quietly rewritten, because the failure mode -- prose and code
+		// stating different facts with nothing comparing them -- is the
+		// finding: evidence/findings/F044, and F020 before it.
+		//
+		// On the Kotlin corner the same rung is JBMC over the refinement
+		// clause obligations in verification/Refinement.kt. It is NOT the
+		// same instrument: it is bounded, its clauses are ground instances
+		// rather than universally quantified ones, and two of its seven
+		// clauses are undecidable by the F014 String defect and so are in
+		// neither the numerator nor the denominator. It answers the same
+		// question in the same words, and `jbmc r5verify` quotes its own
+		// counts in the verdict sentence. See rung_r5_jbmc.go.
+		ID: "R5", Label: "refinement", Tool: "gobra", Inputs: "contract",
+		Impls:  []string{"go", "kotlin"},
+		Covers: r5Reads,
+		Drivers: map[string]driver{
+			"kotlin": jbmcKotlinR5,
+		},
+		Args: func(cfg Config, implName, regPath string) []string {
+			b := cfg.rungTimeout() - time.Minute
+			if b < time.Minute {
+				b = time.Minute
+			}
+			return []string{"r5verify", "-impl=" + implName, "-registry=" + regPath, "-budget=" + b.String()}
+		},
+		Pass: "R5 PASSED", Fail: "R5 FAILED",
+		Launches: func(Config, string) (int, bool) { return 0, true },
+	},
+}
+
+// gobraVerified is Gobra's verification matrix, exactly as TCB.md records it
+// and as verifiedPackages in tools/cmd/gobra/run.go drives it. internal/httpshim
+// is deliberately absent: it is trusted transport.
+var gobraVerified = []string{
+	"internal/clock/",
+	"internal/ids/",
+	"internal/dom/",
+	"internal/store/",
+	"internal/service/",
+}
+
+// gobraReads reports whether any edit of the mutant lands in a package Gobra
+// verifies. One covered edit is enough: the proof can notice that one.
+func gobraReads(m mutants.Mutant) bool {
+	return editsAny(m, gobraVerified)
+}
+
+// r5Files are the files carrying at least one R5 clause site. R5's reach is
+// narrower than R4's -- internal/dom carries obligations but no refinement
+// clause -- so a mutant confined to a file in the verified core that no
+// refinement clause sits on is unreached by R5 while being fair game for R4.
+//
+// This list is derived from spec/refinement/clause-sites.json and would go
+// stale silently if a site were added to a new file, so TestR5FilesMatchSites
+// re-derives it from that file and fails when the two disagree.
+var r5Files = []string{
+	"internal/clock/clock.go",
+	"internal/ids/ids.go",
+	"internal/service/service.go",
+	"internal/store/memstore.go",
+}
+
+func r5Reads(m mutants.Mutant) bool { return editsAny(m, r5Files) }
+
+func editsAny(m mutants.Mutant, prefixes []string) bool {
+	for _, e := range m.Edits {
+		for _, p := range prefixes {
+			if strings.HasPrefix(e.File, p) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// A driver is one corner's verifier for a rung that has more than one.
+type driver struct {
+	Tool   string
+	Args   func(cfg Config, implName, regPath string) []string
+	Covers func(m mutants.Mutant) bool
+}
+
+// toolFor, argsFor and coversFor resolve the corner's driver, falling back to
+// the rung's own fields for a corner with no override. A rung with no Drivers
+// at all behaves exactly as it did before they existed.
+func (r rung) toolFor(impl string) string {
+	if d, ok := r.Drivers[impl]; ok && d.Tool != "" {
+		return d.Tool
+	}
+	return r.Tool
+}
+
+func (r rung) argsFor(impl string) func(Config, string, string) []string {
+	if d, ok := r.Drivers[impl]; ok && d.Args != nil {
+		return d.Args
+	}
+	return r.Args
+}
+
+func (r rung) coversFor(impl string) func(mutants.Mutant) bool {
+	if d, ok := r.Drivers[impl]; ok && d.Covers != nil {
+		return d.Covers
+	}
+	return r.Covers
+}
+
+// applies reports whether this rung exists for the corner at all.
+func (r rung) applies(impl string) bool {
+	if len(r.Impls) == 0 {
+		return true
+	}
+	for _, i := range r.Impls {
+		if i == impl {
+			return true
+		}
+	}
+	return false
+}
+
+// splitRungs partitions the selected rungs into those that can run on the
+// corner and those the corner caps.
+func splitRungs(impl string, rungs []rung) (runnable, capped []rung) {
+	for _, r := range rungs {
+		if r.applies(impl) {
+			runnable = append(runnable, r)
+		} else {
+			capped = append(capped, r)
+		}
+	}
+	return runnable, capped
 }
 
 var reProperties = regexp.MustCompile(`properties=(\d+)`)
@@ -141,7 +384,7 @@ type toolset struct {
 	own  bool
 }
 
-var neededTools = []string{"replay", "diffrun", "proptest", "mutate"}
+var neededTools = []string{"replay", "diffrun", "proptest", "mutate", "gobra", "jbmc", "verus"}
 
 func buildTools(root, binDir string) (*toolset, error) {
 	ts := &toolset{bins: map[string]string{}}
@@ -241,25 +484,33 @@ func (r rung) verdict(tr *toolRun) (killed bool, err error) {
 	pass := countLinesWithPrefix(tr.Stdout, r.Pass)
 	fail := countLinesWithPrefix(tr.Stdout, r.Fail)
 
+	// The tool that actually ran, not the rung's default. A rung with several
+	// per-corner drivers would otherwise blame Gobra for something JBMC said,
+	// and the error text is the only record of which verifier was asked.
+	tool := r.Tool
+	if len(tr.Argv) > 0 {
+		tool = tr.Argv[0]
+	}
+
 	switch {
 	case pass == 1 && fail == 0:
 		if tr.ExitCode != 0 {
 			return false, fmt.Errorf("%s printed %q but exited %d; the tool contradicts itself, so this cell has no answer:\n%s",
-				r.Tool, r.Pass, tr.ExitCode, tail(tr.Stdout, 12))
+				tool, r.Pass, tr.ExitCode, tail(tr.Stdout, 12))
 		}
 		return false, nil
 	case fail == 1 && pass == 0:
 		if tr.ExitCode == 0 {
 			return false, fmt.Errorf("%s printed %q but exited 0; the tool contradicts itself, so this cell has no answer:\n%s",
-				r.Tool, r.Fail, tail(tr.Stdout, 12))
+				tool, r.Fail, tail(tr.Stdout, 12))
 		}
 		return true, nil
 	case pass == 0 && fail == 0:
 		return false, fmt.Errorf("%s produced no %s verdict (exit %d). Nothing was measured:\n%s",
-			r.Tool, r.ID, tr.ExitCode, tail(tr.Stdout, 12))
+			tool, r.ID, tr.ExitCode, tail(tr.Stdout, 12))
 	default:
 		return false, fmt.Errorf("%s produced %d pass and %d fail verdicts for %s; ambiguous:\n%s",
-			r.Tool, pass, fail, r.ID, tail(tr.Stdout, 12))
+			tool, pass, fail, r.ID, tail(tr.Stdout, 12))
 	}
 }
 
@@ -293,4 +544,62 @@ func asExitError(err error, out **exec.ExitError) bool {
 		*out = ee
 	}
 	return ok
+}
+
+// verusVerified is Verus's verification matrix: the crates whose Cargo.toml
+// carries [package.metadata.verus] verify = true, exactly as TCB.md records it
+// and as `verus crates` re-derives it from the tree. crates/server is
+// deliberately absent -- it is the trusted transport shim, the Rust analogue of
+// Go's internal/httpshim (F012).
+//
+// TestVerusCratesMatchTheTree re-derives this list from impls/rust so it
+// cannot go stale silently.
+var verusVerified = []string{
+	"crates/clock/",
+	"crates/ids/",
+	"crates/domain/",
+	"crates/store/",
+	"crates/service/",
+}
+
+// verusReads reports whether any edit of the mutant lands in a crate Verus
+// verifies.
+//
+// This is the same file-level coverage test gobraReads applies, and on this
+// corner it is a much WEAKER claim than it sounds. Verus reading the file is
+// not the same as an obligation covering the edited function: per F012 the
+// obligations are on hand-written twins in the same file, so a mutant can edit
+// production code inside a verify-enabled crate, be plainly covered by this
+// predicate, and still be invisible to every contract in it. The predicate
+// therefore bounds the row from above only; F024 records how much smaller the
+// real reach is.
+func verusReads(m mutants.Mutant) bool {
+	return editsAny(m, verusVerified)
+}
+
+// verusRustR4 is the Rust corner's R4 driver. The rung ID is the question --
+// "did a proof notice?" -- and the driver is who answers it: Gobra on go,
+// Verus on rust, JBMC on kotlin.
+//
+// A kill here does NOT mean what a kill in the go column means, and the
+// difference is structural rather than statistical. Only crates/domain states
+// its clauses on the SHIPPED items inside `verus! { ... }`; clock, ids, store
+// and service put every obligation in a `#[cfg(verus_only)] mod verus_proof`
+// of hand-written twins over external_body shims (F012, F016). A mutant of
+// production code in those four leaves the twin untouched and verifying. F027
+// measures the consequence: 1 of 18 mutants killed, against the go column's
+// ceiling of 14 of 18.
+var verusRustR4 = driver{
+	Tool:   "verus",
+	Covers: verusReads,
+	Args: func(cfg Config, implName, regPath string) []string {
+		// Verus's own budget lands a minute before calibrate's, so an
+		// undecidable tree is reported in the tool's words (UNDECIDED)
+		// rather than as a killed subprocess.
+		b := cfg.rungTimeout() - time.Minute
+		if b < time.Minute {
+			b = time.Minute
+		}
+		return []string{"verify", "-impl=" + implName, "-registry=" + regPath, "-budget=" + b.String()}
+	},
 }

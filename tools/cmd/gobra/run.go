@@ -20,6 +20,25 @@ import (
 // not decide is not a claim about the code.
 var errTimeout = errors.New("gobra exceeded its time budget")
 
+// gobraExtraArgs are passed through to every Gobra invocation. They exist so a
+// solver-side lever -- `--parallelizeBranches` is the one F021 named as
+// untried -- can be measured against the same sweep the default settings
+// produced, rather than by hand outside the tool. Set by -gobra-arg, which is
+// repeatable; recorded in the run log so a result can never be read without
+// the settings that produced it.
+var gobraExtraArgs []string
+
+// extraArgsFlag lets a subcommand accept -gobra-arg without every subcommand
+// having to know what the values mean.
+type extraArgsFlag struct{}
+
+func (extraArgsFlag) String() string { return strings.Join(gobraExtraArgs, " ") }
+
+func (extraArgsFlag) Set(v string) error {
+	gobraExtraArgs = append(gobraExtraArgs, v)
+	return nil
+}
+
 // modulePath is the Go module the verified packages live in. Gobra resolves
 // an import path by looking under the directories given to -I, GOPATH-style,
 // so the workspace below is laid out as <root>/<modulePath> rather than being
@@ -107,6 +126,7 @@ func runGobra(w *workspace, pkgs []string, statsDir string, budget time.Duration
 	args := []string{"-Xss128m", "-jar", gobraJar(), "-p"}
 	args = append(args, pkgs...)
 	args = append(args, "-I", "stubs", w.root, "--projectRoot", ".")
+	args = append(args, gobraExtraArgs...)
 	if statsDir != "" {
 		if err := os.MkdirAll(statsDir, 0o755); err != nil {
 			return nil, err
@@ -266,15 +286,49 @@ func countMembers(path string) (*memberCounts, error) {
 // that reads the error count without reading these lines first scores a
 // timeout as a pass. That is the F013 false green with a different cause,
 // and it is why this check runs before the verdict is trusted.
+// terminationLines returns the lines of Gobra's output that say, in Gobra's own
+// words, that it stopped rather than finished.
+//
+// A timeout is a result and has to be quotable like any other. Recording only
+// "no verdict within 12m0s" leaves the tool's word for it and nothing of the
+// verifier's, which is the wrong way round under standing rule 1 -- and the
+// wording is the whole reason this class of run is not read as a pass, since
+// the line above it says `0 error(s)`.
+func terminationLines(raw string) []string {
+	var out []string
+	for _, ln := range strings.Split(raw, "\n") {
+		for _, phrase := range terminationPhrases {
+			if strings.Contains(ln, phrase) {
+				out = append(out, strings.TrimSpace(ln))
+				break
+			}
+		}
+	}
+	// The `0 error(s)` line is what makes the others load-bearing; keep it
+	// next to them so a quoted timeout carries its own trap.
+	for _, ln := range strings.Split(raw, "\n") {
+		if reTotal.MatchString(ln) {
+			out = append(out, strings.TrimSpace(ln))
+		}
+	}
+	return out
+}
+
+// terminationPhrases are Gobra's exact phrasings for a run it stopped. A bare
+// "timeout" would also match the "packageTimeoutDuration" frame in the stack
+// trace Gobra prints when the argument is malformed, and score a crashed run as
+// a timed-out one.
+var terminationPhrases = []string{
+	"got terminated after",
+	"did not terminate",
+	"members timed out",
+}
+
 func gobraTimedOut(raw string) bool {
 	// Exact phrasings only. A bare "timeout" would also match the
 	// "packageTimeoutDuration" frame in the stack trace Gobra prints when the
 	// argument is malformed, and score a crashed run as a timed-out one.
-	for _, phrase := range []string{
-		"got terminated after",
-		"did not terminate",
-		"members timed out",
-	} {
+	for _, phrase := range terminationPhrases {
 		if strings.Contains(raw, phrase) {
 			return true
 		}

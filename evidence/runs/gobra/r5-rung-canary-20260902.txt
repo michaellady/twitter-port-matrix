@@ -1,0 +1,18 @@
+Wed Sep  2 16:48:46 UTC 2026
+### A. an obligation fails in dom.ValidHandle -- a member NO refinement clause sits on.
+###    R4 must FAIL (the package does not verify) and R5 must PASS (nothing R5 claims broke).
+injected `// @ ensures false` above dom.go:199  func ValidHandle(h string) (result bool) {
+R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [1m29.6s]
+exit status 1
+R5 sites: 30 of 42 clause(s) in clause-sites.json carry a Gobra postcondition; 47 site(s) located in this tree
+Gobra has found 1 error(s)   [1m24.7s]
+  internal/dom/dom.go:199 ValidHandle            not an R5 clause: false
+R5 PASSED: 1 failing obligation(s), none in a member carrying a refinement clause   [1m24.7s]
+
+### B. the same injection on clock.Tick, which DOES carry R5 clause 42. R5 must FAIL.
+injected `// @ ensures false` above clock.go:69  func (l *Logical) Tick() {
+Gobra has found 1 error(s)   [1m36.6s]
+  internal/clock/clock.go:69 (*Logical).Tick     not an R5 clause, but on a member carrying R5 clause 36: false
+R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (0 on the clause itself, 1 elsewhere in its member)   [1m36.6s]
+exit status 1
+Wed Sep  2 16:53:17 UTC 2026

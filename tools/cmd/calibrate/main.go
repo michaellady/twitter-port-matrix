@@ -101,7 +101,7 @@ func main() {
 		implsFlag = flag.String("impls", "go,rust", "corners to sweep, comma-separated")
 		idsFlag   = flag.String("ids", "", "restrict to these mutant ids, comma-separated")
 		family    = flag.String("family", "", "restrict to one mutant family")
-		rungsFlag = flag.String("rungs", "R0,R1,R2", "rungs to run, comma-separated; R0,R1 is a valid partial sweep")
+		rungsFlag = flag.String("rungs", "R0,R1,R2", "rungs to run, comma-separated; R0,R1 is a valid partial sweep. R4 is opt-in and per corner: Gobra on go, Verus on rust, JBMC on kotlin (~1-2 min per mutant); R5 is Gobra on go")
 		out       = flag.String("out", "", "result directory (default evidence/runs/calibration/<stamp>)")
 		resume    = flag.Bool("resume", false, "reuse the journal already in -out and skip cells it records")
 
@@ -199,7 +199,11 @@ func main() {
 	}
 	defer jr.close()
 
-	fmt.Printf("calibrate: %d mutant(s) x %d rung(s) = %d cells\n", len(sel), len(selected), len(sel)*len(selected))
+	// One entry per rung ID: a rung dispatches to a per-corner driver
+	// (Gobra on go, Verus on rust, JBMC on kotlin), so the table already has
+	// one row and one column per ID and needs no collapsing step.
+	reported := selected
+	fmt.Printf("calibrate: %d mutant(s) x %d rung(s) = %d cells\n", len(sel), len(reported), len(sel)*len(reported))
 	fmt.Printf("           rungs=%s  out=%s  resume=%v\n", strings.Join(cfg.Rungs, ","), outDir, *resume)
 	if *resume {
 		fmt.Printf("           journal holds %d reusable cell(s) and %d probe(s)\n", len(jr.cells), len(jr.probes))
@@ -251,10 +255,10 @@ func main() {
 	}
 
 	run.FinishedAt = time.Now().UTC().Format(time.RFC3339)
-	run.Summary = summarize(run, selected)
-	run.Warnings = warnings(run, selected)
+	run.Summary = summarize(run, reported)
+	run.Warnings = warnings(run, reported)
 
-	body := renderReport(run, selected)
+	body := renderReport(run, reported)
 	fmt.Print("\n" + body)
 
 	if err := os.WriteFile(filepath.Join(outDir, "report.txt"), []byte(body), 0o644); err != nil {

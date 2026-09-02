@@ -1,0 +1,1477 @@
+{
+  "note": "THE SECOND CATALOGUE -- mutants whose defect ideas come from somewhere other than this project's own specification. GOAL.md queue item 4. tools/cmd/mutate/mutants.json says of itself that \"each family is drawn from a defect this project has actually seen (the R0 baseline, findings F001-F006, or a decision in spec/s_obs/DECISIONS.md)\"; the rungs are built from the same contract, so every kill rate measured over that catalogue may be reporting how well the rungs cover their own specification rather than how well they catch defects. This file is the control. Every mutant declares a `source`, and the `sources` map below carries the argument for why defects drawn from that source are independent of spec/s_obs/ -- including one mutant where the argument FAILS and is recorded as failing. THIS FILE IS SEPARATE ON PURPOSE: the original catalogue's ids are shared across all four corners so the kill table can compare one defect port-to-port, and its denominators are quoted throughout evidence/. Nothing here disturbs them. Ten of the twelve defects are rendered in all four corners and keep a shared id; two are language idioms with no twin, and their ids say so.",
+  "families": {
+    "boundary": "boundary shift: a relational operator at an inclusive/exclusive bound moves by one (ROR)",
+    "collection-bound": "off-by-one on the bound of a loop that walks a collection to its end",
+    "swapped-arguments": "two arguments of the same type exchanged at a call site",
+    "dropped-negation": "a `!` removed from a condition",
+    "wrong-error-branch": "a rejection path that reports the wrong reason",
+    "normalisation": "text normalised at one layer and not at another",
+    "pagination": "a keyset cursor that loses or repeats an item across the page boundary",
+    "encoding": "a length measured in the wrong unit (bytes vs code points vs UTF-16 code units)",
+    "language-idiom": "a slip that only exists in one language's semantics, with no twin in the others"
+  },
+  "sources": {
+    "mutation-operator-taxonomy": "The classical mutation-operator families -- relational-operator replacement, loop-bound off-by-one, argument swap, dropped negation, wrong error branch -- as they appear in the mutation-testing literature (DeMillo/Lipton/Sayward 1978; King & Offutt's Mothra operator set, 1991; Ammann & Offutt, Introduction to Software Testing). INDEPENDENCE ARGUMENT: the operator is defined over the SYNTAX of a program and its site is chosen by scanning for that syntax -- every relational operator whose operands are a collection length and a constant, every loop that walks a collection to its end, every call with two adjacent same-typed arguments. No clause of S_obs is consulted to pick either the operator or the site. This is the weakest form of independence in the catalogue and the argument is about the GENERATOR, not about the effect: any live mutant necessarily deviates from S_obs observably, because the corners are R0 byte-exact against it.",
+    "service-failure-mode": "Failure modes that real timeline, feed and social-graph services are known to have and that S_obs does not mention anywhere: keyset pagination that repeats or loses an item across a concurrent page boundary, identifier normalisation applied at validation but not at storage, length limits measured in the wrong text unit. INDEPENDENCE ARGUMENT: these are drawn from the operational failure vocabulary of production feed services, not from the contract. Two of the three concepts (normalisation, code-point vs byte length) have NO term in S_obs at all -- S_obs pins a byte length and an ASCII alphabet and simply never raises the question. Where the argument fails it is recorded on the mutant: text-length-in-code-points was anticipated by the Java and Kotlin corners' own comments and is marked NOT independent.",
+    "language-idiom": "Slips that exist only inside one language's semantics: Go's length-versus-capacity slice construction, the JVM's reference `==` on Strings. INDEPENDENCE ARGUMENT: these are properties of a language, not of this system, and could not be derived from any language-neutral specification -- S_obs is written in Go and says nothing about how a Java corner compares strings. They are also the clearest demonstration of requirement 4's constraint: an id here covers one or two corners and can never appear in a port-to-port row."
+  },
+  "mutants": [
+    {
+      "id": "handle-bound-off-by-one",
+      "impl": "go",
+      "family": "boundary",
+      "description": "ROR (relational-operator replacement) applied to the handle length bound: `> MAX_HANDLE_LEN` becomes `>= MAX_HANDLE_LEN`, so a handle of exactly 32 bytes is rejected as invalid_handle. The site was chosen by enumerating relational operators whose operands are a collection length and a constant, which is the ROR operator's own selection rule; nothing in S_obs points at it.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "internal/dom/dom.go",
+          "anchor": [
+            "\tif len(b) == 0 || len(b) > MaxHandleLen {"
+          ],
+          "replacement": [
+            "\tif len(b) == 0 || len(b) >= MaxHandleLen {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"abcdefghijabcdefghijabcdefghijab\"}"
+        }
+      ]
+    },
+    {
+      "id": "handle-bound-off-by-one",
+      "impl": "rust",
+      "family": "boundary",
+      "description": "ROR (relational-operator replacement) applied to the handle length bound: `> MAX_HANDLE_LEN` becomes `>= MAX_HANDLE_LEN`, so a handle of exactly 32 bytes is rejected as invalid_handle. The site was chosen by enumerating relational operators whose operands are a collection length and a constant, which is the ROR operator's own selection rule; nothing in S_obs points at it.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "crates/domain/src/lib.rs",
+          "anchor": [
+            "        if b.len() == 0 || b.len() > 32 {"
+          ],
+          "replacement": [
+            "        if b.len() == 0 || b.len() >= 32 {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"abcdefghijabcdefghijabcdefghijab\"}"
+        }
+      ]
+    },
+    {
+      "id": "handle-bound-off-by-one",
+      "impl": "java",
+      "family": "boundary",
+      "description": "ROR (relational-operator replacement) applied to the handle length bound: `> MAX_HANDLE_LEN` becomes `>= MAX_HANDLE_LEN`, so a handle of exactly 32 bytes is rejected as invalid_handle. The site was chosen by enumerating relational operators whose operands are a collection length and a constant, which is the ROR operator's own selection rule; nothing in S_obs points at it.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/dom/Dom.java",
+          "anchor": [
+            "        if (b.length == 0 || b.length > MAX_HANDLE_LEN) {"
+          ],
+          "replacement": [
+            "        if (b.length == 0 || b.length >= MAX_HANDLE_LEN) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"abcdefghijabcdefghijabcdefghijab\"}"
+        }
+      ]
+    },
+    {
+      "id": "handle-bound-off-by-one",
+      "impl": "kotlin",
+      "family": "boundary",
+      "description": "ROR (relational-operator replacement) applied to the handle length bound: `> MAX_HANDLE_LEN` becomes `>= MAX_HANDLE_LEN`, so a handle of exactly 32 bytes is rejected as invalid_handle. The site was chosen by enumerating relational operators whose operands are a collection length and a constant, which is the ROR operator's own selection rule; nothing in S_obs points at it.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/dom/Dom.kt",
+          "anchor": [
+            "    if (b.isEmpty() || b.size > MAX_HANDLE_LEN) {"
+          ],
+          "replacement": [
+            "    if (b.isEmpty() || b.size >= MAX_HANDLE_LEN) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"abcdefghijabcdefghijabcdefghijab\"}"
+        }
+      ]
+    },
+    {
+      "id": "limit-bound-off-by-one",
+      "impl": "go",
+      "family": "boundary",
+      "description": "ROR at the pagination limit's upper bound: `limit > 100` becomes `limit >= 100`, so ?limit=100 answers invalid_limit. Same operator as handle-bound-off-by-one at a different site; the pair is what the taxonomy produces when it is applied to every matching site rather than to the sites a specification happens to emphasise. NOTE the corner asymmetry: Go and Rust do this check in the trusted HTTP shim, Java and Kotlin in the verified core, so the same defect is inside two corners' proof perimeter and outside the other two's (F022, F017).",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "internal/httpshim/shim.go",
+          "anchor": [
+            "\t\tif err != nil || v < 1 || v > maxLimit {"
+          ],
+          "replacement": [
+            "\t\tif err != nil || v < 1 || v >= maxLimit {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&limit=100"
+        }
+      ]
+    },
+    {
+      "id": "limit-bound-off-by-one",
+      "impl": "rust",
+      "family": "boundary",
+      "description": "ROR at the pagination limit's upper bound: `limit > 100` becomes `limit >= 100`, so ?limit=100 answers invalid_limit. Same operator as handle-bound-off-by-one at a different site; the pair is what the taxonomy produces when it is applied to every matching site rather than to the sites a specification happens to emphasise. NOTE the corner asymmetry: Go and Rust do this check in the trusted HTTP shim, Java and Kotlin in the verified core, so the same defect is inside two corners' proof perimeter and outside the other two's (F022, F017).",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "crates/server/src/handlers.rs",
+          "anchor": [
+            "            Ok(v) if (1..=100).contains(&v) => v as usize,"
+          ],
+          "replacement": [
+            "            Ok(v) if (1..100).contains(&v) => v as usize,"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&limit=100"
+        }
+      ]
+    },
+    {
+      "id": "limit-bound-off-by-one",
+      "impl": "java",
+      "family": "boundary",
+      "description": "ROR at the pagination limit's upper bound: `limit > 100` becomes `limit >= 100`, so ?limit=100 answers invalid_limit. Same operator as handle-bound-off-by-one at a different site; the pair is what the taxonomy produces when it is applied to every matching site rather than to the sites a specification happens to emphasise. NOTE the corner asymmetry: Go and Rust do this check in the trusted HTTP shim, Java and Kotlin in the verified core, so the same defect is inside two corners' proof perimeter and outside the other two's (F022, F017).",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.java",
+          "anchor": [
+            "            if (n == null || n < 1 || n > Dom.MAX_LIMIT) {"
+          ],
+          "replacement": [
+            "            if (n == null || n < 1 || n >= Dom.MAX_LIMIT) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&limit=100"
+        }
+      ]
+    },
+    {
+      "id": "limit-bound-off-by-one",
+      "impl": "kotlin",
+      "family": "boundary",
+      "description": "ROR at the pagination limit's upper bound: `limit > 100` becomes `limit >= 100`, so ?limit=100 answers invalid_limit. Same operator as handle-bound-off-by-one at a different site; the pair is what the taxonomy produces when it is applied to every matching site rather than to the sites a specification happens to emphasise. NOTE the corner asymmetry: Go and Rust do this check in the trusted HTTP shim, Java and Kotlin in the verified core, so the same defect is inside two corners' proof perimeter and outside the other two's (F022, F017).",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.kt",
+          "anchor": [
+            "            if (n == null || n < 1 || n > MAX_LIMIT) {"
+          ],
+          "replacement": [
+            "            if (n == null || n < 1 || n >= MAX_LIMIT) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&limit=100"
+        }
+      ]
+    },
+    {
+      "id": "text-rejects-space",
+      "impl": "go",
+      "family": "boundary",
+      "description": "ROR at the control-character bound in the text validator: `byte < 0x20` becomes `byte <= 0x20`, so U+0020 SPACE is treated as a control character and any tweet containing a space is rejected. A boundary shift on a character-class test rather than on a length, which is the third shape the ROR operator finds in these four corners.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "internal/dom/dom.go",
+          "anchor": [
+            "\t\tif b[i] < 0x20 {"
+          ],
+          "replacement": [
+            "\t\tif b[i] <= 0x20 {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"a b\"}"
+        }
+      ]
+    },
+    {
+      "id": "text-rejects-space",
+      "impl": "rust",
+      "family": "boundary",
+      "description": "ROR at the control-character bound in the text validator: `byte < 0x20` becomes `byte <= 0x20`, so U+0020 SPACE is treated as a control character and any tweet containing a space is rejected. A boundary shift on a character-class test rather than on a length, which is the third shape the ROR operator finds in these four corners.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "crates/domain/src/lib.rs",
+          "anchor": [
+            "            if b[i] < 32 {"
+          ],
+          "replacement": [
+            "            if b[i] <= 32 {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"a b\"}"
+        }
+      ]
+    },
+    {
+      "id": "text-rejects-space",
+      "impl": "java",
+      "family": "boundary",
+      "description": "ROR at the control-character bound in the text validator: `byte < 0x20` becomes `byte <= 0x20`, so U+0020 SPACE is treated as a control character and any tweet containing a space is rejected. A boundary shift on a character-class test rather than on a length, which is the third shape the ROR operator finds in these four corners.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/dom/Dom.java",
+          "anchor": [
+            "            if ((raw & 0xFF) < 0x20) {"
+          ],
+          "replacement": [
+            "            if ((raw & 0xFF) <= 0x20) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"a b\"}"
+        }
+      ]
+    },
+    {
+      "id": "text-rejects-space",
+      "impl": "kotlin",
+      "family": "boundary",
+      "description": "ROR at the control-character bound in the text validator: `byte < 0x20` becomes `byte <= 0x20`, so U+0020 SPACE is treated as a control character and any tweet containing a space is rejected. A boundary shift on a character-class test rather than on a length, which is the third shape the ROR operator finds in these four corners.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/dom/Dom.kt",
+          "anchor": [
+            "        if ((raw.toInt() and 0xFF) < 0x20) {"
+          ],
+          "replacement": [
+            "        if ((raw.toInt() and 0xFF) <= 0x20) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"a b\"}"
+        }
+      ]
+    },
+    {
+      "id": "timeline-drops-oldest",
+      "impl": "go",
+      "family": "collection-bound",
+      "description": "Off-by-one on a collection scan bound: the reverse walk over the append log stops one position early, so the OLDEST visible tweet is never returned on any page. The classic loop-bound off-by-one from the mutation-testing literature, at the one loop in each corner that walks a collection to its end.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": [
+            "\tfor ; i >= 0; i-- {"
+          ],
+          "replacement": [
+            "\tfor ; i >= 1; i-- {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"one\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"two\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "timeline-drops-oldest",
+      "impl": "rust",
+      "family": "collection-bound",
+      "description": "Off-by-one on a collection scan bound: the reverse walk over the append log stops one position early, so the OLDEST visible tweet is never returned on any page. The classic loop-bound off-by-one from the mutation-testing literature, at the one loop in each corner that walks a collection to its end.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "crates/store/src/lib.rs",
+          "anchor": [
+            "        for t in g.tweets.iter().rev() {"
+          ],
+          "replacement": [
+            "        for t in g.tweets[g.tweets.len().min(1)..].iter().rev() {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"one\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"two\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "timeline-drops-oldest",
+      "impl": "java",
+      "family": "collection-bound",
+      "description": "Off-by-one on a collection scan bound: the reverse walk over the append log stops one position early, so the OLDEST visible tweet is never returned on any page. The classic loop-bound off-by-one from the mutation-testing literature, at the one loop in each corner that walks a collection to its end.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "        for (int i = log.size() - 1; i >= 0; i--) {"
+          ],
+          "replacement": [
+            "        for (int i = log.size() - 1; i >= 1; i--) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"one\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"two\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "timeline-drops-oldest",
+      "impl": "kotlin",
+      "family": "collection-bound",
+      "description": "Off-by-one on a collection scan bound: the reverse walk over the append log stops one position early, so the OLDEST visible tweet is never returned on any page. The classic loop-bound off-by-one from the mutation-testing literature, at the one loop in each corner that walks a collection to its end.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "        for (i in log.indices.reversed()) {"
+          ],
+          "replacement": [
+            "        for (i in (1 until log.size).reversed()) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"one\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"two\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "visibility-args-swapped",
+      "impl": "go",
+      "family": "swapped-arguments",
+      "description": "The two same-typed arguments of the follow-edge lookup in the visibility test are swapped, so the timeline shows tweets by users who follow YOU instead of users you follow. Produced by the argument-swap operator (swap any two adjacent parameters of the same type), which is also the single most common real defect in a directed social graph: the edge is stored as an ordered pair and read back in the other order.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": [
+            "\t\tif t.Author != user && !s.follows[dom.Follow{From: user, To: t.Author}] {"
+          ],
+          "replacement": [
+            "\t\tif t.Author != user && !s.follows[dom.Follow{From: t.Author, To: user}] {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/follow",
+          "body": "{\"from\":\"alice\",\"to\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"bob\",\"text\":\"hi\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "visibility-args-swapped",
+      "impl": "rust",
+      "family": "swapped-arguments",
+      "description": "The two same-typed arguments of the follow-edge lookup in the visibility test are swapped, so the timeline shows tweets by users who follow YOU instead of users you follow. Produced by the argument-swap operator (swap any two adjacent parameters of the same type), which is also the single most common real defect in a directed social graph: the edge is stored as an ordered pair and read back in the other order.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "crates/store/src/lib.rs",
+          "anchor": [
+            "            if t.author != user && !g.follows.contains(&(user.to_string(), t.author.clone())) {"
+          ],
+          "replacement": [
+            "            if t.author != user && !g.follows.contains(&(t.author.clone(), user.to_string())) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/follow",
+          "body": "{\"from\":\"alice\",\"to\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"bob\",\"text\":\"hi\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "visibility-args-swapped",
+      "impl": "java",
+      "family": "swapped-arguments",
+      "description": "The two same-typed arguments of the follow-edge lookup in the visibility test are swapped, so the timeline shows tweets by users who follow YOU instead of users you follow. Produced by the argument-swap operator (swap any two adjacent parameters of the same type), which is also the single most common real defect in a directed social graph: the edge is stored as an ordered pair and read back in the other order.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "            if (!t.author().equals(user) && !isFollowing(user, t.author())) {"
+          ],
+          "replacement": [
+            "            if (!t.author().equals(user) && !isFollowing(t.author(), user)) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/follow",
+          "body": "{\"from\":\"alice\",\"to\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"bob\",\"text\":\"hi\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "visibility-args-swapped",
+      "impl": "kotlin",
+      "family": "swapped-arguments",
+      "description": "The two same-typed arguments of the follow-edge lookup in the visibility test are swapped, so the timeline shows tweets by users who follow YOU instead of users you follow. Produced by the argument-swap operator (swap any two adjacent parameters of the same type), which is also the single most common real defect in a directed social graph: the edge is stored as an ordered pair and read back in the other order.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "            if (t.author != user && !isFollowing(user, t.author)) {"
+          ],
+          "replacement": [
+            "            if (t.author != user && !isFollowing(t.author, user)) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/follow",
+          "body": "{\"from\":\"alice\",\"to\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"bob\",\"text\":\"hi\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "visibility-negation-dropped",
+      "impl": "go",
+      "family": "dropped-negation",
+      "description": "The negation on the follow-edge test is dropped, inverting visibility: a user sees their own tweets plus every tweet by someone they do NOT follow, and nothing by anyone they do. The dropped-negation operator, at the same site as visibility-args-swapped but a different edit -- two operators landing on one line is what an operator-driven catalogue looks like, and the two are not observationally equivalent.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": [
+            "\t\tif t.Author != user && !s.follows[dom.Follow{From: user, To: t.Author}] {"
+          ],
+          "replacement": [
+            "\t\tif t.Author != user && s.follows[dom.Follow{From: user, To: t.Author}] {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/follow",
+          "body": "{\"from\":\"alice\",\"to\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"bob\",\"text\":\"hi\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "visibility-negation-dropped",
+      "impl": "rust",
+      "family": "dropped-negation",
+      "description": "The negation on the follow-edge test is dropped, inverting visibility: a user sees their own tweets plus every tweet by someone they do NOT follow, and nothing by anyone they do. The dropped-negation operator, at the same site as visibility-args-swapped but a different edit -- two operators landing on one line is what an operator-driven catalogue looks like, and the two are not observationally equivalent.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "crates/store/src/lib.rs",
+          "anchor": [
+            "            if t.author != user && !g.follows.contains(&(user.to_string(), t.author.clone())) {"
+          ],
+          "replacement": [
+            "            if t.author != user && g.follows.contains(&(user.to_string(), t.author.clone())) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/follow",
+          "body": "{\"from\":\"alice\",\"to\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"bob\",\"text\":\"hi\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "visibility-negation-dropped",
+      "impl": "java",
+      "family": "dropped-negation",
+      "description": "The negation on the follow-edge test is dropped, inverting visibility: a user sees their own tweets plus every tweet by someone they do NOT follow, and nothing by anyone they do. The dropped-negation operator, at the same site as visibility-args-swapped but a different edit -- two operators landing on one line is what an operator-driven catalogue looks like, and the two are not observationally equivalent.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "            if (!t.author().equals(user) && !isFollowing(user, t.author())) {"
+          ],
+          "replacement": [
+            "            if (!t.author().equals(user) && isFollowing(user, t.author())) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/follow",
+          "body": "{\"from\":\"alice\",\"to\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"bob\",\"text\":\"hi\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "visibility-negation-dropped",
+      "impl": "kotlin",
+      "family": "dropped-negation",
+      "description": "The negation on the follow-edge test is dropped, inverting visibility: a user sees their own tweets plus every tweet by someone they do NOT follow, and nothing by anyone they do. The dropped-negation operator, at the same site as visibility-args-swapped but a different edit -- two operators landing on one line is what an operator-driven catalogue looks like, and the two are not observationally equivalent.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "            if (t.author != user && !isFollowing(user, t.author)) {"
+          ],
+          "replacement": [
+            "            if (t.author != user && isFollowing(user, t.author)) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/follow",
+          "body": "{\"from\":\"alice\",\"to\":\"bob\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"bob\",\"text\":\"hi\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "wrong-error-branch-cursor",
+      "impl": "go",
+      "family": "wrong-error-branch",
+      "description": "The cursor-rejection path reports invalid_limit instead of invalid_cursor. The status code and the shape of the response are unchanged; only the code inside the body differs. This is the wrong-error-branch operator -- a rejection that rejects for the wrong stated reason -- and it is the one defect in this catalogue that a rung comparing only status codes could not see.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "internal/httpshim/shim.go",
+          "anchor": [
+            "\t\t\twriteErr(w, http.StatusBadRequest, \"invalid_cursor\")"
+          ],
+          "replacement": [
+            "\t\t\twriteErr(w, http.StatusBadRequest, \"invalid_limit\")"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&cursor=0"
+        }
+      ]
+    },
+    {
+      "id": "wrong-error-branch-cursor",
+      "impl": "rust",
+      "family": "wrong-error-branch",
+      "description": "The cursor-rejection path reports invalid_limit instead of invalid_cursor. The status code and the shape of the response are unchanged; only the code inside the body differs. This is the wrong-error-branch operator -- a rejection that rejects for the wrong stated reason -- and it is the one defect in this catalogue that a rung comparing only status codes could not see.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "crates/server/src/handlers.rs",
+          "anchor": [
+            "            _ => return err(StatusCode::BAD_REQUEST, \"invalid_cursor\").into_response(),"
+          ],
+          "replacement": [
+            "            _ => return err(StatusCode::BAD_REQUEST, \"invalid_limit\").into_response(),"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&cursor=0"
+        }
+      ]
+    },
+    {
+      "id": "wrong-error-branch-cursor",
+      "impl": "java",
+      "family": "wrong-error-branch",
+      "description": "The cursor-rejection path reports invalid_limit instead of invalid_cursor. The status code and the shape of the response are unchanged; only the code inside the body differs. This is the wrong-error-branch operator -- a rejection that rejects for the wrong stated reason -- and it is the one defect in this catalogue that a rung comparing only status codes could not see.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.java",
+          "anchor": [
+            "                return Result.err(Dom.ERR_INVALID_CURSOR);"
+          ],
+          "replacement": [
+            "                return Result.err(Dom.ERR_INVALID_LIMIT);"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&cursor=0"
+        }
+      ]
+    },
+    {
+      "id": "wrong-error-branch-cursor",
+      "impl": "kotlin",
+      "family": "wrong-error-branch",
+      "description": "The cursor-rejection path reports invalid_limit instead of invalid_cursor. The status code and the shape of the response are unchanged; only the code inside the body differs. This is the wrong-error-branch operator -- a rejection that rejects for the wrong stated reason -- and it is the one defect in this catalogue that a rung comparing only status codes could not see.",
+      "source": "mutation-operator-taxonomy",
+      "edits": [
+        {
+          "file": "src/twitterport/service/Service.kt",
+          "anchor": [
+            "                return Outcome.Err(ERR_INVALID_CURSOR)"
+          ],
+          "replacement": [
+            "                return Outcome.Err(ERR_INVALID_LIMIT)"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&cursor=0"
+        }
+      ]
+    },
+    {
+      "id": "handle-case-folded",
+      "impl": "go",
+      "family": "normalisation",
+      "description": "The handle validator case-folds ASCII before testing the alphabet, but the handle is STORED and echoed unfolded. So POST /users {\"handle\":\"Alice\"} is accepted and registers the handle \"Alice\", which no later request can name, and \"Alice\" and \"alice\" become two distinct users that the validator considers the same. Normalise-on-validate / store-raw is a documented failure mode of real identity and handle systems (the same shape as Unicode NFC/NFKC normalisation applied at one layer and not another); S_obs has no notion of normalisation at all, which is exactly why nothing in it pointed here.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "internal/dom/dom.go",
+          "anchor": [
+            "\t\tc := b[i]",
+            "\t\tif !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_') {"
+          ],
+          "replacement": [
+            "\t\tc := b[i]",
+            "\t\tif c >= 'A' && c <= 'Z' {",
+            "\t\t\tc = c + 32",
+            "\t\t}",
+            "\t\tif !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_') {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"Alice\"}"
+        }
+      ]
+    },
+    {
+      "id": "handle-case-folded",
+      "impl": "rust",
+      "family": "normalisation",
+      "description": "The handle validator case-folds ASCII before testing the alphabet, but the handle is STORED and echoed unfolded. So POST /users {\"handle\":\"Alice\"} is accepted and registers the handle \"Alice\", which no later request can name, and \"Alice\" and \"alice\" become two distinct users that the validator considers the same. Normalise-on-validate / store-raw is a documented failure mode of real identity and handle systems (the same shape as Unicode NFC/NFKC normalisation applied at one layer and not another); S_obs has no notion of normalisation at all, which is exactly why nothing in it pointed here.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "crates/domain/src/lib.rs",
+          "anchor": [
+            "            let c = b[i];",
+            "            let ok = (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 95;"
+          ],
+          "replacement": [
+            "            let mut c = b[i];",
+            "            if c >= 65 && c <= 90 { c = c + 32; }",
+            "            let ok = (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c == 95;"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"Alice\"}"
+        }
+      ]
+    },
+    {
+      "id": "handle-case-folded",
+      "impl": "java",
+      "family": "normalisation",
+      "description": "The handle validator case-folds ASCII before testing the alphabet, but the handle is STORED and echoed unfolded. So POST /users {\"handle\":\"Alice\"} is accepted and registers the handle \"Alice\", which no later request can name, and \"Alice\" and \"alice\" become two distinct users that the validator considers the same. Normalise-on-validate / store-raw is a documented failure mode of real identity and handle systems (the same shape as Unicode NFC/NFKC normalisation applied at one layer and not another); S_obs has no notion of normalisation at all, which is exactly why nothing in it pointed here.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "src/twitterport/dom/Dom.java",
+          "anchor": [
+            "            int c = raw & 0xFF;",
+            "            boolean ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_';"
+          ],
+          "replacement": [
+            "            int c = raw & 0xFF;",
+            "            if (c >= 'A' && c <= 'Z') {",
+            "                c = c + 32;",
+            "            }",
+            "            boolean ok = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_';"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"Alice\"}"
+        }
+      ]
+    },
+    {
+      "id": "handle-case-folded",
+      "impl": "kotlin",
+      "family": "normalisation",
+      "description": "The handle validator case-folds ASCII before testing the alphabet, but the handle is STORED and echoed unfolded. So POST /users {\"handle\":\"Alice\"} is accepted and registers the handle \"Alice\", which no later request can name, and \"Alice\" and \"alice\" become two distinct users that the validator considers the same. Normalise-on-validate / store-raw is a documented failure mode of real identity and handle systems (the same shape as Unicode NFC/NFKC normalisation applied at one layer and not another); S_obs has no notion of normalisation at all, which is exactly why nothing in it pointed here.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "src/twitterport/dom/Dom.kt",
+          "anchor": [
+            "        val c = raw.toInt() and 0xFF",
+            "        val ok = (c >= 'a'.code && c <= 'z'.code) ||"
+          ],
+          "replacement": [
+            "        var c = raw.toInt() and 0xFF",
+            "        if (c >= 'A'.code && c <= 'Z'.code) {",
+            "            c = c + 32",
+            "        }",
+            "        val ok = (c >= 'a'.code && c <= 'z'.code) ||"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"Alice\"}"
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-off-by-one",
+      "impl": "go",
+      "family": "pagination",
+      "description": "next_cursor is emitted as (last id on the page) + 1 rather than the last id. The cursor stays exclusive, so a client that follows the cursor gets the last item of the previous page again as the first item of the next: pagination that REPEATS an item across the page boundary. The canonical keyset-pagination defect, and the one that survives longest in production because a single response looks correct in isolation.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "internal/httpshim/shim.go",
+          "anchor": [
+            "\t\tlast := tw[len(tw)-1].ID"
+          ],
+          "replacement": [
+            "\t\tlast := tw[len(tw)-1].ID + 1"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"one\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"two\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&limit=1"
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-off-by-one",
+      "impl": "rust",
+      "family": "pagination",
+      "description": "next_cursor is emitted as (last id on the page) + 1 rather than the last id. The cursor stays exclusive, so a client that follows the cursor gets the last item of the previous page again as the first item of the next: pagination that REPEATS an item across the page boundary. The canonical keyset-pagination defect, and the one that survives longest in production because a single response looks correct in isolation.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "crates/server/src/handlers.rs",
+          "anchor": [
+            "    let next_cursor = if more { tw.last().map(|t| t.id) } else { None };"
+          ],
+          "replacement": [
+            "    let next_cursor = if more { tw.last().map(|t| t.id + 1) } else { None };"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"one\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"two\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&limit=1"
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-off-by-one",
+      "impl": "java",
+      "family": "pagination",
+      "description": "next_cursor is emitted as (last id on the page) + 1 rather than the last id. The cursor stays exclusive, so a client that follows the cursor gets the last item of the previous page again as the first item of the next: pagination that REPEATS an item across the page boundary. The canonical keyset-pagination defect, and the one that survives longest in production because a single response looks correct in isolation.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "                next = page.get(page.size() - 1).id();"
+          ],
+          "replacement": [
+            "                next = page.get(page.size() - 1).id() + 1;"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"one\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"two\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&limit=1"
+        }
+      ]
+    },
+    {
+      "id": "next-cursor-off-by-one",
+      "impl": "kotlin",
+      "family": "pagination",
+      "description": "next_cursor is emitted as (last id on the page) + 1 rather than the last id. The cursor stays exclusive, so a client that follows the cursor gets the last item of the previous page again as the first item of the next: pagination that REPEATS an item across the page boundary. The canonical keyset-pagination defect, and the one that survives longest in production because a single response looks correct in isolation.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "                next = page[page.size - 1].id"
+          ],
+          "replacement": [
+            "                next = page[page.size - 1].id + 1"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"one\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"two\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice&limit=1"
+        }
+      ]
+    },
+    {
+      "id": "text-length-in-code-points",
+      "impl": "go",
+      "family": "encoding",
+      "description": "The tweet length bound is measured in code points (Go, Rust) or UTF-16 code units (Java, Kotlin) instead of UTF-8 bytes, so a 400-byte, 200-character tweet is accepted where S_obs rejects it. NOT INDEPENDENT, and recorded that way: Dom.java and Dom.kt each carry a comment naming this exact trap and closing it deliberately. The taxonomy proposed it and the implementations had already anticipated it, so a kill here is evidence about a defect the spec authors WERE looking at. It is kept as the calibration point that makes the independent mutants' numbers readable.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "internal/dom/dom.go",
+          "anchor": [
+            "\tif len(b) < MinTextLen || len(b) > MaxTextLen {"
+          ],
+          "replacement": [
+            "\tif len([]rune(t)) < MinTextLen || len([]rune(t)) > MaxTextLen {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\"}"
+        }
+      ]
+    },
+    {
+      "id": "text-length-in-code-points",
+      "impl": "rust",
+      "family": "encoding",
+      "description": "The tweet length bound is measured in code points (Go, Rust) or UTF-16 code units (Java, Kotlin) instead of UTF-8 bytes, so a 400-byte, 200-character tweet is accepted where S_obs rejects it. NOT INDEPENDENT, and recorded that way: Dom.java and Dom.kt each carry a comment naming this exact trap and closing it deliberately. The taxonomy proposed it and the implementations had already anticipated it, so a kill here is evidence about a defect the spec authors WERE looking at. It is kept as the calibration point that makes the independent mutants' numbers readable.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "crates/domain/src/lib.rs",
+          "anchor": [
+            "        if b.len() == 0 || b.len() > 280 {"
+          ],
+          "replacement": [
+            "        if t.chars().count() == 0 || t.chars().count() > 280 {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\"}"
+        }
+      ]
+    },
+    {
+      "id": "text-length-in-code-points",
+      "impl": "java",
+      "family": "encoding",
+      "description": "The tweet length bound is measured in code points (Go, Rust) or UTF-16 code units (Java, Kotlin) instead of UTF-8 bytes, so a 400-byte, 200-character tweet is accepted where S_obs rejects it. NOT INDEPENDENT, and recorded that way: Dom.java and Dom.kt each carry a comment naming this exact trap and closing it deliberately. The taxonomy proposed it and the implementations had already anticipated it, so a kill here is evidence about a defect the spec authors WERE looking at. It is kept as the calibration point that makes the independent mutants' numbers readable.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "src/twitterport/dom/Dom.java",
+          "anchor": [
+            "        if (b.length < MIN_TEXT_LEN || b.length > MAX_TEXT_LEN) {"
+          ],
+          "replacement": [
+            "        if (t.length() < MIN_TEXT_LEN || t.length() > MAX_TEXT_LEN) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\"}"
+        }
+      ]
+    },
+    {
+      "id": "text-length-in-code-points",
+      "impl": "kotlin",
+      "family": "encoding",
+      "description": "The tweet length bound is measured in code points (Go, Rust) or UTF-16 code units (Java, Kotlin) instead of UTF-8 bytes, so a 400-byte, 200-character tweet is accepted where S_obs rejects it. NOT INDEPENDENT, and recorded that way: Dom.java and Dom.kt each carry a comment naming this exact trap and closing it deliberately. The taxonomy proposed it and the implementations had already anticipated it, so a kill here is evidence about a defect the spec authors WERE looking at. It is kept as the calibration point that makes the independent mutants' numbers readable.",
+      "source": "service-failure-mode",
+      "edits": [
+        {
+          "file": "src/twitterport/dom/Dom.kt",
+          "anchor": [
+            "    if (b.size < MIN_TEXT_LEN || b.size > MAX_TEXT_LEN) {"
+          ],
+          "replacement": [
+            "    if (t.length < MIN_TEXT_LEN || t.length > MAX_TEXT_LEN) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé\"}"
+        }
+      ]
+    },
+    {
+      "id": "go-slice-len-aliasing",
+      "impl": "go",
+      "family": "language-idiom",
+      "description": "GO ONLY, and the id says so. HomeTimeline builds its page into `buf := make([]dom.Tweet, limit)` and returns `buf[:n]`; the mutant returns `buf`, so every page is padded out to `limit` with zero-valued tweets. The defect exists because Go's `make([]T, n)` sets LENGTH, not capacity -- the single most common Go slice slip. It has no twin in the other three corners: Rust builds with `Vec::with_capacity` and Java and Kotlin with an empty ArrayList, and in all three the container's length already is the element count, so there is no length/capacity confusion to make. Requirement 4's constraint, concretely: this id cannot appear in a port-to-port row.",
+      "source": "language-idiom",
+      "edits": [
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": [
+            "\treturn buf[:n], more"
+          ],
+          "replacement": [
+            "\treturn buf, more"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"one\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "jvm-string-identity-compare",
+      "impl": "java",
+      "family": "language-idiom",
+      "description": "JAVA AND KOTLIN ONLY. The author-is-the-viewer test in the timeline scan compares String REFERENCES (`!=` in Java, `!==` in Kotlin) instead of values, so a user's own tweets vanish from their own timeline: the handle in the tweet came from a parsed request body and the handle in the query came from the query string, and the two are never the same object. `==` on reference types is the defining JVM footgun; in Go and Rust the same operator on strings is value equality, so the defect is not expressible there and this id covers two corners, not four.",
+      "source": "language-idiom",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.java",
+          "anchor": [
+            "            if (!t.author().equals(user) && !isFollowing(user, t.author())) {"
+          ],
+          "replacement": [
+            "            if (t.author() != user && !isFollowing(user, t.author())) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"one\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    },
+    {
+      "id": "jvm-string-identity-compare",
+      "impl": "kotlin",
+      "family": "language-idiom",
+      "description": "JAVA AND KOTLIN ONLY. The author-is-the-viewer test in the timeline scan compares String REFERENCES (`!=` in Java, `!==` in Kotlin) instead of values, so a user's own tweets vanish from their own timeline: the handle in the tweet came from a parsed request body and the handle in the query came from the query string, and the two are never the same object. `==` on reference types is the defining JVM footgun; in Go and Rust the same operator on strings is value equality, so the defect is not expressible there and this id covers two corners, not four.",
+      "source": "language-idiom",
+      "edits": [
+        {
+          "file": "src/twitterport/store/Store.kt",
+          "anchor": [
+            "            if (t.author != user && !isFollowing(user, t.author)) {"
+          ],
+          "replacement": [
+            "            if (t.author !== user && !isFollowing(user, t.author)) {"
+          ]
+        }
+      ],
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"alice\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/tweets",
+          "body": "{\"author\":\"alice\",\"text\":\"one\"}"
+        },
+        {
+          "method": "GET",
+          "path": "/timeline?user=alice"
+        }
+      ]
+    }
+  ]
+}

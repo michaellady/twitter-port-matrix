@@ -1,0 +1,147 @@
+calibrate: 2 mutant(s) x 2 rung(s) = 4 cells
+           rungs=R4,R5  out=/home/user/twitter-port-matrix/evidence/runs/calibration/dom-separation  resume=true
+           journal holds 0 reusable cell(s) and 0 probe(s)
+==============================================================================
+  floor go        623 ms/launch  (3 samples, spread 600-662 ms)
+------------------------------------------------------------------------------
+
+go/handle-alphabet-widened   c9ffd411796c  validation
+  guard    5/5 checks: go@handle-alphabet-widened -> /tmp/calibrate-mutant-584983329/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.8s -- charged to no rung
+  R4       killed       75.2s  R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   ...
+  R5       survived     70.5s  R5 PASSED: 1 failing obligation(s), none in a member carry...
+  probe    live, reached by witness, corpus, seed=2, seed=3, seed=4  (2.0s)
+
+go/text-control-chars-accepted 49e06dc19fc4  validation
+  guard    5/5 checks: go@text-control-chars-accepted -> /tmp/calibrate-mutant-728310062/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.8s -- charged to no rung
+  R4       killed       63.3s  R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   ...
+  R5       survived     63.4s  R5 PASSED: 1 failing obligation(s), none in a member carry...
+  probe    live, reached by witness  (2.0s)
+
+CALIBRATION -- per-rung mutation kill table
+==============================================================================
+corners   go
+rungs     R4, R5
+R1        20 traces x 200 steps, seed 1
+R2        6 rounds x 40 setup requests, seed 1
+probe     any (4 traces x 120 steps, plus the corpus and each mutant's witness)
+window    2026-09-02T20:02:49Z .. 2026-09-02T20:07:30Z
+
+==============================================================================
+KILL TABLE
+==============================================================================
+rung             live  killed  survived  unreached  equiv  killed/reached     killed/live     wall
+R4 proof            2       2         0          0      0      2/2 = 100%      2/2 = 100%     139s
+R5 refinement       2       0         0          2      0       0/0 = n/a        0/2 = 0%     134s
+
+  live       mutants that change observable behaviour. Equivalent ones are excluded
+             from every denominator: no rung can kill them, so counting them would
+             understate every rung for a reason that is not about the rung.
+  survived   the rung's own inputs DO elicit the difference and it passed anyway.
+             A gap in the rung.
+  unreached  live, but nothing in this rung's input source elicits the difference.
+             A gap in the inputs. F009 is the worked example. For a proof rung the
+             input source is the contract: unreached means the verifier reads none
+             of the files the mutant edits.
+  capped     the corner has no verifier for this rung. Not a measurement; shown
+             per mutant and per corner, in no denominator.
+  killed/reached  the rung's ORACLE. reached = live - unreached = killed +
+                  survived. Every rate is printed as its own fraction because a
+                  percentage travels and its denominator does not: 100% over two
+                  reached cells and 100% over eighteen are the same string and not
+                  the same claim (F008).
+  killed/live     the rung AS CONFIGURED, inputs included.
+  n/a             the denominator is zero -- nothing was reached, so there is no
+                  rate. Printed rather than shown as 0%, which is the rate of a
+                  rung that saw everything and killed nothing.
+
+==============================================================================
+DENOMINATORS -- what each rate is a percentage of
+==============================================================================
+
+  R4 proof       killed/reached 2/2 = 100%   killed/live 2/2 = 100%
+                 2 cell(s) measured, 2 in the killed/reached denominator, 0 excluded
+                   nothing excluded: every cell of this rung is in its denominator.
+
+  R5 refinement  killed/reached 0/0 = n/a   killed/live 0/2 = 0%
+                 2 cell(s) measured, 0 in the killed/reached denominator, 2 excluded
+                    2 unreached    live, but the verifier reads none of the files the
+                                   mutant edits, so no obligation could have covered it
+                                   (F022)
+
+==============================================================================
+COST -- and which cost it is
+==============================================================================
+Every rung relaunches the implementation: R0 once for the whole corpus, R1 once
+per trace, R2 once per property-round. A launch is a warm build check plus a
+process start plus a health wait, and that price differs by language. So raw
+seconds mix what the RUNG costs with what the LANGUAGE costs. Both are below.
+
+  corner   floor/launch of which build  samples           spread
+  go             623 ms         600 ms        3      600-662 ms
+
+  corner   rung            launches wall killed  wall clean  tool clean
+  go       R4 proof               -      69.3s          -          -
+  go       R5 refinement          -          -      67.0s          -
+
+  wall killed  mean wall for a mutant this rung caught. NOT comparable with the
+               clean column, and not reliably smaller either. R1 stops at its
+               first mismatch -- then shrinks, and every shrink attempt is
+               another server launch, so at low trace counts a kill can cost
+               several times a clean pass. The launch count of a kill depends
+               on the defect, so it is not corrected and no tool figure is
+               derived from it.
+  wall clean   mean wall for a full pass -- the worst case, and what a sweep of
+               a correct implementation actually costs.
+  tool clean   wall clean minus launches x measured floor. The rung's own cost
+               with process startup removed. Reported only where the launch
+               count is known from the configuration -- never inferred.
+  *            the correction came out at or below zero. Not an error and not
+               hidden: it means this rung's own work costs no more than the
+               servers it launches, so at this configuration the rung IS process
+               startup. Compare rungs by their launch counts, not their seconds.
+  Mutant setup (materialise + warm the build cache) is charged to no rung; see
+  the setups block in results.json.
+
+==============================================================================
+PER MUTANT
+==============================================================================
+mutant                             R4          R5         
+go/handle-alphabet-widened         kill        unreached  
+go/text-control-chars-accepted     kill        unreached  
+
+==============================================================================
+REACHABILITY -- why each survivor survived
+==============================================================================
+  go/handle-alphabet-widened     live
+      witness    differs at request 0
+      corpus     differs at request 4
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 13
+      seed=3     differs at request 39
+      seed=4     differs at request 75
+  go/text-control-chars-accepted live
+      witness    differs at request 1
+      corpus     no difference in 56 requests
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+      reached only by its declared witness: neither the corpus nor any
+      probe trace produces a request that tells it apart, so no rung
+      driven by those inputs can kill it
+
+==============================================================================
+READ WITH CARE
+==============================================================================
+ 1. R4 killed EVERYTHING (2/2). Worth reading as a statement about the
+    catalogue as much as the rung: a mutant set this rung finds trivial cannot
+    distinguish it from a stronger one.
+ 2. R5 killed NOTHING (0/2 live mutants). A rung that never fires has not been
+    shown to be able to fire; check it against a known-bad canary before
+    reading this row as evidence about the mutants.
+
+written: /home/user/twitter-port-matrix/evidence/runs/calibration/dom-separation/report.txt
+         /home/user/twitter-port-matrix/evidence/runs/calibration/dom-separation/results.json
+         /home/user/twitter-port-matrix/evidence/runs/calibration/dom-separation/journal.jsonl

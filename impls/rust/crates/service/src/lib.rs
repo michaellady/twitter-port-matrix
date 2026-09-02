@@ -292,8 +292,10 @@ impl Default for Service {
 //   - `has_user_ensures(s: &Service, handle: &String) -> bool`
 //     ensures `result == service_users_keys(s).contains(handle@)`.
 //   - `create_user_ensures(s: &mut Service, handle: &String) -> Result<User, ServiceError>`
-//     ensures the F3 dup-rejection contract on the handle axis:
-//     `EmptyHandle` short-circuits with no state change; otherwise
+//     ensures the D6 + F3 contract on the handle axis (REWRITTEN S-14, see
+//     evidence/findings/F024 -- this used to short-circuit on an EMPTY
+//     handle, which is not the guard production applies):
+//     `!handle_valid(handle@)` short-circuits with no state change; otherwise
 //     `service_users_keys(old(s)).contains(handle@) ==> result is Err`,
 //     `!service_users_keys(old(s)).contains(handle@) ==> result is Ok`,
 //     and the inserted handle ends up in the post-state set.
@@ -344,24 +346,16 @@ impl Default for Service {
 //     `service_follow_edges(s) == store::follow_edges(s.st)` —
 //     same novel-infrastructure blocker R2 called out for `service_users_keys`.
 //
-// # Stream 3 Phase 5 sub-PR R4 — `Service::home_timeline` discharge (framing-only)
+// # `Service::home_timeline` — NO OBLIGATION (S-14, queue item 5)
 //
-// Pure-delegation discharge of the read-only `Service::home_timeline`
-// wrapper. Mirrors the framing-only shape Phase 4 sub-PR 5+6 used at the
-// store layer: `store::home_timeline_ensures` was discharged framing-only
-// there (F1 visibility and F2 sort-order remain trusted in
-// `store::proof_home_timeline` because vstd 0.0.0-2026-04-20-1748 ships
-// no `vstd::vec` sort spec and no verified mergesort), so the
-// service-layer wrapper carries the same framing-only contract one
-// composition layer up. New trust footprint: 1 `external_body` exec shim
-// (`proof_service_home_timeline` bottoming out in
-// `s.st.home_timeline(user.as_str(), limit)`); zero new ghost views.
-// What R4 verifies: framing on both ghost-view axes
-// (`service_users_keys`, `service_follow_edges`) via the
-// `&Service`-not-`&mut` signature — structural; no ensures clauses on
-// the returned `Vec<Tweet>`. What stays trusted in R4: F1 + F2 (still
-// pending the missing `vstd::vec` sort spec / verified mergesort at the
-// store layer).
+// Phase 5 sub-PR R4 landed a "framing-only" `home_timeline_ensures` here. It
+// carried ZERO `ensures` clauses, so Verus discharged the empty contract and
+// counted a unit of work; and its signature had drifted from production, which
+// takes a `cursor: i64` and returns `(Vec<Tweet>, bool)`. Both it and its shim
+// were deleted -- an obligation with no postcondition cannot be refuted by a
+// canary or falsified by a mutant, so it was count and not evidence. F1 and F2
+// in this corner are trusted, as they always were. See
+// evidence/findings/F024 and spec/refinement/OBLIGATION.md blockers B4/B5.
 #[cfg(verus_only)]
 mod verus_proof {
     use super::*;
@@ -439,6 +433,43 @@ mod verus_proof {
             }
         }
 
+        // -----------------------------------------------------------------
+        // S-14 (queue item 5) — the D6 handle-validity axis.
+        //
+        // `create_user_ensures` used to guard on `handle.as_str().is_empty()`
+        // while production `Service::create_user` guards on
+        // `!domain::valid_handle(handle)`, which ALSO rejects uppercase,
+        // over-length and punctuation. The twin therefore verified
+        //
+        //     handle@.len() > 0 && !contains(handle@) ==> result is Ok
+        //
+        // which is FALSE of the shipped function for `handle = "Alice"` --
+        // an input the conformance corpus already carries at step 5
+        // (`reject_uppercase_handle`, POST /users {"handle":"Alice"} -> 400),
+        // on a corner reported as 56/56 byte-exact. See F016 and F024.
+        //
+        // The repair keeps the twin and states the accept condition over the
+        // predicate production actually applies. `domain::valid_handle` is a
+        // shipped exec fn with no `ensures` clause, and adding one would be a
+        // change to a base app (GOAL.md standing rule 3), so the predicate is
+        // uninterpreted here and the shim below is what pins it: the shim's
+        // body IS the production call.
+        #[verifier::external_body]
+        pub closed spec fn handle_valid(h: Seq<char>) -> bool {
+            unimplemented!()
+        }
+
+        // Trusted shim around production `domain::valid_handle`. What is
+        // trusted is only that `handle_valid` is whatever that function
+        // decides -- the body is the call itself, so the shim cannot drift
+        // from the shipped predicate the way a restated body can.
+        #[verifier::external_body]
+        pub fn proof_valid_handle(h: &String) -> (out: bool)
+            ensures out == handle_valid(h@)
+        {
+            domain::valid_handle(h.as_str())
+        }
+
         // R2 discharge — verified read-only wrapper for `Service::has_user`.
         // Pure verified function: takes `&Service` (read), reuses the
         // `proof_service_has_user` shim whose post-condition pins the
@@ -453,36 +484,38 @@ mod verus_proof {
         }
 
         // R2 discharge — verified wrapper for `Service::create_user`.
-        // Encodes the F3 dup-rejection contract on the handle axis:
         //
-        //   ensures
-        //     handle@.len() == 0 ==> result is Err,
-        //     handle@.len() == 0 ==> service_users_keys(s) == service_users_keys(old(s)),
-        //     handle@.len() > 0 && service_users_keys(old(s)).contains(handle@) ==> result is Err,
-        //     handle@.len() > 0 && !service_users_keys(old(s)).contains(handle@) ==> result is Ok,
-        //     result is Ok ==> service_users_keys(s) == service_users_keys(old(s)).insert(handle@),
-        //     result is Err ==> service_users_keys(s) == service_users_keys(old(s)),
+        // S-14 CORRECTION (queue item 5). The body now mirrors the production
+        // `Service::create_user` control flow it claims to describe:
         //
-        // Body mirrors the production `Service::create_user` control flow
-        // exactly: empty-handle short-circuit, then chain through the
-        // `proof_service_put_user` shim which composes the F8 id call +
-        // the F3 store-side dup check.
+        //     1. `!domain::valid_handle(handle)`  -> Err(InvalidHandle)   (D6)
+        //     2. `self.st.has_user(handle)`       -> Err(HandleTaken)
+        //     3. allocate an id, `put_user`       -> Ok(user)
+        //
+        // The previous body had only step 3 and an `is_empty()` guard in
+        // place of step 1, which made the accept clause false of the shipped
+        // function for every syntactically-invalid non-empty handle. The
+        // accept condition below is now stated over `handle_valid`, the
+        // predicate pinned to `domain::valid_handle` by `proof_valid_handle`.
+        //
+        // Step 2 is now explicit rather than folded into
+        // `proof_service_put_user`'s postcondition, because production checks
+        // it BEFORE burning an id -- the twin should not be able to verify
+        // against an ordering production does not have.
         pub fn create_user_ensures(s: &mut Service, handle: &String) -> (result: Result<User, ServiceError>)
             ensures
-                handle@.len() == 0 ==> result is Err,
-                handle@.len() == 0 ==> service_users_keys(s) == service_users_keys(old(s)),
-                handle@.len() > 0 && service_users_keys(old(s)).contains(handle@) ==> result is Err,
-                handle@.len() > 0 && !service_users_keys(old(s)).contains(handle@) ==> result is Ok,
+                !handle_valid(handle@) ==> result is Err,
+                !handle_valid(handle@) ==> service_users_keys(s) == service_users_keys(old(s)),
+                handle_valid(handle@) && service_users_keys(old(s)).contains(handle@) ==> result is Err,
+                handle_valid(handle@) && !service_users_keys(old(s)).contains(handle@) ==> result is Ok,
                 result is Ok ==> service_users_keys(s) == service_users_keys(old(s)).insert(handle@),
                 result is Err ==> service_users_keys(s) == service_users_keys(old(s)),
         {
-            // `String::as_str().is_empty()` chains through the vstd
-            // assume_specifications for `String::as_str` (`res@ == s@`)
-            // and `str::is_empty` (`res == (s@.len() == 0)`), giving
-            // Verus the bridge from the exec branch to the `handle@.len() == 0`
-            // spec clauses above.
-            if handle.as_str().is_empty() {
+            if !proof_valid_handle(handle) {
                 return Err(ServiceError::InvalidHandle);
+            }
+            if proof_service_has_user(s, handle) {
+                return Err(ServiceError::HandleTaken);
             }
             proof_service_put_user(s, handle)
         }
@@ -601,30 +634,61 @@ mod verus_proof {
             s.st.delete_follow(from.as_str(), to.as_str());
         }
 
-        // R3 discharge — verified wrapper for `Service::follow`. Composes
-        // `dom::Follow::new` (F4 discharged in Phase 3) with
-        // `proof_service_put_follow` (handle-axis store-side step).
+        // R3 discharge — verified wrapper for `Service::follow`.
         //
-        // F4 (`from@ == to@ ==> Err`) chains structurally from `Follow::new`'s
-        // ensures clauses through the `?` operator: when `from@ == to@`,
-        // `Follow::new` returns `Err(DomainError::SelfFollow)` which the
-        // `?` converts to `Err(ServiceError::SelfFollow)`. F3 (idempotent)
-        // is structural: `proof_service_put_follow`'s post-state is
-        // `old.insert((from@, to@))` and `Set::insert` is idempotent.
+        // S-14 CORRECTION (queue item 5). The previous body was
         //
-        // Body mirrors the production `Service::follow` exactly: build the
-        // `Follow` (which gates F4) and pass it to the store-side step.
-        // `from.clone()` / `to.clone()` mirrors the production call site
-        // (`from.to_string()`, `to.to_string()`) — `Follow::new` consumes
-        // its arguments by value.
+        //     let f = Follow::new(from, to)?;   // F4 first
+        //     proof_service_put_follow(s, f)
+        //
+        // which is the PRE-D4 ORDERING -- literally the defect
+        // evidence/findings/F003 records and steps 1c/1d removed: it answers
+        // `self_follow_forbidden` for `follow(eve, eve)` where `eve` is not
+        // registered, while `S_obs` and the shipped `Service::follow` answer
+        // `unknown_user`. The old contract could not tell the two orderings
+        // apart (F016: giving the twin production's ordering still verified),
+        // because every clause it carried was of the form `... ==> result is
+        // Err` and both orderings return SOME error.
+        //
+        // Two changes, so the twin both mirrors production and can notice if
+        // it stops doing so:
+        //
+        //   - the body is production's control flow: D6 syntax, then D4
+        //     existence, then F4 semantics, then the store put;
+        //   - the first two clauses name WHICH error, not merely that there
+        //     is one. That is what makes the ordering visible to Verus:
+        //     re-inserting the old body refutes clause 2, because
+        //     `Follow::new` would answer `SelfFollow` where the clause
+        //     demands `UnknownUser`.
         pub fn follow_ensures(s: &mut Service, from: String, to: String) -> (result: Result<(), ServiceError>)
             ensures
+                // D6: syntax before existence. An ill-formed handle is
+                // rejected as `invalid_handle` before either endpoint is
+                // looked up.
+                (!handle_valid(from@) || !handle_valid(to@))
+                    ==> result is Err && result->Err_0 is InvalidHandle,
+                // D4 (F003): existence before semantics. Both handles
+                // well-formed but an endpoint unregistered answers
+                // `unknown_user` -- INCLUDING when from@ == to@, which is the
+                // exact request that separates this ordering from the one the
+                // twin used to encode.
+                (handle_valid(from@) && handle_valid(to@)
+                    && !(service_users_keys(old(s)).contains(from@)
+                         && service_users_keys(old(s)).contains(to@)))
+                    ==> result is Err && result->Err_0 is UnknownUser,
+                // F4: no self-follow, whatever the reason.
                 from@ == to@ ==> result is Err,
                 result is Ok ==>
                     service_follow_edges(s) == service_follow_edges(old(s)).insert((from@, to@)),
                 result is Err ==> service_follow_edges(s) == service_follow_edges(old(s)),
                 service_users_keys(s) == service_users_keys(old(s)),
         {
+            if !proof_valid_handle(&from) || !proof_valid_handle(&to) {
+                return Err(ServiceError::InvalidHandle);
+            }
+            if !proof_service_has_user(s, &from) || !proof_service_has_user(s, &to) {
+                return Err(ServiceError::UnknownUser);
+            }
             let f = match Follow::new(from, to) {
                 Ok(f) => f,
                 Err(e) => return Err(match e {
@@ -671,65 +735,24 @@ mod verus_proof {
         }
 
         // -----------------------------------------------------------------
-        // Stream 3 Phase 5 sub-PR R4 — `Service::home_timeline` discharge
-        // (framing-only).
+        // DELETED S-14 (queue item 5): `proof_service_home_timeline` +
+        // `home_timeline_ensures`.
         //
-        // Pure-delegation discharge of the read-only `Service::home_timeline`
-        // wrapper. Mirrors the framing-only shape Phase 4 sub-PR 5+6 used at
-        // the store layer: the underlying `store::home_timeline_ensures` was
-        // discharged framing-only there (F1 visibility and F2 sort-order
-        // remain trusted in `store::proof_home_timeline` because vstd
-        // 0.0.0-2026-04-20-1748 ships no `vstd::vec` sort spec and no
-        // verified mergesort), so the service-layer wrapper carries the same
-        // framing-only contract one composition layer up.
+        // Same shape as the store-layer deletion, one composition layer up.
+        // The wrapper carried ZERO `ensures` clauses -- Verus discharged the
+        // empty contract and counted a "verified" unit for it -- and its
+        // signature had drifted from production: `Service::home_timeline`
+        // takes a `cursor: i64` and returns `(Vec<Tweet>, bool)`, while the
+        // twin took neither and returned only the vector. The shim silently
+        // supplied `cursor = 0` and dropped the `more` flag, so D10
+        // pagination was outside the proof entirely.
         //
-        // What R4 verifies (the `home_timeline_ensures` lemma below):
-        //
-        //   - Framing on both ghost-view axes via the `&Service`-not-`&mut`
-        //     signature: the type system pins `service_users_keys` and
-        //     `service_follow_edges` unchanged across the read. No ensures
-        //     clauses are needed — framing is structural.
-        //
-        // What stays trusted in R4 (explicit non-goals):
-        //
-        //   - F1 (visibility): every returned tweet's author is in
-        //     `{user} ∪ follow_set(user)` — propagated as a trust property
-        //     of `store::proof_home_timeline`, not refined into a service-
-        //     layer ensures clause here.
-        //   - F2 (sort order): the returned `Vec<Tweet>` is sorted by
-        //     `(created_at desc, id desc)` — same propagation; needs the
-        //     missing `vstd::vec` sort spec to chain through.
-        //   - The author_tweet_count axis on `&Service` (would let the
-        //     wrapper express that the returned `Vec<Tweet>`'s length is
-        //     bounded by the per-author counts) — out of scope; deferred
-        //     until `Service::post_tweet` lands the F6 axis at the service
-        //     layer.
+        // An obligation with no postcondition cannot be refuted by a canary
+        // and cannot be falsified by a mutant, so it was pure count. F1 and
+        // F2 in this corner were, and remain, trusted -- see
+        // spec/refinement/OBLIGATION.md blockers B4/B5 and
+        // evidence/findings/F024.
         // -----------------------------------------------------------------
-
-        // Trusted shim around `Service::home_timeline`'s store-side
-        // composition step (`s.st.home_timeline(user.as_str(), limit)`).
-        // Body calls the real production method on the concrete `MemStore`
-        // field; framing on both ghost-view axes is structural via the
-        // `&Service` signature (no `&mut`). No ensures clauses on the
-        // returned `Vec<Tweet>` — F1 and F2 stay trusted at the
-        // `store::proof_home_timeline` layer (vstd 0.0.0-2026-04-20-1748
-        // ships no sort spec to chain through).
-        #[verifier::external_body]
-        pub fn proof_service_home_timeline(s: &Service, user: &String, limit: usize) -> (out: Vec<Tweet>)
-        {
-            s.st.home_timeline(user.as_str(), limit, 0).0
-        }
-
-        // R4 discharge — verified read-only wrapper for
-        // `Service::home_timeline`. Pure delegation to
-        // `proof_service_home_timeline`. Framing on both ghost-view axes
-        // (`service_users_keys`, `service_follow_edges`) is structural via
-        // the `&Service` signature. F1 and F2 remain trusted at the
-        // `store::proof_home_timeline` layer — see module commentary above.
-        pub fn home_timeline_ensures(s: &Service, user: &String, limit: usize) -> (result: Vec<Tweet>)
-        {
-            proof_service_home_timeline(s, user, limit)
-        }
 
         // `Service::tick` composition (R1 status; unchanged by R2/R3/R4).
         // Verified `tick_ensures(s: &mut Service)` lemma is **not** shipped

@@ -236,26 +236,31 @@ That the module is live was confirmed: injecting `assert(false)` into
 `error: assertion failed` and `verification results:: 6 verified, 1 errors`.
 So Verus really is checking those twins.
 
-The twins have drifted from the code. `put_tweet_ensures` claims
+**Because nothing mechanically relates a twin to its function, twins drift.**
+Four had. S-14 (GOAL.md queue item 5) audited every twin against its
+production function line by line and disposed of all four; the audit is
+`evidence/findings/F024`. Two were repaired and two were deleted:
 
-```
-users_keys(old(s)).contains(t.author@)  ==> result is Ok
-```
+| twin | disposition |
+|---|---|
+| `service::create_user_ensures` | **fixed.** Guarded on `handle.as_str().is_empty()` where production guards on `!domain::valid_handle(handle)`, so its accept clause was *false* of the shipped function for `"Alice"` — corpus step 5. The guard is now a shim whose body is the production call |
+| `service::follow_ensures` | **fixed.** Body called `Follow::new` before the existence checks — the pre-D4 ordering, i.e. the F003 defect. Body now mirrors production, and two clauses name *which* error, so the ordering is visible to the verifier for the first time |
+| `store::home_timeline_ensures` | **deleted.** Zero `ensures` clauses, delegating to a second, cursor-less copy of the timeline walk |
+| `service::home_timeline_ensures` | **deleted.** Same, one layer up; the shim passed `cursor = 0` and dropped the `more` flag |
 
-but the production `MemStore::put_tweet` has a **third** branch — it returns
-`Err(StoreError::NonMonotonic)` when the append would break the log invariant.
-Adding that branch to the twin makes Verus reject the clause:
+`put_tweet_ensures` was the fifth drift and is **already repaired** — S-13
+replaced its `users_keys(old(s)).contains(t.author@) ==> result is Ok` with
+`accepts_tweet(old(s), t) ==> result is Ok`, conjoining the monotonicity guard
+that production's third branch applies. An earlier revision of this section
+stated that drift in the present tense after it had been fixed; that sentence
+was wrong and is replaced by this one (F020).
 
-```
-error: postcondition not satisfied
-   --> crates/store/src/lib.rs:750:17
-750 |    users_keys(old(s)).contains(t.author@)  ==> result is Ok,
-766 |    return Err(StoreError::NonMonotonic);   at this exit
-```
-
-So that Verus contract is false of the function it claims to describe, and the
-verifier could not notice, because it never sees that function. Any refinement
-claim built on this shape would be a claim about the twins.
+The count over the five verify-enabled crates is now
+**clock 2, ids 0, domain 9, store 6, service 4 — 21 verified, 0 errors**,
+down from 23 because the two deletions removed two contentless units. Read
+that number with F016's decomposition beside it: it counts units of work, not
+guarantees, and what it counts is still copies rather than shipped functions.
+Any refinement claim built on this shape would be a claim about the twins.
 
 ## 8. Status of R5-core, per clause
 
@@ -269,9 +274,11 @@ package is compatible with an obligation nothing reaches.
 This table is now derived rather than asserted. `spec/refinement/clause-sites.json`
 maps each clause to the `ensures` that carries it, and `go run ./tools/cmd/gobra r5`
 prints the status together with the Gobra line that refuted each negation.
-Current run: **26 VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS**
-(`evidence/runs/gobra/r5-clause-status.txt`). An earlier run's 25/5 was
-produced by a colliding checkpoint key and is withdrawn.
+Current run: **30 VERIFIED, 0 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS**
+(`evidence/runs/gobra/r5-clause-status.txt`). The four `U` rows this table
+carried until 2026-09-02 were all on `HomeTimeline` and are now `D`: see F029
+and the "four `U` rows" note below. An earlier run's 25/5 was produced by a
+colliding checkpoint key and is withdrawn.
 `—` = not stated, with the blocker named.
 
 ### Go — `internal/store` (Gobra, image `sha256:2ef080cc`)
@@ -292,18 +299,28 @@ produced by a colliding checkpoint key and is withdrawn.
 | `PutTweet` | `¬AbsAcceptsTweet(t)` ⇒ length unchanged | **D** |
 | `PutTweet` | prefix of the log unchanged (append-only) | **D** |
 | `HomeTimeline` | descending `(created_at, id)` | **D** (F2) |
-| `HomeTimeline` | every entry authored by `user` or followed by `user` | **U** (**F1**) |
-| `HomeTimeline` | `cursor > 0 ⇒ every id < cursor` | **U** (D10) |
-| `HomeTimeline` | no fabrication: every entry is some log entry | **U** |
-| `HomeTimeline` | no loss: if `!more`, every visible entry under the cursor is on the page | **U** |
+| `HomeTimeline` | every entry authored by `user` or followed by `user` | **D** (**F1**), F029 |
+| `HomeTimeline` | `cursor > 0 ⇒ every id < cursor` | **D** (D10), F029 |
+| `HomeTimeline` | no fabrication: every entry is some log entry | **D**, F029 |
+| `HomeTimeline` | no loss: if `!more`, every visible entry under the cursor is on the page | **D**, F029 |
 | `Replace` | installs a log satisfying the append-log invariant | **D**, not canaried — see below |
 
-**The four `U` rows are all on `HomeTimeline`**, and so are three framing
-negations that refute in seconds on every other member: it is that method's
-proof that sits at the edge of the budget, not the canaries. Auditing cost
-rises with obligation strength, so the obligations most worth checking for
-vacuity are the ones the check cannot reach. See
-[F021](../../evidence/findings/F021-the-audit-fails-where-the-obligations-are-strongest.md).
+**The four `U` rows were all on `HomeTimeline`**, and so were three framing
+negations that refute in seconds on every other member. F021 read that as the
+method's proof sitting at the edge of the budget and concluded that auditing
+cost rises with obligation strength — so the obligations most worth checking
+for vacuity would be the ones the check cannot reach.
+
+That is measured now and it was the wrong diagnosis
+([F029](../../evidence/findings/F029-the-audit-was-undecidable-as-spelled-not-as-asked.md)).
+The clean package proves all nine of these postconditions in 42 s; what cost
+722 s and then 2703 s was the *canary's* shape, which re-verified the whole
+member to ask about one clause, and the *spelling* of three derived negations
+(`forall a int :: !(0 <= a && a < len(out))` rather than the equal and
+decidable `len(out) == 0`). Asked one at a time, in a decidable spelling, all
+four refute — 98 s to 637 s — and each carries a control run on the same member
+with `assume false` in the body that comes back VACUOUS. Neither
+`--parallelizeBranches` nor a 3.75x budget helped at all.
 
 `Replace` carries no functional postcondition at all. What it discharges is the
 `fold acc(s.LockP())` closing its body — `LockP()` carries the append-log
@@ -334,13 +351,73 @@ discharged but unaudited by a different route than the five above. Its canary
 | `Tick` | `now' == now + 1` | **D** at `(*Logical).Tick`; not forwarded through the `nowLogical` / `tickLogical` interface shims, which stay `// @ trusted` |
 | all | id counters | — §6 |
 
+### Kotlin — `impls/kotlin` (JBMC 6.11.0, bounded)
+
+Added 2026-09-02. This corner was recorded as reaching no R5 clause at all, and
+that was a prediction rather than a measurement. The prediction was wrong for a
+reason worth naming: the assumed obstacle was JBMC's *output* — whether a
+failing goal can be traced back to a named refinement obligation — and it is
+not one. JBMC emits one goal per `assert`, carrying the entry point, the
+assertion index, the file and the line, so the join is finer than the Gobra one
+above. What was actually missing was an **abstraction function**.
+
+`abs` here is `Store`'s R5 block, one projection per axis, and it is concrete
+for the same reason Go's is: an uninterpreted `abs` would make every clause an
+axiom. Three of the four axes are decidable and one is not:
+
+| axis | projection | JBMC |
+|---|---|---|
+| log | `absLogLen`, `absLogIdAt`, `absLogCreatedAtAt`, `absLogAuthorAt` | decidable |
+| users | `absUserCount`, `absHasUser` | decidable — but only over *interned literal* handles, see below |
+| clock | `clock()` | decidable |
+| follows | `absFollows` | **no.** `HashSet.contains(Edge)` → `Edge.equals` → `String.equals` → B7' below |
+
+**B7' — JBMC answers FAILURE for a follows-axis claim AND for its negation.**
+That is not vacuity: vacuity's signature is a claim and its negation both
+*verifying*. It is nondeterminism, because the broken `String.equals` intrinsic
+(F014) leaves `contains` returning an unconstrained boolean. Either answer would
+be an artefact of the defect, so clauses 7 and 9 are in neither the numerator
+nor the denominator (F022's accounting).
+
+| Operation | Clause | Status |
+|---|---|---|
+| `init` | 1 — `abs(init) == init_S` on log, users, follows and clock | **D** |
+| `createUser` | 2 — fresh handle ⇒ `AbsUsers' = AbsUsers ∪ {h}` | **D** |
+| `addFollow` | 7 — both ends known ⇒ `AbsFollows' = AbsFollows ∪ {e}` | — B7' |
+| `removeFollow` | 9 — `AbsFollows' = AbsFollows \ {e}` | — B7' |
+| `appendTweet` | 11 — accepted append ⇒ length +1, `t` last | **D** |
+| `appendTweet` | 13 — the existing log prefix is never rewritten | **D** |
+| `tick` | 36 — `now' == now + 1` | **D** |
+
+`D` here means the same two things it means above — JBMC reported every own
+assertion goal SUCCESS **and** the clause's negation canary was refuted in the
+same tree — and one thing less. **Every clause is a ground instance inside an
+unwinding bound.** Gobra's clause 2 holds for every handle; `c02` holds for the
+handle `"a"`. The users axis is decidable *because* of that: `containsKey`
+reaches `String.equals` only after `(k = e.key) == key` fails, and literals are
+interned, so it never fails. Over a nondeterministic handle this axis would be
+blocked like the follows axis.
+
+Run: **5 VERIFIED, 2 BLOCKED, 0 FAILED, 0 VACUOUS**
+(`evidence/runs/kotlin-r5-gate/00-clean.log`, and the gate beside it).
+
+`obligations.json` is deliberately **not** extended with these rows.
+`gobra r5` iterates that array by index and joins it against
+`clause-sites.json`, so appending seven Kotlin rows would change the Go corner's
+own printed totals from `26 VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED` to something
+with seven more UNATTEMPTED — a number about the Kotlin corner appearing inside
+a count of the Go corner. The Kotlin sites live in
+`spec/refinement/clause-sites-kotlin.json` instead, **keyed on the same clause
+numbers**, so "R5 clause 11" is one sentence with a status per corner rather
+than two sentences that happen to share an index.
+
 ### Rust — `impls/rust` (Verus 0.2026.04.24.f8e1704)
 
 | Clause | Status |
 |---|---|
 | `abs_rust` has a body | — B4, B5 |
 | any commutation clause | — not stated; would be an axiom over an uninterpreted `abs`, per B4 |
-| what the 23 verified obligations cover | the `verus_proof` twins, not the production functions — §7 |
+| what the 21 verified obligations cover | the `verus_proof` twins, not the production functions — §7 |
 
 ### `init` commutation
 
@@ -366,6 +443,12 @@ that it is not written down until something does. What is supported:
   for the timeline.
 - On the Rust corner: nothing at the refinement rung, and the R4 result is over
   hand-written twins rather than over the shipped code.
+- On the Kotlin corner, on the same decoded-operation alphabet, **at ground
+  instances inside an unwinding bound**: a real abstraction function with
+  concrete bodies on three of four axes, and five clauses discharged and shown
+  refutable. It is the weakest of the three kinds of evidence in this file and
+  it is not nothing, which is the distinction the R5 column previously could
+  not draw.
 
 A port's claim is capped by the weaker of its two ends. With Rust at "no
 abstraction function is definable", **every port with Rust at either end is

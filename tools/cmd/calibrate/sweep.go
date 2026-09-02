@@ -30,7 +30,36 @@ type Setup struct {
 // establishes that the directory the rungs will resolve holds mutated bytes,
 // then the tree's build cache is warmed, and only then does any rung run and
 // any clock start.
-func calibrateOne(cfg Config, tools *toolset, m mutants.Mutant, rungs []rung, jr *journal, keepTree bool) ([]Cell, *ProbeRecord, *Setup) {
+func calibrateOne(cfg Config, tools *toolset, m mutants.Mutant, selected []rung, jr *journal, keepTree bool) ([]Cell, *ProbeRecord, *Setup) {
+	key := m.Key()
+
+	// A rung the corner has no verifier for is a capped cell, decided from
+	// the configuration alone: nothing is materialised or run for it, and it
+	// is appended after the measured cells so the report's per-mutant row
+	// still shows every selected rung.
+	rungs, capped := splitRungs(m.Impl, selected)
+	cappedCells := make([]Cell, 0, len(capped))
+	for _, r := range capped {
+		cappedCells = append(cappedCells, cappedCell(m, r))
+	}
+	if len(rungs) == 0 {
+		fmt.Printf("\n%-28s capped: no selected rung exists for corner %s\n", key, m.Impl)
+		return cappedCells, nil, nil
+	}
+	cells, probe, setup := calibrateRunnable(cfg, tools, m, rungs, jr, keepTree)
+	return append(cells, cappedCells...), probe, setup
+}
+
+func cappedCell(m mutants.Mutant, r rung) Cell {
+	return Cell{
+		Mutant: m.Key(), Impl: m.Impl, ID: m.ID, Family: m.Family,
+		Rung: r.ID, Outcome: outcomeCapped,
+		Detail: fmt.Sprintf("corner %s has no %s rung (%s exists for %s); not a measurement and in no denominator",
+			m.Impl, r.ID, r.Label, strings.Join(r.Impls, ", ")),
+	}
+}
+
+func calibrateRunnable(cfg Config, tools *toolset, m mutants.Mutant, rungs []rung, jr *journal, keepTree bool) ([]Cell, *ProbeRecord, *Setup) {
 	key := m.Key()
 
 	// The planned content address is computed BEFORE anything is written, from
@@ -88,21 +117,42 @@ func calibrateOne(cfg Config, tools *toolset, m mutants.Mutant, rungs []rung, jr
 	fmt.Printf("  setup    apply %.1fs (%s copy) + warm build %.1fs -- charged to no rung\n",
 		setup.ApplyMS/1000, res.CopyMode, warm/1000)
 
+	cells := runRungs(rungs, key, res.TreeHash, jr, func(r rung) Cell {
+		return runRung(cfg, tools, m, r, implName, regPath, res.TreeHash, guard)
+	})
+
+	probe := maybeProbe(cfg, tools, m, res.TreeHash, cells, jr)
+	classify(m, cells, probe, rungs)
+	return cells, probe, &setup
+}
+
+// runRungs measures EVERY selected rung against one materialised mutant.
+//
+// PER-JUDGE ATTRIBUTION, and that is why this loop has no early exit. A mutant
+// R0 kills is still handed to R1, R2, R4 and R5, and every rung that would
+// have killed it records its own kill in its own cell. Stopping at the first
+// killing rung -- first-judge attribution -- would be cheaper and would
+// produce a table that understates every rung after the first by an amount
+// determined by nothing but the order the rungs happen to run in. The later
+// rows would read "adds nothing over the cheaper rung", which would be a
+// statement about this loop, not about those rungs.
+//
+// The invocation is injected so the loop's shape is testable without
+// materialising a tree or launching a verifier: TestEveryRungRunsAfterAKill
+// fails the moment a `break` or a kill short circuit appears here.
+func runRungs(rungs []rung, key, treeHash string, jr *journal, run func(rung) Cell) []Cell {
 	var cells []Cell
 	for _, r := range rungs {
-		if c, ok := jr.cell(key, res.TreeHash, r.ID); ok {
+		if c, ok := jr.cell(key, treeHash, r.ID); ok {
 			fmt.Printf("  %-3s      %-10s %6.1fs  (resumed)\n", r.ID, c.Outcome, c.WallMS/1000)
 			cells = append(cells, c)
 			continue
 		}
-		c := runRung(cfg, tools, m, r, implName, regPath, res.TreeHash, guard)
+		c := run(r)
 		jr.appendCell(c)
 		cells = append(cells, c)
 	}
-
-	probe := maybeProbe(cfg, tools, m, res.TreeHash, cells, jr)
-	classify(cells, probe, rungs)
-	return cells, probe, &setup
+	return cells
 }
 
 // runRung invokes one rung and reads its answer. The outcome recorded here is
@@ -115,7 +165,10 @@ func runRung(cfg Config, tools *toolset, m mutants.Mutant, r rung, implName, reg
 		Mutant: m.Key(), Impl: m.Impl, ID: m.ID, Family: m.Family,
 		TreeHash: treeHash, Rung: r.ID, Guard: guard,
 	}
-	tr, err := tools.run(cfg.Root, r.Tool, r.Args(cfg, implName, regPath), cfg.rungTimeout())
+	// The tool and its argv are resolved per corner: one rung may be driven by
+	// a different verifier on each corner (R4 is Gobra on Go and JBMC on
+	// Kotlin), and a corner with no override gets the rung's own fields.
+	tr, err := tools.run(cfg.Root, r.toolFor(m.Impl), r.argsFor(m.Impl)(cfg, implName, regPath), cfg.rungTimeout())
 	if err != nil {
 		c.Outcome, c.Error = outcomeError, err.Error()
 		fmt.Printf("  %-3s      ERROR      %s\n", r.ID, err)
@@ -200,34 +253,68 @@ func maybeProbe(cfg Config, tools *toolset, m mutants.Mutant, treeHash string, c
 // classify turns raw survivals into the three-way outcome. It is a pure
 // function of the cell and the probe, which is what lets a resumed run produce
 // the same table as an uninterrupted one.
-func classify(cells []Cell, p *ProbeRecord, rungs []rung) {
-	inputs := map[string]string{}
+func classify(m mutants.Mutant, cells []Cell, p *ProbeRecord, rungs []rung) {
+	byID := map[string]rung{}
 	for _, r := range rungs {
-		inputs[r.ID] = r.Inputs
+		byID[r.ID] = r
 	}
 	for i := range cells {
 		c := &cells[i]
 		if c.Outcome != outcomeUnclassified {
 			continue
 		}
+		r := byID[c.Rung]
+		// A proof rung's reach is decided from the verification matrix, not
+		// from a probe: either the verifier reads a file the mutant edits or
+		// it does not. Liveness still comes from the probe, because a
+		// survivor nobody can tell from the original is equivalent whatever
+		// the verifier read.
+		reads := r.coversFor(m.Impl)
+		covered := true
+		if reads != nil {
+			covered = reads(m)
+		}
 		if p == nil {
 			c.Detail = "not probed, so this survival is unexplained: it may be a rung weakness, an input gap, or a mutant with no observable effect"
+			if !covered {
+				c.Detail = "not probed; the verifier reads none of the files this mutant edits, so if it is live it is unreached by the contract, not survived"
+			}
 			continue
 		}
 		switch {
 		case !p.Live:
 			c.Outcome = outcomeEquivalent
 			c.Detail = "no probe input tells the mutant apart from the original, including its own declared witness; not counted against any rung"
-		case p.ReachesInputs(inputs[c.Rung]):
+		case !covered:
+			c.Outcome = outcomeUnreached
+			c.Detail = fmt.Sprintf("live (reached by %s), but the verifier reads none of the files this mutant edits (%s); no obligation covers it",
+				strings.Join(p.Reached, ", "), editedFiles(m))
+		case reads != nil:
+			c.Outcome = outcomeSurvived
+			c.Detail = fmt.Sprintf("live (reached by %s) and inside the verified core (%s), yet the proof passed: the contract does not constrain the mutated behaviour",
+				strings.Join(p.Reached, ", "), editedFiles(m))
+		case p.ReachesInputs(r.Inputs):
 			c.Outcome = outcomeSurvived
 			c.Detail = fmt.Sprintf("live and reached by this rung's inputs (%s), yet the rung passed: a gap in the rung, not in the inputs",
 				strings.Join(p.Reached, ", "))
 		default:
 			c.Outcome = outcomeUnreached
 			c.Detail = fmt.Sprintf("live, but nothing in this rung's input source (%s) elicits the difference; reached only by %s",
-				inputs[c.Rung], strings.Join(p.Reached, ", "))
+				r.Inputs, strings.Join(p.Reached, ", "))
 		}
 	}
+}
+
+func editedFiles(m mutants.Mutant) string {
+	seen := map[string]bool{}
+	var out []string
+	for _, e := range m.Edits {
+		if !seen[e.File] {
+			seen[e.File] = true
+			out = append(out, e.File)
+		}
+	}
+	return strings.Join(out, ", ")
 }
 
 // reuse returns the journalled cells for a mutant when every enabled rung is
@@ -255,7 +342,7 @@ func reuse(cfg Config, m mutants.Mutant, treeHash string, rungs []rung, jr *jour
 			}
 		}
 	}
-	classify(cells, probe, rungs)
+	classify(m, cells, probe, rungs)
 	return cells, probe, true
 }
 

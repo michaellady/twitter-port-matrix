@@ -64,8 +64,20 @@
         "ADDR": "{addr}"
       },
       "health_path": "/healthz",
-      "verifier": "OpenJML",
-      "status": "written against the S_obs contract; R0 54/54 byte-exact, canary sweep 4/4 rejected. No build tool and no dependencies: plain javac against JDK 17, serving HTTP/1.1 on a raw ServerSocket (the JDK HttpServer is not total over the request target)"
+      "verifier": "JBMC 6.11.0, bounded. ASSURANCE.md listed Java's R4 route as OpenJML/KeY; neither was ever attempted, and F014 established that the route that IS available -- JBMC over the compiled bytecode -- hits the same three defects the Kotlin corner hits, in the language those defects were reduced to. `impls/java/verification` now carries the twin of the Kotlin corner's obligation set, measured rather than assumed (F034): 7 of the 15 obligations are decidable and 8 carry a recorded JBMC limit, the same partition as Kotlin's. `calibrate -impls java -rungs R4` drives `tools/cmd/jbmc verify`, whose denominator is the 7 decidable obligations",
+      "status": "written against the S_obs contract; R0 54/54 byte-exact, canary sweep 4/4 rejected. No build tool and no dependencies: plain javac against JDK 17, serving HTTP/1.1 on a raw ServerSocket (the JDK HttpServer is not total over the request target)",
+      "verify_build": [
+        "javac",
+        "--release",
+        "17",
+        "-nowarn",
+        "-d",
+        "{bin}-classes",
+        "-sourcepath",
+        "src:verification",
+        "verification/twitterport/verification/Obligations.java",
+        "verification/twitterport/verification/Canaries.java"
+      ]
     },
     "kotlin": {
       "dir": "impls/kotlin",
@@ -90,8 +102,18 @@
         "ADDR": "{addr}"
       },
       "health_path": "/healthz",
-      "verifier": "none -- see ASSURANCE.md: Kotlin has no mature deductive verifier, so this corner is capped at R3 + bounded/differential evidence",
-      "status": "written against the S_obs contract; R0 56/56 byte-exact, canary sweep 4/4 rejected. No build tool and no library dependencies: kotlinc 2.4.10 emits a self-contained jar (-include-runtime bundles kotlin-stdlib), serving HTTP/1.1 on a raw ServerSocket for the same reason the Java corner does -- the JDK HttpServer is not total over the request target, and a Kotlin HTTP framework would have re-introduced the F008 routing defect"
+      "verifier": "JBMC 6.11.0, bounded. No deductive verifier exists for Kotlin (ASSURANCE.md), so R4 here is bounded model checking rather than proof, and 8 of the 15 obligations are undecidable by a JBMC defect rather than by anything about Kotlin (F014). `calibrate -impls kotlin -rungs R4` drives `tools/cmd/jbmc verify`, whose denominator is the 7 decidable obligations",
+      "status": "written against the S_obs contract; R0 56/56 byte-exact, canary sweep 4/4 rejected. No build tool and no library dependencies: kotlinc 2.4.10 emits a self-contained jar (-include-runtime bundles kotlin-stdlib), serving HTTP/1.1 on a raw ServerSocket for the same reason the Java corner does -- the JDK HttpServer is not total over the request target, and a Kotlin HTTP framework would have re-introduced the F008 routing defect",
+      "verify_build": [
+        "kotlinc",
+        "-jvm-target",
+        "17",
+        "-nowarn",
+        "-d",
+        "{bin}-classes",
+        "src",
+        "verification"
+      ]
     }
   }
 }

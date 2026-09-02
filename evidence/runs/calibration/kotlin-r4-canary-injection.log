@@ -1,0 +1,30 @@
+jbmc: bounded proof rung over the kotlin corner
+        tree    /tmp/claude-0/-home-user-twitter-port-matrix/bcd1fbd7-34e3-5ec2-b270-0c6061197557/scratchpad/canary-inject
+        jbmc    6.11.0 (cbmc-6.11.0)
+        kotlinc info: kotlinc-jvm 2.4.10 (JRE 21.0.10+7-Ubuntu-124.04)
+        bounds  --unwind 30 --max-nondet-string-length 3, budget 30m0s (8m0s per obligation)
+        compile src + verification in 17.3s
+====================================================================================================
+obligation                         verdict    own assertion goals      wall      JBMC's own line
+----------------------------------------------------------------------------------------------------
+o1a_oneCharAcceptSet               REFUTED    0 ok, 1 failed           22.6s     VERIFICATION FAILED
+o1b_twoCharAcceptSet               VERIFIED   1 ok, 0 failed           13.4s     VERIFICATION SUCCESSFUL
+o1c_emptyAndBareSignRejected       REFUTED    2 ok, 1 failed           3.6s      VERIFICATION FAILED
+o3a_idsStrictlyIncrease            VERIFIED   1 ok, 0 failed           3.8s      VERIFICATION SUCCESSFUL
+o3b_createdAtNonDecreasing         VERIFIED   2 ok, 0 failed           5.6s      VERIFICATION SUCCESSFUL
+o3c_lemmaOverThreeAppends          VERIFIED   2 ok, 0 failed           12.6s     VERIFICATION SUCCESSFUL
+o5c_syntaxBeatsExistence           VERIFIED   1 ok, 0 failed           6.1s      VERIFICATION SUCCESSFUL
+----------------------------------------------------------------------------------------------------
+negation canaries not run: 2 obligation(s) were refuted, which decides the tree on its own
+====================================================================================================
+decidable 7   VERIFIED 5   REFUTED 2   VACUOUS 0   UNDECIDED 0
+blocked   8   (recorded JBMC 6.11.0 limits; in neither the numerator nor the denominator)
+    JBMC's String.getBytes(Charset) is nondeterministic (F014); the UTF-8 byte-length predicates are unreachable
+        o2a_emptyIsInvalid, o2b_goodHandleIsValid, o5a_unknownBeatsSelfFollow, o5b_knownSelfFollowIsForbidden
+    JBMC exhausts memory on this instance ("SAT checker ran out of memory"); a bounded-model-checking scalability wall, not a modelling gap
+        o4a_pageRespectsLimit, o5d_rejectionBurnsNoId
+    JBMC's String.equals is unsound (`assert "abc".equals("abc")` is FAILURE, F014); every visibility and error-code comparison is undecidable
+        o4b_cursorNullMeansExhausted, o4c_pageIsNewestFirst
+
+R4 FAILED: JBMC refuted 2 of 7 decidable obligation(s) (2 of 11 own assertion goals FAILURE): o1a_oneCharAcceptSet, o1c_emptyAndBareSignRejected; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [1m33.1s]
+exit=1

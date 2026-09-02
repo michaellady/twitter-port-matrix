@@ -159,4 +159,59 @@ class Store {
         }
         return Page(page, next)
     }
+
+    // --- R5: the abstraction function ---------------------------------------
+    //
+    // `spec/refinement/OBLIGATION.md` §4 states abs as one pure projection per
+    // axis of the `S_obs` state. These are this corner's, and they are here for
+    // the same reason the Go corner's `AbsUsers` / `AbsFollows` / `AbsLogLen`
+    // are in `memstore.gobra`: an abstraction function over state that is not
+    // reachable from outside the object is not definable at all, and an
+    // UNINTERPRETED abs would make every commutation clause an axiom instead of
+    // a theorem (which is exactly what B4 costs the Rust corner).
+    //
+    // TWO DIFFERENCES FROM THE GO CORNER, both real and neither hideable:
+    //
+    //  1. Go's projections are GHOST: they live in `// @` comments, `go build`
+    //     erases them, and the shipped binary has no such methods. Kotlin has
+    //     no ghost mode, so these are ordinary methods on the shipped class.
+    //     They are not called by `src/` -- `Main.kt` and the shim never touch
+    //     them -- but they are in the compiled artefact, and that is a widening
+    //     of this corner's surface that the Go corner does not pay. Recorded in
+    //     evidence/findings/F045 rather than worked around.
+    //
+    //  2. Go projects the users and follows axes as SETS (`set[string]`,
+    //     `set[dom.Follow]`), which Gobra's ghost language has. JBMC has no set
+    //     theory, so each axis is decomposed into a membership test and a
+    //     cardinality. `absFollows` is measured UNDECIDABLE by JBMC 6.11.0
+    //     (F014: `HashSet.contains` reduces to `Edge.equals`, which reduces to
+    //     `String.equals`); it is kept because the clause it would carry is
+    //     part of the obligation, and `jbmc r5verify` reports it BLOCKED rather
+    //     than dropping it from the denominator.
+    //
+    // `clock()` above is the clock axis; it needs no separate projection.
+
+    /** abs, users axis: how many handles are registered. */
+    fun absUserCount(): Int = users.size
+
+    /** abs, users axis: is this handle registered. */
+    fun absHasUser(handle: String): Boolean = userByHandle.containsKey(handle)
+
+    /** abs, follows axis: how many directed edges exist. */
+    fun absFollowCount(): Int = follows.size
+
+    /** abs, follows axis: does this edge exist. BLOCKED by F014 -- see above. */
+    fun absFollows(from: String, to: String): Boolean = follows.contains(Edge(from, to))
+
+    /** abs, log axis: the length of the append-ordered log. */
+    fun absLogLen(): Int = log.size
+
+    /** abs, log axis: the id at log position [i]. */
+    fun absLogIdAt(i: Int): Long = log[i].id
+
+    /** abs, log axis: the timestamp at log position [i]. */
+    fun absLogCreatedAtAt(i: Int): Long = log[i].createdAt
+
+    /** abs, log axis: the author at log position [i]. */
+    fun absLogAuthorAt(i: Int): String = log[i].author
 }

@@ -1,0 +1,89 @@
+{
+  "note": "The Kotlin corner's half of the R5 clause map: links a clause in obligations.json to the individual `assert` in impls/kotlin/verification/Refinement.kt that carries it, so a clause's status can be read off JBMC's own goal lines instead of asserted. THE CLAUSE NUMBERS ARE obligations.json's -- they are not a second numbering. 'R5 clause 11' names the same sentence on this corner as on the Go corner, which is the only thing that makes a `go <- kotlin` cell mean anything. Sites are matched on (member, text) where text is the assert's argument with runs of whitespace collapsed; line numbers are not stored because they drift, and `jbmc r5verify` re-derives them from the tree under test. A clause listed here with evidence_kind 'blocked' is in NEITHER the numerator nor the denominator (F022 accounting): JBMC cannot decide it and either answer would be an artefact of the tool defect named in the note.",
+  "keyed_by": "1-based index into spec/refinement/obligations.json .clauses -- the SAME key clause-sites.json uses",
+  "corner": "kotlin",
+  "verifier": "JBMC 6.11.0 (cbmc-6.11.0), bounded",
+  "caveat": "Every site below is a GROUND instance at concrete handles and texts, not a universally quantified clause. The Go corner's `!(u.Handle in old(s.AbsUsers())) ==> ...` holds for every handle; `c02_createUserAddsExactlyThatHandle` holds for the handle \"a\" within the unwinding bound. That is what a bounded model checker gives. A cell built on this file must not be read as the Go corner's cell.",
+  "clauses": {
+    "1": {
+      "summary": "abs(init) == init_S on users, follows and log axes",
+      "corner": "kotlin",
+      "recorded_status": "discharged",
+      "evidence_kind": "assertion",
+      "note": "The Kotlin projection adds the clock axis, which the Go corner states separately at (*clock.Logical).Tick because its clock is a different package.",
+      "sites": [
+        {"file": "verification/Refinement.kt", "member": "c01_absInitIsTheEmptyState", "text": "s.absLogLen() == 0"},
+        {"file": "verification/Refinement.kt", "member": "c01_absInitIsTheEmptyState", "text": "s.absUserCount() == 0"},
+        {"file": "verification/Refinement.kt", "member": "c01_absInitIsTheEmptyState", "text": "s.absFollowCount() == 0"},
+        {"file": "verification/Refinement.kt", "member": "c01_absInitIsTheEmptyState", "text": "s.clock() == 0L"}
+      ]
+    },
+    "2": {
+      "summary": "fresh handle => AbsUsers' == AbsUsers + {h}",
+      "corner": "kotlin",
+      "recorded_status": "discharged",
+      "evidence_kind": "assertion",
+      "note": "Decidable only because handles written as literals are interned: HashMap.containsKey reaches String.equals after `(k = e.key) == key` fails, and here it does not fail. Over a nondeterministic handle this axis would be blocked by F014 like the follows axis.",
+      "sites": [
+        {"file": "verification/Refinement.kt", "member": "c02_createUserAddsExactlyThatHandle", "text": "s.absHasUser(\"a\")"},
+        {"file": "verification/Refinement.kt", "member": "c02_createUserAddsExactlyThatHandle", "text": "s.absUserCount() == before + 1"}
+      ]
+    },
+    "7": {
+      "summary": "both endpoints known => AbsFollows' == AbsFollows + {e} and err == nil (F3 idempotent, F9)",
+      "corner": "kotlin",
+      "recorded_status": "blocked",
+      "evidence_kind": "blocked",
+      "note": "F014. HashSet.contains(Edge) -> Edge.equals -> String.equals. JBMC answers FAILURE for the claim AND FAILURE for its negation, so neither direction is an answer about this port. Measured, verbatim, in evidence/findings/F046. In neither the numerator nor the denominator.",
+      "sites": [
+        {"file": "verification/Refinement.kt", "member": "c07_addFollowAddsExactlyThatEdge", "text": "s.absFollows(\"a\", \"b\")"},
+        {"file": "verification/Refinement.kt", "member": "c07_addFollowAddsExactlyThatEdge", "text": "s.absFollowCount() == before + 1"}
+      ]
+    },
+    "9": {
+      "summary": "AbsFollows' == AbsFollows - {e}, unconditionally (F3 idempotent)",
+      "corner": "kotlin",
+      "recorded_status": "blocked",
+      "evidence_kind": "blocked",
+      "note": "F014, same route as clause 7 -- HashSet.remove compares with the same intrinsic, so even the cardinality half comes back FAILURE.",
+      "sites": [
+        {"file": "verification/Refinement.kt", "member": "c09_removeFollowRemovesExactlyThatEdge", "text": "!s.absFollows(\"a\", \"b\")"},
+        {"file": "verification/Refinement.kt", "member": "c09_removeFollowRemovesExactlyThatEdge", "text": "s.absFollowCount() == 0"}
+      ]
+    },
+    "11": {
+      "summary": "AbsAcceptsTweet(t) => log length +1, t last, err == nil (F6)",
+      "corner": "kotlin",
+      "recorded_status": "discharged",
+      "evidence_kind": "assertion",
+      "note": "`t last` is stated on three fields of the appended tweet, not on the object: the author is compared with compareTo, because == on String reaches the F014 intrinsic. The text field is not projected for the same reason the Go corner does not project it -- no response depends on comparing it here.",
+      "sites": [
+        {"file": "verification/Refinement.kt", "member": "c11_appendAddsExactlyOneAtTheEnd", "text": "s.absLogLen() == before + 1"},
+        {"file": "verification/Refinement.kt", "member": "c11_appendAddsExactlyOneAtTheEnd", "text": "s.absLogIdAt(s.absLogLen() - 1) == t.id"},
+        {"file": "verification/Refinement.kt", "member": "c11_appendAddsExactlyOneAtTheEnd", "text": "s.absLogCreatedAtAt(s.absLogLen() - 1) == t.createdAt"},
+        {"file": "verification/Refinement.kt", "member": "c11_appendAddsExactlyOneAtTheEnd", "text": "s.absLogAuthorAt(s.absLogLen() - 1).compareTo(\"a\") == 0"}
+      ]
+    },
+    "13": {
+      "summary": "the existing log prefix is never rewritten",
+      "corner": "kotlin",
+      "recorded_status": "discharged",
+      "evidence_kind": "assertion",
+      "note": "c13's `assert(s.absLogLen() == 3)` is deliberately NOT a site here: it states clause 11's sentence, not clause 13's, and registering it would double-count. A failure on that line is the `in a member carrying R5 clauses, but not on one` case the verdict has to keep distinct from a clause failure.",
+      "sites": [
+        {"file": "verification/Refinement.kt", "member": "c13_logPrefixNeverRewritten", "text": "s.absLogIdAt(0) == t0.id"},
+        {"file": "verification/Refinement.kt", "member": "c13_logPrefixNeverRewritten", "text": "s.absLogCreatedAtAt(0) == t0.createdAt"}
+      ]
+    },
+    "36": {
+      "summary": "F7: now' == now + 1",
+      "corner": "kotlin",
+      "recorded_status": "discharged",
+      "evidence_kind": "assertion",
+      "note": "The Go corner discharges this at (*clock.Logical).Tick and cannot forward it through the interface-typed clock field (clause 37, blocker B7). This corner has no interface between the service and the clock -- the counter is a field of Store -- so there is no forwarding step to lose, and clause 37 does not arise here rather than being discharged here.",
+      "sites": [
+        {"file": "verification/Refinement.kt", "member": "c36_tickAdvancesByExactlyOne", "text": "s.clock() == before + 1L"}
+      ]
+    }
+  }
+}

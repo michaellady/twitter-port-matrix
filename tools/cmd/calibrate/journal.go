@@ -50,6 +50,12 @@ const (
 	outcomeUnreached  = "unreached"
 	outcomeEquivalent = "equivalent"
 	outcomeError      = "error"
+	// outcomeCapped is a cell the rung cannot have: the corner has no
+	// verifier for it (Rust has no Gobra rung; Kotlin has no deductive
+	// verifier at all). It is written into the cell rather than left blank,
+	// per GOAL.md queue item 3, and it is not a measurement: it counts in no
+	// denominator and is never journalled.
+	outcomeCapped = "capped"
 	// outcomeUnclassified is what a survival is called when probing is off.
 	// It is a separate word on purpose: "survived" is a claim about the rung,
 	// and it must not be made on evidence that was never collected.

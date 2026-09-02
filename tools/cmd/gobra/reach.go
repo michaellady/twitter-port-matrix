@@ -34,6 +34,12 @@ func cmdReach(args []string) error {
 	jobs := fs.Int("jobs", 2, "parallel Gobra invocations")
 	budget := fs.Duration("timeout", 6*time.Minute, "time budget per probe")
 	out := fs.String("out", "", "write the result set here as JSON")
+	only := fs.String("only", "", "restrict to members whose file or name contains this")
+	isolate := fs.Bool("isolate", false,
+		"elide the member's functional postconditions, leaving only `ensures false`. "+
+			"Sound: `false` implies each of them, so nothing about the exit state changes -- "+
+			"the solver is simply not asked to prove them alongside it")
+	fs.Var(extraArgsFlag{}, "gobra-arg", "extra argument passed to every Gobra invocation (repeatable)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -56,6 +62,9 @@ func cmdReach(args []string) error {
 	for _, c := range all {
 		if c.Kind != kindFunctional && c.Kind != kindFraming {
 			continue // assumed clauses are not checked, so reachability is moot
+		}
+		if *only != "" && !strings.Contains(c.File, *only) && !strings.Contains(c.Member, *only) {
+			continue
 		}
 		k := c.File + "\x00" + c.Member
 		if seen[k] == nil {
@@ -89,7 +98,11 @@ func cmdReach(args []string) error {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 			p := probe{File: m.file, Member: m.name, Clauses: m.clauses}
-			v, detail, el := probeReachable(implDir, m.file, m.pkg, m.name, *budget)
+			var elided []clause
+			if *isolate {
+				elided = functionalEnsuresOn(all, m.file, m.name)
+			}
+			v, detail, el := probeReachable(implDir, m.file, m.pkg, m.name, elided, *budget)
 			p.Verdict, p.Detail, p.ElapsedS = v, detail, el.Seconds()
 			probes[i] = p
 			mu.Lock()
@@ -143,12 +156,17 @@ func cmdReach(args []string) error {
 //	                     something
 //	Gobra accepts it  -> nothing reaches the exit; every obligation on the
 //	                     member is vacuous
-func probeReachable(implDir, file, pkg, member string, budget time.Duration) (string, string, time.Duration) {
+func probeReachable(implDir, file, pkg, member string, elided []clause, budget time.Duration) (string, string, time.Duration) {
 	ws, err := newWorkspace(implDir)
 	if err != nil {
 		return "ERROR", err.Error(), 0
 	}
 	defer ws.close()
+	if len(elided) > 0 {
+		if err := elide(filepath.Join(ws.module, file), elided); err != nil {
+			return "ERROR", err.Error(), 0
+		}
+	}
 	if err := appendEnsuresFalse(filepath.Join(ws.module, file), member); err != nil {
 		return "ERROR", err.Error(), 0
 	}
@@ -167,6 +185,17 @@ func probeReachable(implDir, file, pkg, member string, budget time.Duration) (st
 		first = fmt.Sprintf("%s:%d %s", res.Errors[0].File, res.Errors[0].Line, res.Errors[0].Message)
 	}
 	return "reachable", first, res.Elapsed
+}
+
+// functionalEnsuresOn returns every functional `ensures` on one member.
+func functionalEnsuresOn(all []clause, file, member string) []clause {
+	var out []clause
+	for _, c := range all {
+		if c.File == file && c.Member == member && c.Kind == kindFunctional {
+			out = append(out, c)
+		}
+	}
+	return out
 }
 
 // appendEnsuresFalse adds `// @ ensures false` to the end of a member's

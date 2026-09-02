@@ -1,0 +1,26 @@
+Raw JBMC output for one R5 clause obligation and one negation canary, on the
+pristine tree. These are the lines tools/cmd/jbmc/r5.go joins on: each carries
+the entry point, the assertion index, the file and the LINE.
+
+--- Refinement.c13_logPrefixNeverRewritten ---
+[java::twitterport.verification.Refinement.c13_logPrefixNeverRewritten:()V.assertion.1] line 122 assertion at file twitterport/verification/Refinement.kt line 122 function java::twitterport.verification.Refinement.c13_logPrefixNeverRewritten:()V bytecode-index 40: SUCCESS
+[java::twitterport.verification.Refinement.c13_logPrefixNeverRewritten:()V.assertion.2] line 123 assertion at file twitterport/verification/Refinement.kt line 123 function java::twitterport.verification.Refinement.c13_logPrefixNeverRewritten:()V bytecode-index 62: SUCCESS
+[java::twitterport.verification.Refinement.c13_logPrefixNeverRewritten:()V.assertion.3] line 124 assertion at file twitterport/verification/Refinement.kt line 124 function java::twitterport.verification.Refinement.c13_logPrefixNeverRewritten:()V bytecode-index 84: SUCCESS
+VERIFICATION SUCCESSFUL
+
+--- RefinementCanaries.k13_logPrefixIsRewritten (must be refuted) ---
+[java::twitterport.verification.RefinementCanaries.k13_logPrefixIsRewritten:()V.assertion.1] line 186 assertion at file twitterport/verification/Refinement.kt line 186 function java::twitterport.verification.RefinementCanaries.k13_logPrefixIsRewritten:()V bytecode-index 50: FAILURE
+VERIFICATION FAILED
+
+--- Refinement.c07_addFollowAddsExactlyThatEdge: the claim ---
+[java::twitterport.verification.Refinement.c07_addFollowAddsExactlyThatEdge:()V.assertion.1] line 83 assertion at file twitterport/verification/Refinement.kt line 83 function java::twitterport.verification.Refinement.c07_addFollowAddsExactlyThatEdge:()V bytecode-index 26: FAILURE
+[java::twitterport.verification.Refinement.c07_addFollowAddsExactlyThatEdge:()V.assertion.2] line 84 assertion at file twitterport/verification/Refinement.kt line 84 function java::twitterport.verification.Refinement.c07_addFollowAddsExactlyThatEdge:()V bytecode-index 47: SUCCESS
+VERIFICATION FAILED
+
+--- R5Probe.p7_followsAxisCommutes / n7_followsAxisDoesNotGain: the claim AND its
+    negation both FAILURE, which is the F014 signature that blocks clauses 7 and 9 ---
+[java::twitterport.verification.R5Probe.p7_followsAxisCommutes:()V.assertion.1] line 73 assertion at file twitterport/verification/R5Probe.kt line 73 function java::twitterport.verification.R5Probe.p7_followsAxisCommutes:()V bytecode-index 23: SUCCESS
+[java::twitterport.verification.R5Probe.p7_followsAxisCommutes:()V.assertion.2] line 75 assertion at file twitterport/verification/R5Probe.kt line 75 function java::twitterport.verification.R5Probe.p7_followsAxisCommutes:()V bytecode-index 43: FAILURE
+VERIFICATION FAILED
+[java::twitterport.verification.R5ProbeCanaries.n7_followsAxisDoesNotGain:()V.assertion.1] line 142 assertion at file twitterport/verification/R5Probe.kt line 142 function java::twitterport.verification.R5ProbeCanaries.n7_followsAxisDoesNotGain:()V bytecode-index 27: FAILURE
+VERIFICATION FAILED

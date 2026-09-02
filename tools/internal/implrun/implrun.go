@@ -39,7 +39,18 @@ type Spec struct {
 	Env        map[string]string `json:"env"`
 	HealthPath string            `json:"health_path"`
 	Verifier   string            `json:"verifier"`
-	Status     string            `json:"status"`
+	// VerifyBuild compiles the corner's OBLIGATIONS against the tree, when it
+	// has any. It is separate from Build because the two answer different
+	// questions and F031 is what happens when only the first is asked: on the
+	// Kotlin corner `mutate verify` reported 18/18 compile clean, and the R4
+	// rung was then handed the same tree and could not build it, because the
+	// mutant had changed a method signature that Obligations.kt still called
+	// the old way. One cell of eighteen became a missing measurement and the
+	// gate that exists to catch exactly that said ok.
+	//
+	// A corner with no obligations leaves it empty and nothing changes.
+	VerifyBuild []string `json:"verify_build,omitempty"`
+	Status      string   `json:"status"`
 }
 
 // A Registry is the whole implementation set.
@@ -110,6 +121,32 @@ func Compile(spec Spec) (*Build, error) {
 		return b, fmt.Errorf("build failed in %s: %v", spec.Dir, err)
 	}
 	return b, nil
+}
+
+// CompileObligations builds the corner's obligation sources against the tree,
+// which is what the proof rung will do before it can verify anything. A corner
+// that declares no verify_build is a no-op and reports so.
+//
+// The obligations are compiled against the tree under test, never a pristine
+// copy: on a mutant tree that is the whole point, since the mutated source is
+// what the obligation calls.
+func CompileObligations(spec Spec) (out string, ran bool, err error) {
+	if len(spec.VerifyBuild) == 0 {
+		return "", false, nil
+	}
+	tmp, err := os.MkdirTemp("", "implrun-obl-")
+	if err != nil {
+		return "", true, err
+	}
+	defer os.RemoveAll(tmp)
+	argv := subst(spec.VerifyBuild, map[string]string{"bin": filepath.Join(tmp, "obligations")})
+	cmd := exec.Command(argv[0], argv[1:]...)
+	cmd.Dir = spec.Dir
+	b, err := cmd.CombinedOutput()
+	if err != nil {
+		return string(b), true, fmt.Errorf("obligation build failed in %s: %v", spec.Dir, err)
+	}
+	return string(b), true, nil
 }
 
 // Close removes the build's scratch directory.

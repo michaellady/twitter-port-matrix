@@ -1,6 +1,10 @@
 # F021 — The vacuity audit fails exactly where the obligations are strongest
 
-**Status:** measured while running the first negation-canary sweep over the Go corner
+**Status:** measured while running the first negation-canary sweep over the Go corner.
+**All eight undecided clauses were decided on 2026-09-02 and none is vacuous** —
+see "What closed it" below, and
+[F029](F029-the-audit-was-undecidable-as-spelled-not-as-asked.md), which
+corrects the rule this finding drew from them.
 **Class:** a limit of the audit, not of the proof — and one that lands on the
 clauses most worth auditing
 
@@ -92,22 +96,61 @@ it and runs out at the ones that most do.
   no-loss) are unaudited. The service-layer `HomeTimeline` clauses, which
   restate F1/F2/D10 one layer up, all refuted in under a minute.
 
-## What would close it
+*Superseded 2026-09-02: clauses 15–18 are now VERIFIED, on a refuted negation
+with a VACUOUS control on the same member. Nothing above about the sweep as it
+then stood is withdrawn — the clauses really were unaudited, and reporting them
+as a third status rather than folding them into either neighbour is what made
+it possible to go back and decide them.*
 
-- **A cheaper probe for this member.** The reachability question for these
-  clauses reduces to "can `out` be non-empty at exit", which is a single
-  assertion Gobra could be asked directly, without re-proving the loop. That
-  is clause-specific reasoning and belongs in a hand-written canary in
-  `impls/go/internal/_broken/`, next to CANARY C and D which already exercise
-  this method by injection.
-- **A budget an order of magnitude larger**, to find out whether the proof
-  finishes at all under perturbation or diverges. A 25-minute retry was
-  started twice and lost to container restarts both times.
-- **`--parallelizeBranches`**, which is aimed at exactly this shape and was
-  not tried.
+## What closed it — added 2026-09-02
+
+All three levers named below were tried, in this order. Full measurement and
+the corrected rule are in
+[F029](F029-the-audit-was-undecidable-as-spelled-not-as-asked.md); this is the
+part that belongs here, because this finding said the levers were untried and
+that sentence is no longer true.
+
+| lever | canary shape | budget | result | wall |
+|---|---|---|---|---|
+| **1.** `--parallelizeBranches` | default — all nine postconditions, one negated | 12 min | **no verdict** | 723 s |
+| **2.** a budget an order of magnitude larger | default | 45 min | **no verdict**; Gobra reported `did not terminate` and, on the next line, `0 error(s)` | 2703 s |
+| **3.** a cheaper, targeted probe | one clause isolated from its eight siblings; three of the nine respelled by hand | 12 min | **8 of 8 REFUTABLE, 0 VACUOUS** | 40–709 s each |
+
+Raw output for all three, with the load conditions each was measured under, is
+in `evidence/runs/gobra/homeline-levers-20260902.txt`.
+
+**All eight clauses are REFUTABLE. None is vacuous.** Every one carries a
+control run in the same shape, on the same member, with `assume false` at the
+top of the body, and every control came back VACUOUS — so the probe that
+returned those verdicts is one that can see vacuity here.
+
+The three original bullets, and what became of each:
+
+- **A cheaper probe for this member** — *this was the one that worked*, and
+  more exactly than expected. The question really does reduce to "can `out` be
+  non-empty at exit"; the sweep was already asking it, as
+  `forall a int :: !(0 <= a && a < len(out))`, and Gobra will not decide that
+  spelling. Written out as `len(out) == 0` it decides. The hand-written
+  canaries are recorded as CANARY I in `impls/go/internal/_broken/` and as an
+  explicit table in `tools/cmd/gobra/clauses.go`.
+- **A budget an order of magnitude larger** — *tried, and it does not help*.
+  The 25-minute retry that was lost twice to container restarts has now been
+  run to completion at 45 minutes. See the table.
+- **`--parallelizeBranches`** — *tried, and it does not help*. It genuinely
+  parallelises (two Z3 processes at ~90% CPU each, against one), and the query
+  still does not come back.
 
 ## The rule
 
 **An audit has a cost curve, and it is the same curve as the thing being
 audited.** Report the coverage of a vacuity sweep by *which* clauses it
 reached, not by how many, because the ones it misses are not a random sample.
+
+**The first sentence is wrong, and F029 measures why.** The second stands. The
+clean package proves all nine of these postconditions in 42 s, so the audit was
+never paying the proof's price: it was paying for re-verifying eight clauses it
+was not asking about, in a spelling of the ninth that the solver could not
+decide. Both of those are properties of the instrument. Neither is a property
+of the obligation — and an instrument that fails on its hardest targets and
+reports the failure as a fact about the targets gets the coverage story exactly
+backwards at the top end.
