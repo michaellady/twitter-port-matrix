@@ -193,9 +193,14 @@ whole contract.
          crates put their contracts on hand-written twins, so Verus kills 1 of
          the 14 covered mutants, and the one it kills is the one clause F016
          found on shipped code.
-   - [ ] R4, Kotlin+Java/JBMC.
-   - [ ] R4, Rust/Verus — needs the `cargo-verus` equivalent of
-         `gobra verify`'s verdict line and budget first.
+   - [x] **The vacuity instrument for Verus** (`tools/cmd/verus canary`), which
+         this section's own definitions require before the Rust row is
+         trusted and which did not exist when the row was first reported.
+         `REFUTABLE 5, VACUOUS 0` on the shipped clauses, self-tested to
+         return VACUOUS under an injected false precondition — **and 57 of the
+         corner's 62 clauses are on twins, where a canary measures the twin.**
+         F030. `TestEveryProofRungCornerHasAVacuityInstrument` is the gate that
+         will catch the next corner that ships an R4 row without one.
    - [x] **R4, Kotlin/JBMC.** `calibrate -impls kotlin -rungs R4` runs
          `tools/cmd/jbmc verify` over the mutant tree's compiled bytecode and
          reads JBMC's own goal lines. Three outcomes per obligation, not two:
@@ -315,6 +320,117 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 19:45 (parent session `session_01ExaVft3sZPUuETJXKVZK1J`, branch
+  `claude/goal-loop`)** — **The Rust corner had no vacuity instrument at all,
+  and the R4 column is no longer entirely capped.** Two results, plus one
+  experiment set up and one sweep started and deliberately stopped.
+  **1. F030 — an injection canary was standing in for the instrument the rule
+  asks for.** This section's own definitions say a proof-backed kill counts only
+  if the obligation was shown non-vacuous, and that "the equivalents for Verus
+  and JBMC must exist before their rows are trusted". Checked against the three
+  drivers: Go has `canary`/`reach`/`audit`; Kotlin's JBMC rung carries a
+  negation canary per obligation and goes UNDECIDED without one; **`grep -n
+  "vacu\|VACUOUS\|negat\|canary" tools/cmd/verus/*.go` returned nothing.** What
+  stood in its place was an *injection* canary — inject `false,` and check the
+  gate notices — recorded in the 18:40 entry below with the words the rule uses.
+  F013 is the finding about why that is a different check. So the Rust R4 row
+  quoted in F027 and in PR #4 was reported under a rule it did not meet.
+  `tools/cmd/verus canary` is now the instrument: for each `ensures` clause on a
+  shipped function it replaces the clause list with the negated ANTECEDENT (for
+  `A ==> B` the canary is `!A`; `!(A ==> B)` is `A && !B`, refutable exactly
+  when the clause is vacuous, which scores every vacuous clause as live) and
+  asks Verus to prove it. Its own output, verbatim:
+  ```
+  self-test (does this sweep report VACUOUS when it should?) --
+    with `requires false,` spliced in ... -> VACUOUS [4s]
+    self-test PASSED: the sweep reports VACUOUS when the obligation is unreachable
+
+  baseline  R4 PASSED: verification results:: 21 verified, 0 errors over 5 of 5 verify-enabled crate(s)   [2m17.5s]
+  canary sweep: 5 clause(s)   REFUTABLE 5   VACUOUS 0   ILL-FORMED 0   TIMEOUT 0
+  ```
+  The row survives its audit. The baseline's 21 is the post-repair count F024
+  recorded, not a new disagreement. **The number that matters more than the zero
+  is what it is not sweeping:** `ensures blocks: 1 on shipped functions, 15
+  inside #[cfg(verus_only)] mod verus_proof` / `clauses: 5 shipped, 57 twin`.
+  F027 established the shape of that split by reading the code; this derives the
+  **ratio** mechanically, with a test that fails the day a clause moves out of a
+  twin. "The Rust R4 row is not measuring vacuous obligations" is a claim about
+  **8% of the corner's obligations**.
+  Also adds the gate that would have caught this —
+  `TestEveryProofRungCornerHasAVacuityInstrument` — and shows it failing with
+  `canary.go` moved aside. **Its first version did not fail:** it looked for the
+  bare word `VACUOUS`, and the driver's doc comment mentions vacuity in prose,
+  so the test was satisfied by the tool *describing* the instrument it lacked —
+  the same substitution the test exists to catch, reproduced inside the test
+  within ten minutes. It now requires the quoted string literal, which is a
+  verdict a tool can return rather than a claim it can make.
+  **2. `evidence/MATRIX.md` was stale after the fan-out merge, and correcting it
+  opens the R4 column.** It still said "R4 (Rust end) *does not exist*", "R4
+  (Java, Kotlin ends) *does not exist*", "Only Go has an R4 or R5 rung", and it
+  called the Go corner's evidence a 5-of-18 gate. Four false statements sitting
+  in the tree that contradicted them. R4 caps were justified by "corner X has no
+  rung of this kind that yields a kill verdict"; three corners have one now, so
+  R4 is capped only where **Java** is an end — and Java's cap is that
+  `impls/java` carries no obligation set for any rung to run, not anything about
+  JBMC.
+  ```
+  census   was  36 measured, 24 capped,  0 pending, 12 n/a
+           now  38 measured, 18 capped,  4 pending, 12 n/a
+  ```
+  The two new cells are `go ← rust` and `rust ← go`, both **1/14 = 7%**, taking
+  Rust's number under this document's existing weaker-end rule (Go kills 9 of
+  the 14 its proof reaches; Rust kills 1 of its 14). Both carry a new `‡` mark,
+  and the mark matters more than the number: **the two 14s are not the same
+  denominator.** Go's is set by the trusted shim (F022); Rust's by where its
+  contracts were written (F027, quantified above). `1/14` is a fact about the
+  Rust corner's proof layout, not about the quality of a Go/Rust port — the same
+  catalogue kills 18 of 18 on both corners at R0. R4 is also now the first
+  column whose measured cells are not all the same value, so the old "every
+  measured cell in a column is the same number" line is narrowed to R0–R2.
+  R5 is unchanged and still entirely capped.
+  `ASSURANCE.md`'s R4 row updated too — licensed now that the canary has run,
+  which is what the standing instruction was waiting on — and bounded: one
+  property, F4, on one shipped function, five clauses each shown non-vacuous,
+  and explicitly not the four crates whose obligations are on twins.
+  **3. Set up but NOT run: two mutants confined to `internal/dom/dom.go`**
+  (`evidence/experiments/r4-r5-separation/manifest.json`). F028 said R4 and R5
+  agreed on all 18 cells and that the only file separating their perimeters is
+  `internal/dom/dom.go`, which no catalogue mutant is confined to — the columns
+  were never given a chance to disagree. These two break a loop invariant that
+  is the only place its property is proved (`ValidHandle`'s alphabet,
+  `ValidText`'s character range; neither is restatable in a postcondition
+  because Gobra rejects string indexing). Deliberately a scratch manifest, not
+  `mutants.json`: catalogue ids are shared across all four corners so the kill
+  table can compare a defect port-to-port, and a Go-only id would break that
+  symmetry and shift every published denominator to settle a question about one
+  rung pair. Both gates green — `verify PASSED: every anchor matches one site;
+  every mutant compiles` and `probe PASSED: every mutant answers some request
+  differently from the original`, with witnesses (handle `Alice` registers 201
+  where the original answers 400; text with a NUL posts 201 where the original
+  answers 400). **Expected outcome: R4 KILLED, R5 UNREACHED** — `internal/dom/`
+  is in `gobraVerified` and `internal/dom/dom.go` is not in `r5Files`. If R4
+  instead SURVIVES, the extra perimeter buys nothing and that is the more
+  interesting answer.
+  **4. Started and deliberately stopped: the Kotlin corner's 18-mutant R4
+  sweep**, which is what all four `pending` cells wait on. It got as far as
+  `mutate verify` before I killed it. **Reason: it was corrupting a measurement
+  in flight.** The box has 4 cores; the concurrent HomeTimeline vacuity sweep
+  holds it at load 3.5–4.4 alone, and starting the Kotlin sweep took it to 9.4
+  in two minutes. That sweep's clause 4 then reported `TIMEOUT 723s` against a
+  720s budget — the thinnest possible margin, and exactly what a 4-core box at
+  load 9 produces. A timeout caused by load recorded as a solver result would be
+  a false F021. `calibrate -resume` loses nothing, so the sweep restarts from
+  its journal.
+  `go build`, `go vet`, `go test ./tools/...` clean after every commit.
+  **Next fire, in this order.** (a) **Finish the Kotlin R4 sweep** —
+  `go run ./tools/cmd/calibrate -impls kotlin -rungs R4 -out
+  evidence/runs/calibration/kotlin-proof -resume`, ~18 x 2 min, and it fills
+  four matrix cells, the cheapest cell-filling move on the table. Run it with
+  nothing else on the box. (b) **Run the two `dom.go` mutants** at R4 and R5,
+  `-manifest evidence/experiments/r4-r5-separation/manifest.json -impls go
+  -rungs R4,R5`, ~3 min each, and close F028's open question. (c) Only then
+  queue item 4. Do NOT quote any wall-clock cost measured while another sweep
+  was running.
 - **2026-09-02 18:49 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`, fire
   17:30)** — **The Go corner's full deductive sweep: DONE. 18 mutants x R4,R5,
   36 cells, 52 minutes.** This is queue item 2 narrowed to the one corner where
