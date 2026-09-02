@@ -182,6 +182,18 @@ whole contract.
          only when the failure hits a refinement clause or the member whose
          contract carries one; a failure elsewhere kills R4 alone. Verified by
          canary in both directions, so the two rows are not aliases.
+   - [x] **R4, Rust/Verus.** `verus verify` runs `cargo-verus` over the five
+         verify-enabled crates of the mutant tree, reads Verus's own
+         `verification results:: N verified, M errors` lines, and ends with
+         one R4 verdict sentence. Verus caches through cargo, so the driver
+         touches every `.rs` file in those crates first and refuses to call a
+         run PASSED unless all five reported — an untouched re-run prints no
+         result line at all and would otherwise read as a pass. **The row does
+         not mean what the Go row means: F027.** Four of the five verified
+         crates put their contracts on hand-written twins, so Verus kills 1 of
+         the 14 covered mutants, and the one it kills is the one clause F016
+         found on shipped code.
+   - [ ] R4, Kotlin+Java/JBMC.
    - [ ] R4, Rust/Verus — needs the `cargo-verus` equivalent of
          `gobra verify`'s verdict line and budget first.
    - [x] **R4, Kotlin/JBMC.** `calibrate -impls kotlin -rungs R4` runs
@@ -299,6 +311,70 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 18:40 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`,
+  branch `claude/loop-b-verus-rung`)** — **Queue item 1, third sub-step: DONE.
+  R4 is a `calibrate` rung on the Rust corner.** `tools/cmd/verus` mirrors
+  `tools/cmd/gobra`'s contract exactly: `-registry` so it resolves the tree
+  calibrate's guard hashed, `-budget` whose exhaustion prints `R4 UNDECIDED`
+  and no verdict, and a verdict sentence carrying Verus's own words.
+  Gate, `-impls rust -rungs R4 -ids self-follow-guard-dropped,next-cursor-is-first-id`:
+  ```
+  rust/self-follow-guard-dropped  R4 FAILED: verification results:: 8 verified, 1 errors over 1 of 5 verify-enabled crate(s)   [83.5s]   killed
+  rust/next-cursor-is-first-id    R4 PASSED: verification results:: 23 verified, 0 errors over 5 of 5 verify-enabled crate(s)  [104.5s]  unreached
+  R4 proof   live 2  killed 1  survived 0  unreached 1  equiv 0   kill%reach 100%  kill%live 50%
+  ```
+  Canary (standing rule 2), the same materialised tree twice, one injected
+  line apart — `false,` added to `Follow::new`'s `ensures` list:
+  ```
+  1. untouched                     R4 PASSED: verification results:: 23 verified, 0 errors over 5 of 5 verify-enabled crate(s)   [1m44.4s]  exit 0
+  2. + `false,` on Follow::new     R4 FAILED: verification results:: 8 verified, 1 errors over 1 of 5 verify-enabled crate(s)    [1.1s]    exit 1
+  3. reverted                      R4 PASSED: ... 23 verified, 0 errors over 5 of 5 ...                                          [4.1s]
+  4. run again, tree unchanged     R4 PASSED: ... 23 verified, 0 errors over 5 of 5 ...                                          [4.3s]
+  ```
+  Run 4 is the **cargo-cache defence** and is part of the canary, not
+  decoration: the same invocation without the driver's `touch` finishes in
+  0.3s, prints `Finished dev profile` and NOT ONE `verification results::`
+  line, and exits 0. Anything reading the error count scores that as a clean
+  pass over a tree nothing looked at. The driver touches every `.rs` file in
+  the verify-enabled crates and, as belt and braces, refuses a PASSED verdict
+  unless all five crates reported — if the touch ever stops working the rung
+  goes UNDECIDED rather than green.
+  **F027 written, and it is the substantive result of this fire.** Every one
+  of the 14 Rust mutants that edits a verify-enabled crate was run: **1 killed,
+  13 PASSED with the obligation count unmoved at 23.** All 18 are live (R0
+  kills 18/18, 0 equivalents). The reason is structural: `crates/domain` is the
+  only verified crate whose `verus! { ... }` block encloses the shipped items,
+  so `Follow::new` is the only production function carrying a clause. The other
+  four put every obligation in `#[cfg(verus_only)] mod verus_proof` — separate
+  hand-written functions (F012) over `external_body` shims (F016) — and a
+  mutant editing production code there leaves the twin untouched and verifying.
+  **So a Rust R4 kill means "a clause on the shipped function broke" only in
+  `crates/domain`, and nowhere else; the twin-broke reading never arises,
+  because no catalogue mutant is anchored inside a proof module.** Ceiling
+  comparison: Go 14/18 = 78% (F022, set by the trusted shim), Rust 1/18 = 6%
+  (set by the twin split). `calibrate` scores the 13 as *survived*, which
+  overstates them — the contract never had a chance — and the file-level
+  `Covers` predicate cannot see the difference, because on this corner the
+  proof and the code it stands for are in the same file. Left at file
+  granularity deliberately: reclassifying 13 survivors as unreached would hide
+  the result.
+  Plumbing note: `rungs.go` now allows several entries per rung ID (Gobra on
+  go, Verus on rust); `splitRungs` caps an ID only when no entry applies to the
+  corner and unions the entries' `Impls` for the cap message, and `reportRungs`
+  collapses the entries to one table column — without it the first gate run
+  printed the R4 column twice and doubled its aggregates.
+  `mutate verify` unchanged and undrifted:
+  `verify PASSED: every anchor matches one site; every mutant compiles`
+  (72/72 build clean). `go build`, `go vet`, `go test ./tools/...` all pass;
+  10 new tests, including the cache trap, the partial-run trap, the
+  budget/UNDECIDED path, and one that re-derives the verify-enabled crate list
+  from `impls/rust`'s manifests so the R4 denominator cannot go stale.
+  **Next fire: queue item 1's last sub-step, R4 for Kotlin+Java/JBMC** — unless
+  the Go R4+R5 sweep from the previous entry is still unfinished, which takes
+  priority. Whichever runs, `evidence/MATRIX.md` must carry F027 beside the
+  Rust R4 cell: an unqualified `R4 78%` next to `R4 7%` reads as a claim about
+  the verifiers, and it is a claim about where two projects put their
+  contracts.
 - **2026-09-02 17:45 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`, branch
   `claude/loop-f-matrix-shape`)** — **The two prerequisites queue items 2 and 3
   both depend on, made before the 72-mutant sweep rather than after it.**

@@ -155,10 +155,11 @@ var allRungs = []rung{
 		// SUCCESS). `jbmc verify` does that accounting and quotes its own
 		// counts in the verdict sentence.
 		ID: "R4", Label: "proof", Tool: "gobra", Inputs: "contract",
-		Impls:  []string{"go", "kotlin"},
+		Impls:  []string{"go", "kotlin", "rust"},
 		Covers: gobraReads,
 		Drivers: map[string]driver{
 			"kotlin": jbmcKotlinR4,
+			"rust":   verusRustR4,
 		},
 		Args: func(cfg Config, implName, regPath string) []string {
 			// Gobra's own timeout lands a minute before calibrate's, so an
@@ -353,7 +354,7 @@ type toolset struct {
 	own  bool
 }
 
-var neededTools = []string{"replay", "diffrun", "proptest", "mutate", "gobra", "jbmc"}
+var neededTools = []string{"replay", "diffrun", "proptest", "mutate", "gobra", "jbmc", "verus"}
 
 func buildTools(root, binDir string) (*toolset, error) {
 	ts := &toolset{bins: map[string]string{}}
@@ -513,4 +514,62 @@ func asExitError(err error, out **exec.ExitError) bool {
 		*out = ee
 	}
 	return ok
+}
+
+// verusVerified is Verus's verification matrix: the crates whose Cargo.toml
+// carries [package.metadata.verus] verify = true, exactly as TCB.md records it
+// and as `verus crates` re-derives it from the tree. crates/server is
+// deliberately absent -- it is the trusted transport shim, the Rust analogue of
+// Go's internal/httpshim (F012).
+//
+// TestVerusCratesMatchTheTree re-derives this list from impls/rust so it
+// cannot go stale silently.
+var verusVerified = []string{
+	"crates/clock/",
+	"crates/ids/",
+	"crates/domain/",
+	"crates/store/",
+	"crates/service/",
+}
+
+// verusReads reports whether any edit of the mutant lands in a crate Verus
+// verifies.
+//
+// This is the same file-level coverage test gobraReads applies, and on this
+// corner it is a much WEAKER claim than it sounds. Verus reading the file is
+// not the same as an obligation covering the edited function: per F012 the
+// obligations are on hand-written twins in the same file, so a mutant can edit
+// production code inside a verify-enabled crate, be plainly covered by this
+// predicate, and still be invisible to every contract in it. The predicate
+// therefore bounds the row from above only; F024 records how much smaller the
+// real reach is.
+func verusReads(m mutants.Mutant) bool {
+	return editsAny(m, verusVerified)
+}
+
+// verusRustR4 is the Rust corner's R4 driver. The rung ID is the question --
+// "did a proof notice?" -- and the driver is who answers it: Gobra on go,
+// Verus on rust, JBMC on kotlin.
+//
+// A kill here does NOT mean what a kill in the go column means, and the
+// difference is structural rather than statistical. Only crates/domain states
+// its clauses on the SHIPPED items inside `verus! { ... }`; clock, ids, store
+// and service put every obligation in a `#[cfg(verus_only)] mod verus_proof`
+// of hand-written twins over external_body shims (F012, F016). A mutant of
+// production code in those four leaves the twin untouched and verifying. F027
+// measures the consequence: 1 of 18 mutants killed, against the go column's
+// ceiling of 14 of 18.
+var verusRustR4 = driver{
+	Tool:   "verus",
+	Covers: verusReads,
+	Args: func(cfg Config, implName, regPath string) []string {
+		// Verus's own budget lands a minute before calibrate's, so an
+		// undecidable tree is reported in the tool's words (UNDECIDED)
+		// rather than as a killed subprocess.
+		b := cfg.rungTimeout() - time.Minute
+		if b < time.Minute {
+			b = time.Minute
+		}
+		return []string{"verify", "-impl=" + implName, "-registry=" + regPath, "-budget=" + b.String()}
+	},
 }

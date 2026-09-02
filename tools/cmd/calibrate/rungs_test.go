@@ -73,18 +73,36 @@ func TestR4TimedOutIsError(t *testing.T) {
 	}
 }
 
-func TestR4AppliesToGoOnly(t *testing.T) {
+// R4 is one rung with one column, dispatching to a different verifier per
+// corner: Gobra on go, Verus on rust, JBMC on kotlin. Java has no obligation
+// set at all, so its cell is capped rather than measured -- a capped cell is
+// in no denominator, which is the difference between "this rung found nothing"
+// and "this rung was never asked".
+func TestR4IsPerCorner(t *testing.T) {
 	sel, err := selectRungs([]string{"R0", "R4"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	run, capped := splitRungs("rust", sel)
-	if len(run) != 1 || run[0].ID != "R0" || len(capped) != 1 || capped[0].ID != "R4" {
-		t.Fatalf("rust: runnable=%v capped=%v", ids(run), ids(capped))
+	if got := ids(sel); len(got) != 2 {
+		t.Fatalf("selecting R0,R4 gave %v; want one entry per rung ID", got)
 	}
-	run, capped = splitRungs("go", sel)
-	if len(run) != 2 || len(capped) != 0 {
-		t.Fatalf("go: runnable=%v capped=%v", ids(run), ids(capped))
+	for corner, tool := range map[string]string{"go": "gobra", "rust": "verus", "kotlin": "jbmc"} {
+		run, capped := splitRungs(corner, sel)
+		if len(run) != 2 || len(capped) != 0 {
+			t.Fatalf("%s: runnable=%v capped=%v; want R0 and R4 both runnable", corner, ids(run), ids(capped))
+		}
+		if got := run[1].toolFor(corner); got != tool {
+			t.Errorf("%s R4 is driven by %q, want %q", corner, got, tool)
+		}
+	}
+	// Java: R0 runs, R4 is capped. impls/java has no obligation set, so a
+	// Java proof row would carry an empty denominator.
+	run, capped := splitRungs("java", sel)
+	if len(run) != 1 || run[0].ID != "R0" {
+		t.Fatalf("java: runnable=%v; want R0 only", ids(run))
+	}
+	if len(capped) != 1 || capped[0].ID != "R4" {
+		t.Fatalf("java: capped=%v; want R4 capped", ids(capped))
 	}
 }
 
@@ -245,5 +263,121 @@ func TestR5Verdict(t *testing.T) {
 				t.Fatalf("want error containing %q, got %v", c.err, err)
 			}
 		})
+	}
+}
+
+// Coverage on the Rust corner, decided the same way as on the Go corner: the
+// files a mutant edits against the crates Verus is asked to verify.
+// crates/server is the trusted transport shim, so a mutant confined to it is
+// unreached rather than survived (the F022 argument, restated on this corner).
+func TestVerusReads(t *testing.T) {
+	shim := mutants.Mutant{Edits: []mutants.Edit{{File: "crates/server/src/handlers.rs"}}}
+	core := mutants.Mutant{Edits: []mutants.Edit{{File: "crates/store/src/lib.rs"}}}
+	both := mutants.Mutant{Edits: []mutants.Edit{{File: "crates/server/src/handlers.rs"}, {File: "crates/service/src/lib.rs"}}}
+	if verusReads(shim) {
+		t.Error("crates/server is trusted transport; Verus is not asked to verify it")
+	}
+	if !verusReads(core) || !verusReads(both) {
+		t.Error("an edit inside a verify-enabled crate is covered")
+	}
+}
+
+// verusVerified is a hardcoded copy of the Rust corner's verification matrix,
+// and the matrix itself lives in the crate manifests. Re-derive it here so the
+// copy cannot go stale silently -- the same guard TestR5FilesMatchSites gives
+// the R5 file list. If a crate gains or loses
+// "[package.metadata.verus] verify = true", this fails and the R4 coverage
+// denominator is corrected rather than quietly wrong.
+func TestVerusCratesMatchTheTree(t *testing.T) {
+	root := filepath.Join("..", "..", "..", "impls", "rust", "crates")
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Skipf("impls/rust not readable from here: %v", err)
+	}
+	got := map[string]bool{}
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		b, err := os.ReadFile(filepath.Join(root, e.Name(), "Cargo.toml"))
+		if err != nil {
+			continue
+		}
+		s := string(b)
+		i := strings.Index(s, "[package.metadata.verus]")
+		if i < 0 {
+			continue
+		}
+		section := s[i:]
+		if j := strings.Index(section[1:], "\n["); j >= 0 {
+			section = section[:j+1]
+		}
+		if strings.Contains(section, "verify = true") {
+			got["crates/"+e.Name()+"/"] = true
+		}
+	}
+	want := map[string]bool{}
+	for _, c := range verusVerified {
+		want[c] = true
+	}
+	for c := range want {
+		if !got[c] {
+			t.Errorf("%s is listed in verusVerified but is no longer verify-enabled", c)
+		}
+	}
+	for c := range got {
+		if !want[c] {
+			t.Errorf("%s is verify-enabled in the tree but missing from verusVerified; R4's coverage denominator is too small", c)
+		}
+	}
+}
+
+// The table has one column per rung, not one per verifier.
+//
+// This started as a bug: a first design gave R4 one entry per verifier, and
+// the report printed the R4 column twice and doubled every aggregate over it
+// -- observed on a Rust R4 gate run that reported "R4 kill" twice for a sweep
+// measuring two cells. The merged design makes that unrepresentable: one entry
+// per rung ID, dispatching to a per-corner driver. This test pins the property
+// so a future per-verifier entry cannot quietly reintroduce the doubling.
+func TestOneEntryPerRungID(t *testing.T) {
+	sel, err := selectRungs([]string{"R0", "R4", "R5"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]int{}
+	for _, r := range sel {
+		seen[r.ID]++
+	}
+	for id, n := range seen {
+		if n != 1 {
+			t.Errorf("rung %s has %d entries; the report keys cells by ID, so >1 doubles its aggregates", id, n)
+		}
+	}
+	if got := ids(sel); len(got) != 3 {
+		t.Fatalf("selected %v; want exactly R0, R4, R5", got)
+	}
+}
+
+// R4 dispatches to a different verifier per corner, and every corner it claims
+// must actually have one -- an Impls entry with no driver would run Gobra
+// against a tree Gobra cannot read.
+func TestEveryR4CornerHasADriver(t *testing.T) {
+	sel, err := selectRungs([]string{"R4"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := sel[0]
+	for _, impl := range r.Impls {
+		if tool := r.toolFor(impl); tool == "" {
+			t.Errorf("R4 claims corner %s but resolves no tool for it", impl)
+		}
+	}
+	for _, want := range []struct{ impl, tool string }{
+		{"go", "gobra"}, {"rust", "verus"}, {"kotlin", "jbmc"},
+	} {
+		if got := r.toolFor(want.impl); got != want.tool {
+			t.Errorf("R4 on %s resolves tool %q; want %q", want.impl, got, want.tool)
+		}
 	}
 }
