@@ -1,0 +1,8 @@
+=== mutate verify (F011: a drifted anchor injects nothing and every rung kills it) ===
+mutate verify: 18 mutant(s)  [anchors + compile]
+               manifest=tools/cmd/mutate/mutants.json registry=impls/registry.json
+========================================================================
+
+kotlin  source impls/kotlin  base sha256:97ac6f6fcf387de6
+       baseline builds clean (19.4s)
+  ok     kotlin/id-first-is-two                 src/twitterport/store/Store.kt:46 src/twitterport/store/Store.kt:47 sha256:73f7bb9525a69efb  25.6s

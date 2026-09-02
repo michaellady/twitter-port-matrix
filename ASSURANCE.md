@@ -275,7 +275,7 @@ concurrency semantics, or a rung would have to exist that does not consult it.
 | R1 | Not built. Phase 1 |
 | R2 | Not built. Phase 1 |
 | R3 | **PASSING.** TLC green on `twitter.tla` (8,989,719 distinct states, depth 20). `S_obs` link check green over 16 state-changing steps, and the known-bad canary is correctly rejected |
-| R4 | **Go: green and audited.** All five packages `Gobra found no errors`, `0 error(s)`, reproduced eight times. 0 of 33 members unreachable; 83 of 91 functional clauses refutable, 0 vacuous, 8 undecided (all on `HomeTimeline`, F021). Rust: Verus green over hand-written twins (F012, F016) |
+| R4 | **Go: green and audited.** All five packages `Gobra found no errors`, `0 error(s)`, reproduced eight times. 0 of 33 members unreachable; 83 of 91 functional clauses refutable, 0 vacuous, 8 undecided (all on `HomeTimeline`, F021). **Rust: green, and now audited too — but over 8% of the corner.** `verus canary` (F030) reports `REFUTABLE 5, VACUOUS 0, ILL-FORMED 0, TIMEOUT 0` on the shipped clauses, with a self-test that returns VACUOUS under an injected false precondition. That covers the 5 `ensures` clauses on shipped functions; the corner's other **57 clauses are on hand-written twins** inside `#[cfg(verus_only)] mod verus_proof` (F012, F016, F027), where a canary would measure the twin. Before F030 this corner had no vacuity instrument of any kind |
 | R5-core | **Go: 26 of 42 clauses VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS** (`evidence/runs/gobra/r5-clause-status.txt`, derived by `gobra r5`). Rust blocked on `RwLock` having no Verus model |
 | R5-wire | Not reachable — the decode boundary is unverified by construction |
 | R6 | Not reachable by design |
@@ -287,6 +287,15 @@ evidence — Gobra's own refutation of each clause's negation, not a
 package-level green. Four more (F1, D10, no-fabrication, no-loss on the store's
 `HomeTimeline`) are unaudited for vacuity. Everything above R5-core, and every
 claim involving the Rust corner at R5, remains unsupported.
+
+**What the Rust corner's R4 now licenses, precisely.** One property, F4, on one
+shipped function: `Follow::new` rejects `from == to`, and the five `ensures`
+clauses stating it are each shown non-vacuous by Verus refuting the negated
+antecedent. That is a real, audited R4 claim and it is the whole of it. It does
+NOT extend to the four other verify-enabled crates: their obligations are on
+twins over `external_body` shims, nothing mechanically ties a twin to the
+function that ships, and 13 of the 14 catalogue mutants that reach this corner's
+proof perimeter leave the twin untouched and verifying.
 
 `ASSURANCE.md` has twice asserted a ceiling it could not back. The numbers in
 this file are now derived from `evidence/runs/gobra/` by
