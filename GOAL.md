@@ -303,14 +303,82 @@ measure that alignment.
 | corner | R0 | R1 | R2 | R4 | limited by |
 |---|---|---|---|---|---|
 | Go | 56/56 | clean | pass | Gobra green; 91 functional clauses, reachability audit clean (0 of 33 unreachable), negation sweep in PR #3. **R4 and R5 are both `calibrate` rungs since 2026-09-02**, ceiling 14 of 18 mutants (F022) | Gobra ghost-language limits; 5 HomeTimeline clauses undecidable within budget; the trusted shim is 4 of 18 mutants |
-| Rust | 56/56 | clean | pass | Verus **21 verified, 0 errors**, still **1 property** (F016). The four drifted twins are fixed or deleted (F024); the count fell from 23 because two of them carried no `ensures` at all | `RwLock` has no vstd model; `ids::next_id_ensures` is an assumed axiom with a 0-unit count |
+| Rust | 56/56 | clean | pass | Verus **21 verified, 0 errors**, still **1 property** (F016). The four drifted twins are fixed or deleted (F028); the count fell from 23 because two of them carried no `ensures` at all | `RwLock` has no vstd model; `ids::next_id_ensures` is an assumed axiom with a 0-unit count |
 | Java | 56/56 | clean | pass | not attempted — and now blocked on something more mundane than F014: `impls/java` has **no obligation set**. The Kotlin corner's `Obligations.kt` has no Java twin, so there is nothing for a JBMC rung to run | JBMC string equality (F014); plus no obligations written |
 | Kotlin | 56/56 | clean | pass | JBMC, 7 of 15 decidable. **R4 is a `calibrate` rung since 2026-09-02** (`tools/cmd/jbmc verify`); the 8 blocked obligations are in neither numerator nor denominator, and the F013 vacuity audit re-runs on every tree judged. Coverage 16 of 18 mutants (2 are httpshim) | the JBMC defect sets the denominator, not the obligations (F014, F025) |
+| Go | 56/56 | clean | pass | Gobra green; 91 functional clauses, reachability audit clean (0 of 33 unreachable), negation sweep in PR #3. **R4 and R5 are both `calibrate` rungs since 2026-09-02**, ceiling 14 of 18 mutants (F022). **Full sweep 2026-09-02: R4 9/14 reached, R5 9/14 reached, the two rows disagree on 0 of 18 (F028)** | Gobra ghost-language limits; 5 HomeTimeline clauses undecidable within budget; the trusted shim is 4 of 18 mutants |
+| Rust | 56/56 | clean | pass | Verus, **1 property** (F016) | `RwLock` has no vstd model |
+| Java | 56/56 | clean | pass | not attempted | JBMC string equality (F014) |
+| Kotlin | 56/56 | clean | pass | JBMC, 7 of 15 | same JBMC defect |
 ### Loop log
 
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 18:49 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`, fire
+  17:30)** — **The Go corner's full deductive sweep: DONE. 18 mutants x R4,R5,
+  36 cells, 52 minutes.** This is queue item 2 narrowed to the one corner where
+  both proof rungs exist, and it answers the question the previous fire raised.
+  Catalogue checked undrifted first, per F011:
+  ```
+  verify PASSED: every anchor matches one site; every mutant compiles
+  ```
+  ```
+  rung             live  killed  survived  unreached  equiv   kill%reach  wall
+  R4 proof           18       9         5          4      0        64%    2043s
+  R5 refinement      18       9         5          4      0        64%    1059s
+  ```
+  **The interesting number is 0. R4 and R5 disagree on nothing — 0 of 18.**
+  Same nine kills, same five survivals, same four unreached, cell for cell.
+  Five mutants agreeing was a gate; eighteen agreeing is a result, and it is
+  **F028**. It is not the construction: `rungs.go` deliberately withholds R4's
+  kills from R5, and the previous fire's canary separates them in both
+  directions. Two halves, both coming out the same way. *Reach* — the only
+  file separating R4's perimeter (5 verified packages) from R5's (4
+  clause-carrying files) is `internal/dom/dom.go`, and **no mutant is confined
+  to it**; re-derived from the manifest, mutants where R4 reach != R5 reach: 0.
+  *Verdict* — all 9 R4 kills landed inside a member carrying a refinement
+  clause, 4 on the clause line itself and 5 elsewhere in the member. Those 5
+  are the `HomeTimeline` loop-invariant path, so **5 of the 9 agreements rest
+  on the clause-or-member widening the previous fire made**; under the
+  clause-only reading they would have been `R5 UNDECIDED`, not a disagreement.
+  Verdict lines, verbatim, two representative kills and one survival:
+  ```
+  go/tick-goes-backwards
+     R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [48.9s]
+     R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (1 on the clause itself, 0 elsewhere in its member)   [50.1s]
+  go/limit-off-by-one
+     R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [32.9s]
+     R5 FAILED: 1 of 1 failing obligation(s) hit a refinement clause (0 on the clause itself, 1 elsewhere in its member)   [35.5s]
+  go/id-first-is-two
+     R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [1m26s]
+     R5 PASSED: Gobra has found 0 error(s); no refinement clause failed   [1m13.9s]
+  ```
+  Coverage scored per F022: the 4 unreached are exactly the 4 `internal/httpshim`
+  mutants F022 predicted, nothing moved into or out of that set, and R4's
+  ceiling on this corner stays 14 of 18.
+  **Caveat that leads `evidence/CALIBRATION-go-proof.md`:** R4 and R5 are the
+  *same* Gobra invocation read two ways, so their agreement is not independent
+  corroboration and **their cost rows are not comparable**. The 2043s vs 1059s
+  gap is one cell — `go/orphan-author-accepted` took **1033.1s at R4 and 61.9s
+  at R5 on the same tree with the same verdict**, 971s of the 984s difference.
+  F019 said a verifier's obligation count is a measurement with a range; its
+  wall time has a much wider one. Second caveat: the box was shared, load
+  average 6-12 throughout, so all wall figures are inflated uniformly.
+  `evidence/CALIBRATION-go-proof.md` written with every verdict line verbatim;
+  raw journal, results and console in `evidence/runs/calibration/go-proof/`.
+  F028 added to `evidence/FINDINGS.md`, which also gains a third form under
+  Pattern 3: a canary is about one rung, a rate is about a row.
+  `go build`, `go vet`, `go test ./tools/...` clean; no code changed.
+  **Next fire: queue item 4, or queue item 1's Rust sub-step — and F028 says
+  which.** The R5 row cannot be told apart from R4 by anything in this
+  catalogue, so building a second verifier's plumbing (Rust/Verus) adds a
+  third column that will be measured against the same catalogue that could not
+  separate the first two. The higher-value move is **a mutant confined to
+  `internal/dom/dom.go`** — one cell, ~3 minutes, and it either separates the
+  R4 and R5 columns on the first try or shows the perimeters coincide in fact
+  as well as on this catalogue. Do that before Rust. Do NOT delete the R5 row:
+  the canary works and the rung answers a different question.
 - **2026-09-02 18:40 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`,
   branch `claude/loop-b-verus-rung`)** — **Queue item 1, third sub-step: DONE.
   R4 is a `calibrate` rung on the Rust corner.** `tools/cmd/verus` mirrors
@@ -547,7 +615,7 @@ the verdict line, and what the next fire should do.
   already fixed it in the same commit that wrote the sentence — the same
   claim-contradicts-its-own-commit shape F020 named. And `obligations.json`
   recorded R0 as 54/54 for both Go and Rust; the corpus is 56 steps and both
-  corners re-measure at 56/56. New finding: **F024**.
+  corners re-measure at 56/56. New finding: **F028**.
   **Next fire: queue item 1's remaining sub-step — R4 as a `calibrate` rung on
   the Rust corner.** The verdict line and the cache-defeating `touch` are now
   both established here, which is what that sub-step said it was missing.
