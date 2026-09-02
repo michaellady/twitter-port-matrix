@@ -4,9 +4,362 @@ mutate verify: 18 mutant(s)  [anchors + compile]
 ========================================================================
 
 kotlin  source impls/kotlin  base sha256:97ac6f6fcf387de6
-       baseline builds clean (19.4s)
-  ok     kotlin/id-first-is-two                 src/twitterport/store/Store.kt:46 src/twitterport/store/Store.kt:47 sha256:73f7bb9525a69efb  25.6s
-  ok     kotlin/id-burned-on-reject             src/twitterport/store/Store.kt:55 src/twitterport/service/Service.kt:52 sha256:3b9b35823d684144  28.1s
-  FAIL   kotlin/self-follow-guard-dropped       does not compile
-         build failed in /tmp/mutate-verify-3531333484/tree: signal: killed
-         | Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/root/.ccr/java-truststore.p12 -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12 -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=36377 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+       baseline builds clean (15.3s)
+  ok     kotlin/id-first-is-two                 src/twitterport/store/Store.kt:46 src/twitterport/store/Store.kt:47 sha256:73f7bb9525a69efb  11.9s
+  ok     kotlin/id-burned-on-reject             src/twitterport/store/Store.kt:55 src/twitterport/service/Service.kt:52 sha256:3b9b35823d684144  11.1s
+  ok     kotlin/self-follow-guard-dropped       src/twitterport/service/Service.kt:75 sha256:f5f7c8308180df6a  11.1s
+  ok     kotlin/follow-precedence-flipped       src/twitterport/service/Service.kt:65 sha256:9fafec776cb86c2d  10.7s
+  ok     kotlin/timeline-scan-reversed          src/twitterport/store/Store.kt:145 sha256:4239111ce96fcf9b  11.2s
+  ok     kotlin/timeline-tiebreak-by-id-asc     src/twitterport/store/Store.kt:160 sha256:7e65e3e1dbdbcb24  11.6s
+  ok     kotlin/follow-toggles                  src/twitterport/store/Store.kt:66  sha256:129711fe76459f2a  12.1s
+  ok     kotlin/unfollow-rejects-missing-edge   src/twitterport/service/Service.kt:100 sha256:a0fc8aca9eaf75f1  12.8s
+  ok     kotlin/orphan-author-accepted          src/twitterport/service/Service.kt:120 sha256:2fd86cd5d69fecff  12.6s
+  ok     kotlin/created-at-frozen               src/twitterport/store/Store.kt:95  sha256:5e5eb5875b680a95  12.3s
+  ok     kotlin/tick-advances-by-two            src/twitterport/store/Store.kt:81  sha256:a365649101d365a6  12.6s
+  ok     kotlin/tick-goes-backwards             src/twitterport/store/Store.kt:81  sha256:763477b8665d6b98  12.1s
+  ok     kotlin/next-cursor-always-emitted      src/twitterport/store/Store.kt:160 sha256:7d5099bf075b9e51  11.2s
+  ok     kotlin/next-cursor-is-first-id         src/twitterport/store/Store.kt:155 sha256:971ad7f6f656deb1  11.3s
+  ok     kotlin/cursor-inclusive                src/twitterport/store/Store.kt:147 sha256:0fe7ae8767bcd270  11.1s
+  ok     kotlin/limit-off-by-one                src/twitterport/store/Store.kt:153 sha256:7d898320bec17b0d  10.5s
+  ok     kotlin/unknown-json-fields-accepted    src/twitterport/httpshim/Json.kt:86 sha256:bb58c1f64f6f660e  10.9s
+  ok     kotlin/repeated-query-param-accepted   src/twitterport/httpshim/Server.kt:165 sha256:5cfb7bdb4373d4e1  11.6s
+
+========================================================================
+anchors: 18/18 match exactly one site
+compile: 18/18 build clean
+
+verify PASSED: every anchor matches one site; every mutant compiles
+(compiling proves the mutant is a legal program, NOT that it changes
+ behaviour -- run `mutate probe` for that)
+exit=0
+
+=== calibrate -impls kotlin -rungs R4 -out evidence/runs/calibration/kotlin-proof -resume ===
+calibrate: 18 mutant(s) x 1 rung(s) = 18 cells
+           rungs=R4  out=/home/user/twitter-port-matrix/evidence/runs/calibration/kotlin-proof  resume=true
+           journal holds 0 reusable cell(s) and 0 probe(s)
+==============================================================================
+  floor kotlin  11304 ms/launch  (3 samples, spread 10947-11503 ms)
+------------------------------------------------------------------------------
+
+kotlin/id-first-is-two       73f7bb9525a6  id-alloc
+  guard    5/5 checks: kotlin@id-first-is-two -> /tmp/calibrate-mutant-1780938412/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 10.7s -- charged to no rung
+  R4       survived    125.7s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (24.5s)
+
+kotlin/id-burned-on-reject   3b9b35823d68  id-alloc
+  guard    5/5 checks: kotlin@id-burned-on-reject -> /tmp/calibrate-mutant-962170801/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.9s -- charged to no rung
+  R4       ERROR      jbmc produced no R4 verdict (exit 1). Nothing was measured:
+
+kotlin/self-follow-guard-dropped f5f7c8308180  precedence
+  guard    5/5 checks: kotlin@self-follow-guard-dropped -> /tmp/calibrate-mutant-2964824062/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 10.9s -- charged to no rung
+  R4       survived    120.0s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (26.0s)
+
+kotlin/follow-precedence-flipped 9fafec776cb8  precedence
+  guard    5/5 checks: kotlin@follow-precedence-flipped -> /tmp/calibrate-mutant-3342055307/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 10.6s -- charged to no rung
+  R4       survived    122.2s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus  (24.3s)
+
+kotlin/timeline-scan-reversed 4239111ce96f  ordering
+  guard    5/5 checks: kotlin@timeline-scan-reversed -> /tmp/calibrate-mutant-1029821846/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.1s -- charged to no rung
+  R4       survived    119.4s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (24.1s)
+
+kotlin/timeline-tiebreak-by-id-asc 7e65e3e1dbdb  ordering
+  guard    5/5 checks: kotlin@timeline-tiebreak-by-id-asc -> /tmp/calibrate-mutant-2787129475/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 12.6s -- charged to no rung
+  R4       survived    119.7s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (24.8s)
+
+kotlin/follow-toggles        129711fe7645  idempotence
+  guard    5/5 checks: kotlin@follow-toggles -> /tmp/calibrate-mutant-3933876231/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 10.9s -- charged to no rung
+  R4       survived    117.6s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=2, seed=4  (24.5s)
+
+kotlin/unfollow-rejects-missing-edge a0fc8aca9eaf  idempotence
+  guard    5/5 checks: kotlin@unfollow-rejects-missing-edge -> /tmp/calibrate-mutant-2380254161/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.1s -- charged to no rung
+  R4       survived    120.3s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (24.2s)
+
+kotlin/orphan-author-accepted 2fd86cd5d69f  existence
+  guard    5/5 checks: kotlin@orphan-author-accepted -> /tmp/calibrate-mutant-4130033772/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.2s -- charged to no rung
+  R4       survived    111.4s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (24.5s)
+
+kotlin/created-at-frozen     5e5eb5875b68  clock
+  guard    5/5 checks: kotlin@created-at-frozen -> /tmp/calibrate-mutant-1504889408/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 10.7s -- charged to no rung
+  R4       survived    108.5s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (24.4s)
+
+kotlin/tick-advances-by-two  a365649101d3  clock
+  guard    5/5 checks: kotlin@tick-advances-by-two -> /tmp/calibrate-mutant-2936869931/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.4s -- charged to no rung
+  R4       survived    125.6s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (23.7s)
+
+kotlin/tick-goes-backwards   763477b8665d  clock
+  guard    5/5 checks: kotlin@tick-goes-backwards -> /tmp/calibrate-mutant-2818460913/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.6s -- charged to no rung
+  R4       ERROR      jbmc produced no R4 verdict (exit 1). Nothing was measured:
+
+kotlin/next-cursor-always-emitted 7d5099bf075b  pagination
+  guard    5/5 checks: kotlin@next-cursor-always-emitted -> /tmp/calibrate-mutant-2042929873/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 10.7s -- charged to no rung
+  R4       survived    121.5s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (23.7s)
+
+kotlin/next-cursor-is-first-id 971ad7f6f656  pagination
+  guard    5/5 checks: kotlin@next-cursor-is-first-id -> /tmp/calibrate-mutant-598194632/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.4s -- charged to no rung
+  R4       survived    121.3s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=2, seed=3, seed=4  (26.3s)
+
+kotlin/cursor-inclusive      0fe7ae8767bc  pagination
+  guard    5/5 checks: kotlin@cursor-inclusive -> /tmp/calibrate-mutant-769586260/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 12.6s -- charged to no rung
+  R4       survived    119.2s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=2, seed=3, seed=4  (24.8s)
+
+kotlin/limit-off-by-one      7d898320bec1  pagination
+  guard    5/5 checks: kotlin@limit-off-by-one -> /tmp/calibrate-mutant-4247397445/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.7s -- charged to no rung
+  R4       survived    123.1s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=2, seed=3, seed=4  (26.2s)
+
+kotlin/unknown-json-fields-accepted bb58c1f64f6f  parsing
+  guard    5/5 checks: kotlin@unknown-json-fields-accepted -> /tmp/calibrate-mutant-2381054070/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.6s -- charged to no rung
+  R4       survived    123.5s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=2, seed=3, seed=4  (25.4s)
+
+kotlin/repeated-query-param-accepted 5cfb7bdb4373  parsing
+  guard    5/5 checks: kotlin@repeated-query-param-accepted -> /tmp/calibrate-mutant-3563139764/tree (baseline kotlin is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 11.5s -- charged to no rung
+  R4       survived    124.9s  R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0...
+  probe    live, reached by corpus, seed=1, seed=3  (26.8s)
+
+CALIBRATION -- per-rung mutation kill table
+==============================================================================
+corners   kotlin
+rungs     R4
+R1        20 traces x 200 steps, seed 1
+R2        6 rounds x 40 setup requests, seed 1
+probe     any (4 traces x 120 steps, plus the corpus and each mutant's witness)
+window    2026-09-02T20:05:49Z .. 2026-09-02T20:51:21Z
+
+==============================================================================
+KILL TABLE
+==============================================================================
+rung             live  killed  survived  unreached  equiv  killed/reached     killed/live     wall
+R4 proof           16       0        14          2      0       0/14 = 0%       0/16 = 0%    2085s
+
+  live       mutants that change observable behaviour. Equivalent ones are excluded
+             from every denominator: no rung can kill them, so counting them would
+             understate every rung for a reason that is not about the rung.
+  survived   the rung's own inputs DO elicit the difference and it passed anyway.
+             A gap in the rung.
+  unreached  live, but nothing in this rung's input source elicits the difference.
+             A gap in the inputs. F009 is the worked example. For a proof rung the
+             input source is the contract: unreached means the verifier reads none
+             of the files the mutant edits.
+  capped     the corner has no verifier for this rung. Not a measurement; shown
+             per mutant and per corner, in no denominator.
+  killed/reached  the rung's ORACLE. reached = live - unreached = killed +
+                  survived. Every rate is printed as its own fraction because a
+                  percentage travels and its denominator does not: 100% over two
+                  reached cells and 100% over eighteen are the same string and not
+                  the same claim (F008).
+  killed/live     the rung AS CONFIGURED, inputs included.
+  n/a             the denominator is zero -- nothing was reached, so there is no
+                  rate. Printed rather than shown as 0%, which is the rate of a
+                  rung that saw everything and killed nothing.
+
+==============================================================================
+DENOMINATORS -- what each rate is a percentage of
+==============================================================================
+
+  R4 proof       killed/reached 0/14 = 0%   killed/live 0/16 = 0%
+                 18 cell(s) measured, 14 in the killed/reached denominator, 4 excluded
+                    2 unreached    live, but the verifier reads none of the files the
+                                   mutant edits, so no obligation could have covered it
+                                   (F022)
+                    2 error        no verdict was read; a missing measurement, never a pass
+
+==============================================================================
+COST -- and which cost it is
+==============================================================================
+Every rung relaunches the implementation: R0 once for the whole corpus, R1 once
+per trace, R2 once per property-round. A launch is a warm build check plus a
+process start plus a health wait, and that price differs by language. So raw
+seconds mix what the RUNG costs with what the LANGUAGE costs. Both are below.
+
+  corner   floor/launch of which build  samples           spread
+  kotlin       11304 ms       11177 ms        3    10947-11503 ms
+
+  corner   rung            launches wall killed  wall clean  tool clean
+  kotlin   R4 proof               -          -     120.3s          -
+
+  wall killed  mean wall for a mutant this rung caught. NOT comparable with the
+               clean column, and not reliably smaller either. R1 stops at its
+               first mismatch -- then shrinks, and every shrink attempt is
+               another server launch, so at low trace counts a kill can cost
+               several times a clean pass. The launch count of a kill depends
+               on the defect, so it is not corrected and no tool figure is
+               derived from it.
+  wall clean   mean wall for a full pass -- the worst case, and what a sweep of
+               a correct implementation actually costs.
+  tool clean   wall clean minus launches x measured floor. The rung's own cost
+               with process startup removed. Reported only where the launch
+               count is known from the configuration -- never inferred.
+  *            the correction came out at or below zero. Not an error and not
+               hidden: it means this rung's own work costs no more than the
+               servers it launches, so at this configuration the rung IS process
+               startup. Compare rungs by their launch counts, not their seconds.
+  Mutant setup (materialise + warm the build cache) is charged to no rung; see
+  the setups block in results.json.
+
+==============================================================================
+PER MUTANT
+==============================================================================
+mutant                             R4         
+kotlin/id-first-is-two             SURVIVED   
+kotlin/id-burned-on-reject         ERROR      
+kotlin/self-follow-guard-dropped   SURVIVED   
+kotlin/follow-precedence-flipped   SURVIVED   
+kotlin/timeline-scan-reversed      SURVIVED   
+kotlin/timeline-tiebreak-by-id-asc SURVIVED   
+kotlin/follow-toggles              SURVIVED   
+kotlin/unfollow-rejects-missing-edge SURVIVED   
+kotlin/orphan-author-accepted      SURVIVED   
+kotlin/created-at-frozen           SURVIVED   
+kotlin/tick-advances-by-two        SURVIVED   
+kotlin/tick-goes-backwards         ERROR      
+kotlin/next-cursor-always-emitted  SURVIVED   
+kotlin/next-cursor-is-first-id     SURVIVED   
+kotlin/cursor-inclusive            SURVIVED   
+kotlin/limit-off-by-one            SURVIVED   
+kotlin/unknown-json-fields-accepted unreached  
+kotlin/repeated-query-param-accepted unreached  
+
+==============================================================================
+REACHABILITY -- why each survivor survived
+==============================================================================
+  kotlin/id-first-is-two         live
+      corpus     differs at request 0
+      seed=1     differs at request 0
+      seed=2     differs at request 0
+      seed=3     differs at request 0
+      seed=4     differs at request 0
+  kotlin/self-follow-guard-dropped live
+      corpus     differs at request 11
+      seed=1     differs at request 60
+      seed=2     differs at request 19
+      seed=3     differs at request 8
+      seed=4     differs at request 3
+  kotlin/follow-precedence-flipped live
+      corpus     differs at request 12
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+  kotlin/timeline-scan-reversed  live
+      corpus     differs at request 25
+      seed=1     differs at request 11
+      seed=2     differs at request 25
+      seed=3     differs at request 5
+      seed=4     differs at request 38
+  kotlin/timeline-tiebreak-by-id-asc live
+      corpus     differs at request 25
+      seed=1     differs at request 11
+      seed=2     differs at request 51
+      seed=3     differs at request 5
+      seed=4     differs at request 117
+  kotlin/follow-toggles          live
+      corpus     differs at request 20
+      seed=1     differs at request 46
+      seed=2     differs at request 84
+      seed=3     no difference in 120 requests
+      seed=4     differs at request 110
+  kotlin/unfollow-rejects-missing-edge live
+      corpus     differs at request 34
+      seed=1     differs at request 6
+      seed=2     differs at request 30
+      seed=3     differs at request 4
+      seed=4     differs at request 16
+  kotlin/orphan-author-accepted  live
+      corpus     differs at request 31
+      seed=1     differs at request 101
+      seed=2     differs at request 38
+      seed=3     differs at request 7
+      seed=4     differs at request 4
+  kotlin/created-at-frozen       live
+      corpus     differs at request 19
+      seed=1     differs at request 20
+      seed=2     differs at request 16
+      seed=3     differs at request 26
+      seed=4     differs at request 8
+  kotlin/tick-advances-by-two    live
+      corpus     differs at request 17
+      seed=1     differs at request 16
+      seed=2     differs at request 5
+      seed=3     differs at request 22
+      seed=4     differs at request 7
+  kotlin/next-cursor-always-emitted live
+      corpus     differs at request 20
+      seed=1     differs at request 11
+      seed=2     differs at request 14
+      seed=3     differs at request 5
+      seed=4     differs at request 38
+  kotlin/next-cursor-is-first-id live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+  kotlin/cursor-inclusive        live
+      corpus     differs at request 44
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 22
+      seed=3     differs at request 17
+      seed=4     differs at request 110
+  kotlin/limit-off-by-one        live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+  kotlin/unknown-json-fields-accepted live
+      corpus     differs at request 7
+      seed=1     differs at request 92
+      seed=2     differs at request 86
+      seed=3     differs at request 76
+      seed=4     differs at request 94
+  kotlin/repeated-query-param-accepted live
+      corpus     differs at request 51
+      seed=1     differs at request 66
+      seed=2     no difference in 120 requests
+      seed=3     differs at request 10
+      seed=4     no difference in 120 requests
+
+==============================================================================
+READ WITH CARE
+==============================================================================
+ 1. R4 killed NOTHING (0/16 live mutants). A rung that never fires has not
+    been shown to be able to fire; check it against a known-bad canary before
+    reading this row as evidence about the mutants.
+ 2. R4: 2 cell(s) errored. Those are missing measurements, not passes.
+
+written: /home/user/twitter-port-matrix/evidence/runs/calibration/kotlin-proof/report.txt
+         /home/user/twitter-port-matrix/evidence/runs/calibration/kotlin-proof/results.json
+         /home/user/twitter-port-matrix/evidence/runs/calibration/kotlin-proof/journal.jsonl
+exit status 1
+exit=1

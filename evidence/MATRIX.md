@@ -81,15 +81,15 @@ pairs.
 |---|---|---|---|---|---|---|
 | go ← rust | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 1/14 = 7% ‡ | cap←rust † |
 | go ← java | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java † | cap←java † |
-| go ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | cap←kotlin † |
+| go ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 0/14 = 0% ‡ | cap←kotlin † |
 | rust ← go | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 1/14 = 7% ‡ | cap←rust † |
 | rust ← java | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java | cap←rust,java |
-| rust ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | cap←rust,kotlin |
+| rust ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 0/14 = 0% ‡ | cap←rust,kotlin |
 | java ← go | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java † | cap←java † |
 | java ← rust | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java | cap←java,rust |
 | java ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java | cap←java,kotlin |
-| kotlin ← go | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | cap←kotlin † |
-| kotlin ← rust | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | cap←kotlin,rust |
+| kotlin ← go | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 0/14 = 0% ‡ | cap←kotlin † |
+| kotlin ← rust | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 0/14 = 0% ‡ | cap←kotlin,rust |
 | kotlin ← java | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | cap←java | cap←kotlin,java |
 
 **Cell vocabulary.**
@@ -98,21 +98,26 @@ pairs.
 |---|---|
 | `k/r = p%` | measured. `k` mutants killed out of `r` **reached** (`reached = live − unreached`; equivalent mutants are outside `live` already). The denominator travels with the rate, per F008 |
 | `cap←X` | **capped by X**: corner X has no rung of this kind that yields a kill verdict, so the pair has no cell. Not a measurement, in no denominator. `cap←X,Y` means neither end has it |
-| `pending` | the rung exists at both ends and no run has produced this cell. **Four cells are in this state**, all of them waiting on the same thing: the Kotlin corner's R4 sweep. Its rung exists and has been gated on five mutants; the 18-mutant run has not been made |
 | `n/a` | R3 is a claim about the TLA⁺ model and the `S_obs` link, not about either corner's code (`ASSURANCE.md`: *"Says nothing about code"*). `calibrate` has no R3 rung and is not getting one |
 | `†` | one end of this pair is **Go**, whose own R4/R5 evidence is now a completed 18-mutant sweep (9 killed, 5 survived, 4 unreached, 9/14 = 64% killed/reached, R4 and R5 agreeing on all 18 — F028). The cell is capped by the other end regardless, so the mark changes no cell; it records that the Go end's half of the pair is not what is missing |
-| `‡` | **the two ends' numbers are not comparable in meaning**, so the weaker-end rule produces an arithmetically correct cell that a reader will misread. See "What the two R4 cells actually say" below. Applies to both R4 cells that carry a number today |
+| `‡` | **the two ends' numbers are not comparable in meaning**, so the weaker-end rule produces an arithmetically correct cell that a reader will misread. See "What the R4 cells actually say" below. Applies to **all six** R4 cells that carry a number, and F033 is the evidence that it has to: three corners now report an R4 rate, all three denominators are `14`, and the three `14`s are set by three unrelated things |
 
-**Cell census.** 72 cells: **38 measured**, **18 capped**, **4 pending**,
+**Cell census.** 72 cells: **42 measured**, **18 capped**, **0 pending**,
 **12 n/a** (the whole R3 column). Of the 18 capped, 6 carry `†`.
 
-That is a change from the census this document carried when it was written, and
-the change is the point: **the R4 column was entirely capped and is not any
-more.** Adding a Verus driver on the Rust corner and a JBMC driver on the
-Kotlin corner moved 12 capped R4 cells to 2 measured, 4 pending and 6 capped —
-the 6 by Java, which has no obligations written at all. R5 is unchanged and
-still entirely capped: Gobra on Go is the only R5 rung, and no ordered pair has
-Go at both ends.
+**Nothing on this table is pending any more.** The four cells that were —
+`go ← kotlin`, `kotlin ← go`, `rust ← kotlin`, `kotlin ← rust` — all waited on
+one run, the Kotlin corner's 18-mutant R4 sweep, and it has been made:
+`evidence/CALIBRATION-kotlin-proof.md`, window
+`2026-09-02T20:05:49Z .. 2026-09-02T20:51:21Z`. So the R4 column is now
+**6 measured and 6 capped**, the 6 capped all by Java, which has no obligations
+written at all. R5 is unchanged and still entirely capped: Gobra on Go is the
+only R5 rung, and no ordered pair has Go at both ends.
+
+Every remaining gap on this table is a *cap*, not a *to-do*. Filling any of the
+18 requires writing an obligation set that does not exist (Java's R4/R5) or
+lifting a verified core out of a lock (Rust's R5, F012), not running a
+command.
 
 Every measured cell in the **behavioural** columns (R0, R1, R2) is the same
 number, because all four corners produced identical outcome vectors on all 18
@@ -120,22 +125,32 @@ defects (four-corner run, and see F017 below). That is a finding about the
 corners, not a placeholder.
 
 **The R4 column breaks that uniformity, and it is the first column to do so.**
-Its two measured cells read `1/14 = 7%` where Go's own R4 evidence is
-`9/14 = 64%`. The difference is not a disagreement between the corners about
-any defect — R0 kills 18 of 18 on both — it is a difference in where each
-corner's contracts were written. That is what the `‡` mark is for, and the
-section below is the whole of it.
+Its six measured cells carry two distinct numbers — `1/14 = 7%` and
+`0/14 = 0%` — against per-corner evidence of `9/14 = 64%` (Go), `1/14 = 7%`
+(Rust) and `0/14 = 0%` (Kotlin). The spread is not a disagreement between the
+corners about any defect: **R0 kills 18 of 18 on all three.** It is a difference
+in where each corner's contracts were written and what each corner's tool can
+decide. That is what the `‡` mark is for, and the section below is the whole
+of it.
+
+The two proof rungs have now also been compared cell by cell, which no two rungs
+in this repository had been before. On the 12 mutants where Gobra and JBMC both
+returned a kill-or-survive verdict, **they disagree on 8** (F033). F028 found
+R4 and R5 agreeing on 18 of 18, but those were the same Gobra run read two ways;
+this is two verifiers, two corners, two independently written obligation sets,
+and two thirds of the overlap in dispute.
 
 ---
 
-## What the two R4 cells actually say — read this before quoting `1/14 = 7%`
+## What the R4 cells actually say — read this before quoting `1/14 = 7%` or `0/14 = 0%`
 
-`go ← rust` and `rust ← go` both take **Rust's** number, because the pair's
-claim cannot be stronger than either end's evidence and Rust is the weaker end:
-Go kills 9 of the 14 mutants its proof reaches, Rust kills 1 of the 14 its proof
-reaches. The arithmetic is the rule this document already committed to. **What
-the arithmetic hides is that the two 14s are not the same denominator**, and
-F027 is the finding about exactly that:
+`go ← rust` and `rust ← go` both take **Rust's** number, and the four Kotlin
+pairs all take **Kotlin's**, because the pair's claim cannot be stronger than
+either end's evidence and those are the weaker ends: Go kills 9 of the 14
+mutants its proof reaches, Rust 1 of its 14, Kotlin 0 of its 14. The arithmetic
+is the rule this document already committed to. **What the arithmetic hides is
+that the three 14s are not the same denominator** — they are not even the same
+*kind* of denominator — and F027 and F033 are the findings about exactly that:
 
 - **Go's 14** is set by the trusted transport shim. Four mutants edit only
   `internal/httpshim`, which no obligation covers (F022). The other 14 are
@@ -148,17 +163,44 @@ F027 is the finding about exactly that:
   shipped function. Measured since F027 and quantified in F030: **5 of the Rust
   corner's 62 `ensures` clauses are on shipped functions; 57 are on twins.**
 
-So `1/14 = 7%` is a fact about the Rust corner's *proof layout*, not about the
-quality of a port between Go and Rust. A reader who compares it to Go's
-`9/14 = 64%` and concludes the Rust implementation is worse has read the
-wrong thing: the same defect catalogue kills 18 of 18 on both corners at R0.
-The `‡` exists to stop that reading.
+- **Kotlin's 14** is set by a tool defect plus two missing measurements, and it
+  is the only one of the three that is not `live − unreached`. Two mutants are
+  confined to `src/twitterport/httpshim/` and are unreached in the F022 sense.
+  Two more are **error cells** — trees on which the rung produced no verdict at
+  all, so nothing was measured: `id-burned-on-reject` changes
+  `Store.createUser`'s arity and the obligation tree stops compiling (F031), and
+  `tick-goes-backwards` makes the log's own invariant guard throw, which leaves
+  the negation canary unreachable and the vacuity audit unable to read the tree
+  (F032). Underneath both, **8 of the corner's 15 obligations are undecidable by
+  JBMC 6.11.0** (F014) and in no denominator — and those 8 are not spread evenly
+  over the contract, they are concentrated on exactly what this catalogue
+  attacks: six of the fourteen survivals would have been caught by a blocked
+  obligation.
 
-Both cells are nonetheless real. Rust's one kill — `self-follow-guard-dropped`,
+So `1/14 = 7%` is a fact about the Rust corner's *proof layout* and
+`0/14 = 0%` is a fact about **JBMC's inability to compare two strings**, not
+about the quality of a port between Go and Kotlin. A reader who compares either
+to Go's `9/14 = 64%` and concludes those implementations are worse has read the
+wrong thing: the same defect catalogue kills 18 of 18 on all three corners at
+R0, byte-exact. The `‡` exists to stop that reading, and it now sits on all six
+numbered R4 cells rather than two.
+
+All six cells are nonetheless real. Rust's one kill — `self-follow-guard-dropped`,
 against `Follow::new` — is backed by a negation canary on every clause of the
 contract that caught it, run and reported in F030: `REFUTABLE 5, VACUOUS 0`.
 Before that instrument existed the cell would not have been allowed onto this
 table at all.
+
+**A zero needs the same instrument a kill does, and it has it.** `calibrate`
+flags its own row — *"R4 killed NOTHING (0/16 live mutants). A rung that never
+fires has not been shown to be able to fire"* — and standing rule 2 agrees. The
+demonstration is `evidence/runs/calibration/kotlin-r4-canary-injection.log`, the
+same instrument pointed at a deliberately broken tree, which reports
+`R4 FAILED: JBMC refuted 2 of 7 decidable obligation(s)`. The rung fires. What
+F032 adds is the sharper reading: the two obligations it fired on are
+`parseInt64` obligations over `src/twitterport/dom/Dom.kt`, and **no mutant in
+the catalogue edits `Dom.kt`** — so the rung's demonstrated firing path and the
+catalogue's reach do not intersect.
 
 ---
 
@@ -172,7 +214,7 @@ contradict it:
 | Go | Gobra, 83 of 91 clauses refutable, 0 vacuous, 8 undecided | 26 of 42 clauses | R5-core, partial | **yes, both** (`rungs.go`, Gobra driver) |
 | Rust | Verus, **1 property** (F016, F027); 5 of 62 clauses on shipped functions, all 5 refutable (F030) | no — `RwLock` has no vstd model | R4, one property (F4) | **yes, R4** (Verus driver) |
 | Java | not attempted; `impls/java` has no obligation set at all | unknown | R3 | no |
-| Kotlin | JBMC, 7 of 15 obligations decidable (F014 blocks 8) | no | R3 + bounded | **yes, R4** (JBMC driver) |
+| Kotlin | JBMC, 7 of 15 obligations decidable (F014 blocks 8); swept over all 18 mutants, `0/14 = 0%` | no | R3 + bounded | **yes, R4** (JBMC driver) |
 
 Three corners now have an R4 rung that produces a kill verdict — Gobra on Go,
 Verus on Rust, JBMC on Kotlin — so the R4 column is capped only where **Java**
@@ -215,7 +257,7 @@ means. Each invocation is run from the repository root.
 | R0, R1, R2 | `go run ./tools/cmd/calibrate -impls go,rust,java,kotlin -rungs R0,R1,R2 -out evidence/runs/calibration/four-corner -resume` | **done**, 216 cells, window 2026-08-30T22:33:29Z .. 2026-08-31T03:30:42Z |
 | R4, R5 (Go end) | `go run ./tools/cmd/calibrate -impls go -rungs R4,R5 -out evidence/runs/calibration/go-proof -resume` | **done**, 18 mutants x 2 rungs, 36 cells, 2043s + 1059s. 9 killed / 5 survived / 4 unreached at both rungs, 0 disagreements (F028) |
 | R4 (Rust end) | `go run ./tools/cmd/calibrate -impls rust -rungs R4 -out evidence/runs/calibration/rust-proof -resume` | **done**, all 14 covered mutants, 1 killed (F027). Vacuity audited: `go run ./tools/cmd/verus canary` reports REFUTABLE 5, VACUOUS 0 (F030) |
-| R4 (Kotlin end) | `go run ./tools/cmd/calibrate -impls kotlin -rungs R4 -out evidence/runs/calibration/kotlin-proof -resume` | **rung exists, sweep not run** — gate only, 5 mutants in `kotlin-r4-gate`. This is what the four `pending` cells are waiting on, and it is the cheapest cell-filling move on this table |
+| R4 (Kotlin end) | `go run ./tools/cmd/calibrate -impls kotlin -rungs R4 -out evidence/runs/calibration/kotlin-proof -resume` | **done**, all 18 mutants, 2085 s, window `2026-09-02T20:05:49Z .. 2026-09-02T20:51:21Z`. 0 killed / 14 survived / 2 unreached / 2 error, `0/14 = 0%`. Vacuity audited on every tree that passed: the verdict line itself reads `every one refutable in this tree`. Write-up in `evidence/CALIBRATION-kotlin-proof.md`; F031, F032, F033 |
 | R4 (Java end) | *does not exist, and not for want of a tool.* `impls/java` carries no obligation set, so there is nothing for a JBMC rung to run. Writing one is a Java-corner job, not a rung job | blocked |
 | R3 | no invocation. `tlclink` checks the model and the `S_obs` link; it produces no per-corner kill verdict and no cell here | by design |
 
@@ -255,6 +297,15 @@ another's. When the R4/R5 columns start carrying numbers, **those two defects'
 cells are not comparable across rows**, and the coverage denominator is where
 that shows up: they are `unreached` on one end and reachable on the other, so
 the two ends' denominators are not the same 18.
+
+**That prediction is now measured, and it held exactly.** The Kotlin R4 sweep
+scores both `next-cursor-always-emitted` and `next-cursor-is-first-id` as
+`SURVIVED` — reached, inside the verified core, in `store/Store.kt` — where the
+Go sweep scores both `unreached` in `internal/httpshim`. So Go's outer reach is
+14 of 18 and Kotlin's is 16 of 18, over the identical mutant ids. The two ends
+arrive at a denominator of 14 by different subtraction: Go by removing 4 shim
+mutants, Kotlin by removing 2 shim mutants and 2 error cells (F031, F032). Same
+integer, different quantity — see F033.
 
 **F023 warns against reading the columns as ordered.** `id-first-is-two` is
 killed by R0 and R1 and survives R2, R4 *and* R5 on the Go corner. A rung

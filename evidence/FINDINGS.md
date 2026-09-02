@@ -39,6 +39,9 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F027 | the Rust proof row measures the twins | 1 of 14 covered Rust mutants is killed by Verus, because four of the five verified crates put their contracts on hand-written copies |
 | F028 | the refinement row is a copy of the proof row | R4 and R5 disagree on 0 of 18 mutants; the canary separates them, the catalogue never does |
 | F030 | an injection canary stood in for the instrument the rule asks for | the Rust R4 row shipped with no vacuity instrument at all; built one, and 5 of 5 shipped clauses are refutable — but 57 of the corner's 62 clauses are on twins |
+| F031 | the anchor gate compiles the implementation, not the obligations | a mutant that changes an API arity passes `mutate verify` and then stops the proof rung's tree from building; an error cell, not a survival |
+| F032 | the guard that makes the premise true stops the rung from scoring it | the log's own invariant check throws, so the negation canary is unreachable and the vacuity audit turns the corner's one likely kill into UNDECIDED |
+| F033 | two proof rungs disagree on 8 of the 12 defects both can see | Gobra kills 9 of 14 where JBMC kills 0 of 14; the R4 column's three denominators are all `14` and all three are set by unrelated things |
 
 ---
 
