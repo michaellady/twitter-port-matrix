@@ -184,6 +184,79 @@ var allRungs = []rung{
 		Pass: "R5 PASSED", Fail: "R5 FAILED",
 		Launches: func(Config, string) (int, bool) { return 0, true },
 	},
+	{
+		// R4 on the Rust corner is Verus over the five crates whose manifest
+		// carries [package.metadata.verus] verify = true. The rung tool is
+		// `verus verify`: it touches those crates' sources (cargo caches, and
+		// a cached run prints NO result line and exits 0 -- which reads as a
+		// pass to anything counting errors), runs cargo-verus with --jobs 1
+		// so each `verification results:: N verified, M errors` line can be
+		// attributed to the crate whose `Checking` line precedes it, and ends
+		// with one R4 verdict sentence. A run that exhausts its budget prints
+		// "R4 UNDECIDED" and no verdict, and a run where a verify-enabled
+		// crate reports nothing prints no verdict at all -- both land here as
+		// error cells, never as survivals.
+		//
+		// WHAT A KILL ON THIS ROW MEANS IS NOT WHAT IT MEANS ON THE GO ROW,
+		// and the two must not be read as the same measurement. F016
+		// decomposed Verus's "23 verified" into 11 units with no `ensures` at
+		// all, 11 conditional on assumed external_body axioms about
+		// hand-written twins, and exactly ONE property proved unconditionally
+		// about a shipped function (F4, domain::Follow::new). F012 established
+		// that the contracts live on twins in `#[cfg(verus_only)] mod
+		// verus_proof`, separate functions from the ones the server calls. So
+		// a Rust R4 kill says "this tree no longer verifies", which for most
+		// of this catalogue means a twin's own proof broke -- not that the
+		// shipped code was caught. F024 is the write-up and the caveat that
+		// belongs beside every number in this row.
+		ID: "R4", Label: "proof", Tool: "verus", Inputs: "contract",
+		Impls:  []string{"rust"},
+		Covers: verusReads,
+		Args: func(cfg Config, implName, regPath string) []string {
+			// Verus's own budget lands a minute before calibrate's, so an
+			// undecidable tree is reported in the tool's words (UNDECIDED)
+			// rather than as a killed subprocess.
+			b := cfg.rungTimeout() - time.Minute
+			if b < time.Minute {
+				b = time.Minute
+			}
+			return []string{"verify", "-impl=" + implName, "-registry=" + regPath, "-budget=" + b.String()}
+		},
+		Pass: "R4 PASSED", Fail: "R4 FAILED",
+		// No server is launched: the tree is verified, not run.
+		Launches: func(Config, string) (int, bool) { return 0, true },
+	},
+}
+
+// verusVerified is Verus's verification matrix: the crates whose Cargo.toml
+// carries [package.metadata.verus] verify = true, exactly as TCB.md records it
+// and as `verus crates` re-derives it from the tree. crates/server is
+// deliberately absent -- it is the trusted transport shim, the Rust analogue of
+// Go's internal/httpshim (F012).
+//
+// TestVerusCratesMatchTheTree re-derives this list from impls/rust so it
+// cannot go stale silently.
+var verusVerified = []string{
+	"crates/clock/",
+	"crates/ids/",
+	"crates/domain/",
+	"crates/store/",
+	"crates/service/",
+}
+
+// verusReads reports whether any edit of the mutant lands in a crate Verus
+// verifies.
+//
+// This is the same file-level coverage test gobraReads applies, and on this
+// corner it is a much WEAKER claim than it sounds. Verus reading the file is
+// not the same as an obligation covering the edited function: per F012 the
+// obligations are on hand-written twins in the same file, so a mutant can edit
+// production code inside a verify-enabled crate, be plainly covered by this
+// predicate, and still be invisible to every contract in it. The predicate
+// therefore bounds the row from above only; F024 records how much smaller the
+// real reach is.
+func verusReads(m mutants.Mutant) bool {
+	return editsAny(m, verusVerified)
 }
 
 // gobraVerified is Gobra's verification matrix, exactly as TCB.md records it
@@ -231,6 +304,25 @@ func editsAny(m mutants.Mutant, prefixes []string) bool {
 	return false
 }
 
+// reportRungs collapses a selection to one entry per rung ID.
+//
+// The sweep runs a rung PER CORNER -- R4 is Gobra on go and Verus on rust --
+// but the table has one row and one column per rung, and the cells are keyed
+// by rung ID. Without this the report prints R4 once per verifier and every
+// aggregate over it is doubled.
+func reportRungs(rungs []rung) []rung {
+	seen := map[string]bool{}
+	out := make([]rung, 0, len(rungs))
+	for _, r := range rungs {
+		if seen[r.ID] {
+			continue
+		}
+		seen[r.ID] = true
+		out = append(out, r)
+	}
+	return out
+}
+
 // applies reports whether this rung exists for the corner at all.
 func (r rung) applies(impl string) bool {
 	if len(r.Impls) == 0 {
@@ -246,13 +338,33 @@ func (r rung) applies(impl string) bool {
 
 // splitRungs partitions the selected rungs into those that can run on the
 // corner and those the corner caps.
+//
+// One rung ID can have SEVERAL entries -- R4 is Gobra on go and Verus on rust
+// -- so a cap is a property of the ID, not of an entry: the ID is capped only
+// when no entry for it applies to this corner. The capped rung carries the
+// union of every entry's Impls so cappedCell can name all the corners that do
+// have this rung, rather than whichever entry happened to be listed first.
 func splitRungs(impl string, rungs []rung) (runnable, capped []rung) {
+	runs := map[string]bool{}
 	for _, r := range rungs {
 		if r.applies(impl) {
 			runnable = append(runnable, r)
-		} else {
-			capped = append(capped, r)
+			runs[r.ID] = true
 		}
+	}
+	at := map[string]int{}
+	for _, r := range rungs {
+		if runs[r.ID] {
+			continue
+		}
+		if i, ok := at[r.ID]; ok {
+			capped[i].Impls = append(capped[i].Impls, r.Impls...)
+			continue
+		}
+		c := r
+		c.Impls = append([]string(nil), r.Impls...)
+		at[r.ID] = len(capped)
+		capped = append(capped, c)
 	}
 	return runnable, capped
 }
@@ -263,24 +375,33 @@ func selectRungs(ids []string) ([]rung, error) {
 	if len(ids) == 0 {
 		return nil, fmt.Errorf("-rungs is empty")
 	}
-	byID := map[string]rung{}
-	var known []string
+	// A rung ID may have more than one entry -- one per verifier corner. All
+	// of them are selected; splitRungs then keeps the entry belonging to the
+	// corner being measured and caps the ID only if none does.
+	known := map[string]bool{}
+	var order []string
 	for _, r := range allRungs {
-		byID[r.ID] = r
-		known = append(known, r.ID)
+		if !known[r.ID] {
+			known[r.ID] = true
+			order = append(order, r.ID)
+		}
 	}
 	var out []rung
 	seen := map[string]bool{}
 	for _, id := range ids {
-		r, ok := byID[strings.ToUpper(id)]
-		if !ok {
-			return nil, fmt.Errorf("unknown rung %q; this tool drives: %s", id, strings.Join(known, ", "))
+		up := strings.ToUpper(id)
+		if !known[up] {
+			return nil, fmt.Errorf("unknown rung %q; this tool drives: %s", id, strings.Join(order, ", "))
 		}
-		if seen[r.ID] {
+		if seen[up] {
 			continue
 		}
-		seen[r.ID] = true
-		out = append(out, r)
+		seen[up] = true
+		for _, r := range allRungs {
+			if r.ID == up {
+				out = append(out, r)
+			}
+		}
 	}
 	return out, nil
 }
@@ -296,7 +417,7 @@ type toolset struct {
 	own  bool
 }
 
-var neededTools = []string{"replay", "diffrun", "proptest", "mutate", "gobra"}
+var neededTools = []string{"replay", "diffrun", "proptest", "mutate", "gobra", "verus"}
 
 func buildTools(root, binDir string) (*toolset, error) {
 	ts := &toolset{bins: map[string]string{}}

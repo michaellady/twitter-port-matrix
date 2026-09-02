@@ -73,18 +73,39 @@ func TestR4TimedOutIsError(t *testing.T) {
 	}
 }
 
-func TestR4AppliesToGoOnly(t *testing.T) {
+// R4 now has two entries -- Gobra on go, Verus on rust -- so a rung ID is a
+// SET of per-corner entries. Selecting R4 must select both, each corner must
+// get exactly the one entry that drives its verifier, and a corner with no
+// entry at all must still get exactly one capped cell rather than one per
+// entry (a cell counted twice is a denominator error, not a display bug).
+func TestR4IsPerCorner(t *testing.T) {
 	sel, err := selectRungs([]string{"R0", "R4"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	run, capped := splitRungs("rust", sel)
-	if len(run) != 1 || run[0].ID != "R0" || len(capped) != 1 || capped[0].ID != "R4" {
-		t.Fatalf("rust: runnable=%v capped=%v", ids(run), ids(capped))
+	if len(sel) != 3 {
+		t.Fatalf("selecting R0,R4 gave %v; want R0 plus both R4 entries", ids(sel))
 	}
-	run, capped = splitRungs("go", sel)
-	if len(run) != 2 || len(capped) != 0 {
-		t.Fatalf("go: runnable=%v capped=%v", ids(run), ids(capped))
+	for corner, tool := range map[string]string{"go": "gobra", "rust": "verus"} {
+		run, capped := splitRungs(corner, sel)
+		if len(run) != 2 || len(capped) != 0 {
+			t.Fatalf("%s: runnable=%v capped=%v", corner, ids(run), ids(capped))
+		}
+		if run[1].ID != "R4" || run[1].Tool != tool {
+			t.Errorf("%s R4 is driven by %q, want %q", corner, run[1].Tool, tool)
+		}
+	}
+	run, capped := splitRungs("kotlin", sel)
+	if len(run) != 1 || run[0].ID != "R0" {
+		t.Fatalf("kotlin: runnable=%v", ids(run))
+	}
+	if len(capped) != 1 || capped[0].ID != "R4" {
+		t.Fatalf("kotlin: capped=%v; one capped cell per rung ID, not per entry", ids(capped))
+	}
+	// The capped cell names every corner that does have the rung, so the
+	// report says what the cap is relative to.
+	if got := strings.Join(capped[0].Impls, ","); got != "go,rust" {
+		t.Errorf("capped R4 names impls %q; want the union go,rust", got)
 	}
 }
 
@@ -245,5 +266,86 @@ func TestR5Verdict(t *testing.T) {
 				t.Fatalf("want error containing %q, got %v", c.err, err)
 			}
 		})
+	}
+}
+
+// Coverage on the Rust corner, decided the same way as on the Go corner: the
+// files a mutant edits against the crates Verus is asked to verify.
+// crates/server is the trusted transport shim, so a mutant confined to it is
+// unreached rather than survived (the F022 argument, restated on this corner).
+func TestVerusReads(t *testing.T) {
+	shim := mutants.Mutant{Edits: []mutants.Edit{{File: "crates/server/src/handlers.rs"}}}
+	core := mutants.Mutant{Edits: []mutants.Edit{{File: "crates/store/src/lib.rs"}}}
+	both := mutants.Mutant{Edits: []mutants.Edit{{File: "crates/server/src/handlers.rs"}, {File: "crates/service/src/lib.rs"}}}
+	if verusReads(shim) {
+		t.Error("crates/server is trusted transport; Verus is not asked to verify it")
+	}
+	if !verusReads(core) || !verusReads(both) {
+		t.Error("an edit inside a verify-enabled crate is covered")
+	}
+}
+
+// verusVerified is a hardcoded copy of the Rust corner's verification matrix,
+// and the matrix itself lives in the crate manifests. Re-derive it here so the
+// copy cannot go stale silently -- the same guard TestR5FilesMatchSites gives
+// the R5 file list. If a crate gains or loses
+// "[package.metadata.verus] verify = true", this fails and the R4 coverage
+// denominator is corrected rather than quietly wrong.
+func TestVerusCratesMatchTheTree(t *testing.T) {
+	root := filepath.Join("..", "..", "..", "impls", "rust", "crates")
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Skipf("impls/rust not readable from here: %v", err)
+	}
+	got := map[string]bool{}
+	for _, e := range entries {
+		if !e.IsDir() {
+			continue
+		}
+		b, err := os.ReadFile(filepath.Join(root, e.Name(), "Cargo.toml"))
+		if err != nil {
+			continue
+		}
+		s := string(b)
+		i := strings.Index(s, "[package.metadata.verus]")
+		if i < 0 {
+			continue
+		}
+		section := s[i:]
+		if j := strings.Index(section[1:], "\n["); j >= 0 {
+			section = section[:j+1]
+		}
+		if strings.Contains(section, "verify = true") {
+			got["crates/"+e.Name()+"/"] = true
+		}
+	}
+	want := map[string]bool{}
+	for _, c := range verusVerified {
+		want[c] = true
+	}
+	for c := range want {
+		if !got[c] {
+			t.Errorf("%s is listed in verusVerified but is no longer verify-enabled", c)
+		}
+	}
+	for c := range got {
+		if !want[c] {
+			t.Errorf("%s is verify-enabled in the tree but missing from verusVerified; R4's coverage denominator is too small", c)
+		}
+	}
+}
+
+// The table has one column per rung, not one per verifier. R4 has two entries
+// now, and without collapsing them the report prints the column twice and
+// every aggregate over it is doubled -- observed on the first Rust R4 gate
+// run, which reported "R4 kill" twice for a sweep that measured two cells.
+func TestReportRungsCollapsesPerCornerEntries(t *testing.T) {
+	sel, err := selectRungs([]string{"R0", "R4"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := ids(reportRungs(sel))
+	if len(got) != 2 || got[0] != "R0" || got[1] != "R4" {
+		t.Fatalf("report columns %v; want one per rung ID", got)
 	}
 }
