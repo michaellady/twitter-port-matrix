@@ -74,10 +74,14 @@ func TestR4TimedOutIsError(t *testing.T) {
 }
 
 // R4 is one rung with one column, dispatching to a different verifier per
-// corner: Gobra on go, Verus on rust, JBMC on kotlin. Java has no obligation
-// set at all, so its cell is capped rather than measured -- a capped cell is
-// in no denominator, which is the difference between "this rung found nothing"
-// and "this rung was never asked".
+// corner: Gobra on go, Verus on rust, JBMC on both JVM corners.
+//
+// Java was capped here until impls/java carried an obligation set. It was
+// never capped for want of a verifier -- JBMC reads its bytecode, and F014's
+// own repros are javac output -- but for want of anything to run, and a row
+// over an empty denominator is worse than a capped cell. The obligation set is
+// written and measured (F034), so the corner is on the rung and its cell is a
+// measurement rather than a cap.
 func TestR4IsPerCorner(t *testing.T) {
 	sel, err := selectRungs([]string{"R0", "R4"})
 	if err != nil {
@@ -86,7 +90,7 @@ func TestR4IsPerCorner(t *testing.T) {
 	if got := ids(sel); len(got) != 2 {
 		t.Fatalf("selecting R0,R4 gave %v; want one entry per rung ID", got)
 	}
-	for corner, tool := range map[string]string{"go": "gobra", "rust": "verus", "kotlin": "jbmc"} {
+	for corner, tool := range map[string]string{"go": "gobra", "rust": "verus", "kotlin": "jbmc", "java": "jbmc"} {
 		run, capped := splitRungs(corner, sel)
 		if len(run) != 2 || len(capped) != 0 {
 			t.Fatalf("%s: runnable=%v capped=%v; want R0 and R4 both runnable", corner, ids(run), ids(capped))
@@ -95,14 +99,15 @@ func TestR4IsPerCorner(t *testing.T) {
 			t.Errorf("%s R4 is driven by %q, want %q", corner, got, tool)
 		}
 	}
-	// Java: R0 runs, R4 is capped. impls/java has no obligation set, so a
-	// Java proof row would carry an empty denominator.
-	run, capped := splitRungs("java", sel)
+	// A corner nobody has registered is still capped, and that is the state
+	// the vocabulary exists for: capped is "this rung was never asked", not
+	// "this rung found nothing".
+	run, capped := splitRungs("elixir", sel)
 	if len(run) != 1 || run[0].ID != "R0" {
-		t.Fatalf("java: runnable=%v; want R0 only", ids(run))
+		t.Fatalf("unregistered corner: runnable=%v; want R0 only", ids(run))
 	}
 	if len(capped) != 1 || capped[0].ID != "R4" {
-		t.Fatalf("java: capped=%v; want R4 capped", ids(capped))
+		t.Fatalf("unregistered corner: capped=%v; want R4 capped", ids(capped))
 	}
 }
 
@@ -374,7 +379,7 @@ func TestEveryR4CornerHasADriver(t *testing.T) {
 		}
 	}
 	for _, want := range []struct{ impl, tool string }{
-		{"go", "gobra"}, {"rust", "verus"}, {"kotlin", "jbmc"},
+		{"go", "gobra"}, {"rust", "verus"}, {"kotlin", "jbmc"}, {"java", "jbmc"},
 	} {
 		if got := r.toolFor(want.impl); got != want.tool {
 			t.Errorf("R4 on %s resolves tool %q; want %q", want.impl, got, want.tool)

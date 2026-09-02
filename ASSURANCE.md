@@ -76,9 +76,15 @@ argued away.
 | Corner | R0-R3 | R4 | R5-core | R5-wire | Ceiling |
 |---|---|---|---|---|---|
 | Go | yes | Gobra, **83 of 91 clauses refutable, 0 vacuous, 8 undecided** | **26 of 42 clauses** | no | **R5-core, partial** |
+<<<<<<< HEAD
 | Rust | yes | Verus, **37 of 37 shipped clauses refutable, 0 vacuous** | **statable, partial: `abs` has a body; 17 clauses on 3 axes; no rung** | no | **R4 on 4 of 5 crates; R5-core has no rung** |
 | Java | yes | not attempted | unknown | no | **R3** |
 | Kotlin | yes | JBMC, bounded | **5 of 42 clauses, bounded** | no | **R5-core, bounded and partial (measured)** |
+=======
+| Rust | yes | Verus, **1 property** | **no** | no | **R4, one property (F4)** |
+| Java | yes | JBMC, bounded, **7 of 15 obligations decidable** (F034) | no | no | **R3 + bounded (measured)** |
+| Kotlin | yes | JBMC, bounded | no | no | **R3 + bounded (measured)** |
+>>>>>>> origin/claude/task-java-obligations
 
 ### Why R5-wire is not reachable, in either corner
 
@@ -277,7 +283,30 @@ not a Kotlin cost. It blocks every obligation reducing to string equality,
 which is every timeline obligation. The same obligation over an *empty* log
 verifies with 0 of 964 goals failing. Result: 7 of 15 obligations VERIFIED, 0
 REFUTED, 8 BLOCKED, including F005's monotonicity premise among the verified.
-**That wall is shared with the Java corner.** See `evidence/findings/F014`.
+**That wall is shared with the Java corner** — and that sentence was an
+inference from a `javac` repro for two months, with nothing in Java ever run
+against it, while it capped six R4 cells in `evidence/MATRIX.md`.
+`impls/java/verification/` now carries the twin of the Kotlin obligation set and
+the inference is a measurement: **the same 7 decidable, the same 8 blocked, the
+same three reasons, obligation for obligation** (`evidence/findings/F034`). The
+Java corner's R4 route was listed here as OpenJML / KeY; neither has been
+attempted, and the route that *is* available is the one F014's repros were
+written in. Two of the three blockers came out sharper on the measurement than
+they were recorded: `getBytes` is unconstrained in contents as well as length
+(`assert "alice".getBytes(UTF_8)[0] == 'a'` and its negation are BOTH refuted),
+and the SAT wall is 13.9 GB resident before the kernel kills the process, not
+11. See `evidence/findings/F014`, `F034`.
+
+**What the Java bounded rung then kills is zero.** The complete 18-mutant sweep
+(`evidence/runs/calibration/java-proof/`) is `0 killed / 15 survived / 2
+unreached / 1 error` — `0/15 = 0%`. The rung is not broken: on a hand-broken
+`parseInt64` it reports `R4 FAILED: JBMC refuted 2 of 7 decidable
+obligation(s)`. The zero decomposes into 9 obligations JBMC cannot read, 3
+properties no obligation on either JVM corner states, 3 relational obligations a
+non-relational mutant slips past, and 1 mutant that makes its obligation vacuous
+— `evidence/findings/F036`, which also records the sharpest fact in it: three of
+the seven decidable obligations are over `Dom.parseInt64`, and not one of the
+eighteen mutants edits `Dom.java`.
 
 **Kotlin's ceiling is now measured rather than predicted.** JBMC (CBMC 6.11.0)
 does discharge bounded obligations over compiled bytecode, so the corner

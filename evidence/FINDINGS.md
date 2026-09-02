@@ -1,4 +1,4 @@
-# What twenty-four findings have in common
+# What these findings have in common
 
 An index, and an argument. The findings are in `evidence/findings/`; this file
 is for the patterns that only appear when you read them together — which is
@@ -39,6 +39,10 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F027 | the Rust proof row measures the twins | 1 of 14 covered Rust mutants is killed by Verus, because four of the five verified crates put their contracts on hand-written copies |
 | F028 | the refinement row is a copy of the proof row | R4 and R5 disagree on 0 of 18 mutants; the canary separates them, the catalogue never does |
 | F030 | an injection canary stood in for the instrument the rule asks for | the Rust R4 row shipped with no vacuity instrument at all; built one, and 5 of 5 shipped clauses are refutable — but 57 of the corner's 62 clauses are on twins |
+| F034 | the shared JBMC wall was an inference until Java had obligations | F014 concluded the wall is shared from a `javac` repro; measured on `impls/java` it is identical — same 7 decidable, same 8 blocked, same three reasons |
+| F035 | one decorative line in an obligation file costs a whole cell | the obligation set is compiled against the mutant, so it is coupled to every signature it mentions; `s.createUser("a")` in a timeline obligation that never needed it turns `id-burned-on-reject` into an error cell |
+| F036 | the fourth proof row kills nothing, and the zero decomposes | Java R4 is 0/15, and the 15 split into 9 blocked by a tool defect, 3 with no obligation at all, 3 relational, 1 vacuous — three of the seven working obligations are over a file no mutant edits |
+| F037 | the vacuity gate catches "both verify" and is blind to "both refute" | a claim and its negation both REFUTED means the predicate is nondeterministic, and the rung reports that as a KILL; only a hand-maintained list prevents a false red on a clean tree |
 
 ---
 

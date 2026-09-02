@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -20,13 +22,35 @@ import (
 var errTimeout = errors.New("jbmc exceeded its time budget")
 
 // toolchain is everything one verify run needs on disk.
+//
+// Compile and Stdlib are per corner: the Kotlin corner needs kotlinc and
+// kotlin-stdlib.jar on the checker's classpath, the Java corner needs javac and
+// no runtime jar at all. Everything else -- JBMC itself, its core-models.jar,
+// and the java.util extracted from a JDK -- is shared, which is the point of
+// driving both JVM corners from one tool rather than two.
 type toolchain struct {
 	JBMC     string
-	Compile  string // kotlinc
+	Compile  string // kotlinc or javac, per corner.Compiler
+	Compiler string // the corner's compiler NAME, for the run header
 	Models   string // JBMC's core-models.jar
-	Stdlib   string // kotlin-stdlib.jar
+	Stdlib   string // kotlin-stdlib.jar; empty on the Java corner
 	JDK      string
 	JavaUtil string
+}
+
+// Classpath is what JBMC reads: the compiled tree first, then the checker's
+// model of the JDK. Empty entries are dropped rather than joined, because an
+// empty element of a Java classpath means the CURRENT DIRECTORY, and a rung
+// that silently put the repository root on the checker's classpath would be
+// reading a tree nobody asked it to read.
+func (tc toolchain) Classpath(classes string) string {
+	parts := []string{classes}
+	for _, p := range []string{tc.Stdlib, tc.Models, tc.JavaUtil} {
+		if p != "" {
+			parts = append(parts, p)
+		}
+	}
+	return strings.Join(parts, ":")
 }
 
 // goalLine matches one of JBMC's own result lines, e.g.
@@ -156,9 +180,32 @@ func shortOwner(owner string) string {
 // whole point -- the mutated Store.kt is what the obligation calls.
 func compileCorner(tc toolchain, c corner, implDir, classes string, budget time.Duration) (time.Duration, error) {
 	_ = os.RemoveAll(classes)
-	args := []string{"-jvm-target", "17", "-nowarn", "-d", classes}
-	for _, d := range c.SrcDirs {
-		args = append(args, filepath.Join(implDir, d))
+	var args []string
+	switch c.Compiler {
+	case compilerJavac:
+		// javac takes source FILES, not source directories: handing it a
+		// directory is a "file not found" and handing it -sourcepath alone
+		// would compile only what Main.java transitively reaches, which is
+		// exactly NOT the obligations. So the tree is walked and every .java
+		// under the corner's source directories is named.
+		//
+		// --release 17 rather than -target: it pins the platform API as well
+		// as the class file version, so the bytecode JBMC reads does not
+		// depend on which JDK happens to be first on PATH.
+		args = []string{"--release", "17", "-nowarn", "-d", classes}
+		files, err := javaSources(implDir, c.SrcDirs)
+		if err != nil {
+			return 0, err
+		}
+		if len(files) == 0 {
+			return 0, fmt.Errorf("no .java sources under %s in %v", implDir, c.SrcDirs)
+		}
+		args = append(args, files...)
+	default:
+		args = []string{"-jvm-target", "17", "-nowarn", "-d", classes}
+		for _, d := range c.SrcDirs {
+			args = append(args, filepath.Join(implDir, d))
+		}
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), budget)
 	defer cancel()
@@ -167,21 +214,48 @@ func compileCorner(tc toolchain, c corner, implDir, classes string, budget time.
 	out, err := cmd.CombinedOutput()
 	el := time.Since(start)
 	if ctx.Err() != nil {
-		return el, fmt.Errorf("%w: kotlinc did not finish inside %s", errTimeout, budget)
+		return el, fmt.Errorf("%w: %s did not finish inside %s", errTimeout, c.Compiler, budget)
 	}
 	if err != nil {
-		return el, fmt.Errorf("kotlinc failed: %v\n%s", err, out)
+		return el, fmt.Errorf("%s failed: %v\n%s", c.Compiler, err, out)
 	}
 	return el, nil
 }
 
+// javaSources lists every .java file under the corner's source directories, in
+// a stable order so two runs over the same tree hand javac the same argv.
+func javaSources(implDir string, dirs []string) ([]string, error) {
+	var out []string
+	for _, d := range dirs {
+		root := filepath.Join(implDir, d)
+		err := filepath.WalkDir(root, func(p string, e fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if !e.IsDir() && strings.HasSuffix(p, ".java") {
+				out = append(out, p)
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, fmt.Errorf("walking %s: %w", root, err)
+		}
+	}
+	sort.Strings(out)
+	return out, nil
+}
+
 // --- toolchain discovery ------------------------------------------------
 
-func findToolchain(jdkFlag, workDir string) (toolchain, error) {
+func findToolchain(c corner, jdkFlag, workDir string) (toolchain, error) {
 	var tc toolchain
 	var err error
-	if tc.Compile, err = exec.LookPath("kotlinc"); err != nil {
-		return tc, fmt.Errorf("kotlinc not on PATH: %v", err)
+	tc.Compiler = c.Compiler
+	if tc.Compiler == "" {
+		tc.Compiler = compilerKotlinc
+	}
+	if tc.Compile, err = exec.LookPath(tc.Compiler); err != nil {
+		return tc, fmt.Errorf("%s not on PATH: %v", tc.Compiler, err)
 	}
 	if tc.JBMC, err = exec.LookPath("jbmc"); err != nil {
 		return tc, fmt.Errorf("jbmc not on PATH: %v", err)
@@ -189,8 +263,13 @@ func findToolchain(jdkFlag, workDir string) (toolchain, error) {
 	if tc.Models, err = findModels(); err != nil {
 		return tc, err
 	}
-	if tc.Stdlib, err = findKotlinStdlib(tc.Compile); err != nil {
-		return tc, err
+	// Only the Kotlin corner links against a runtime jar. The Java corner has
+	// no dependency beyond the JDK, which is the whole reason its bytecode is
+	// the reference F014's repros were reduced to.
+	if tc.Compiler == compilerKotlinc {
+		if tc.Stdlib, err = findKotlinStdlib(tc.Compile); err != nil {
+			return tc, err
+		}
 	}
 	tc.JDK = jdkFlag
 	if tc.JDK == "" {

@@ -123,7 +123,7 @@ func cmdR5Verify(args []string) error {
 	if err := os.MkdirAll(*work, 0o755); err != nil {
 		return err
 	}
-	tc, err := findToolchain(*jdk, *work)
+	tc, err := findToolchain(c, *jdk, *work)
 	if err != nil {
 		return err
 	}

@@ -154,10 +154,18 @@ var allRungs = []rung{
 		// become a kill (a spurious FAILURE) or a survival (a spurious
 		// SUCCESS). `jbmc verify` does that accounting and quotes its own
 		// counts in the verdict sentence.
+		// The Java corner joined this rung when impls/java got an obligation
+		// set. Until then its cell was capped -- not because no verifier
+		// existed for it (JBMC reads its bytecode, and F014's own repros were
+		// written in Java) but because there was nothing for a rung to run,
+		// and a row over an empty denominator is worse than a capped cell. It
+		// is the SAME driver value as Kotlin's: one tool, one obligation set
+		// per corner, resolved by the corner name in the argv.
 		ID: "R4", Label: "proof", Tool: "gobra", Inputs: "contract",
-		Impls:  []string{"go", "kotlin", "rust"},
+		Impls:  []string{"go", "java", "kotlin", "rust"},
 		Covers: gobraReads,
 		Drivers: map[string]driver{
+			"java":   jbmcJavaR4,
 			"kotlin": jbmcKotlinR4,
 			"rust":   verusRustR4,
 		},

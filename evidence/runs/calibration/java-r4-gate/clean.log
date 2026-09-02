@@ -1,0 +1,38 @@
+jbmc: bounded proof rung over the java corner
+        tree    /home/user/twitter-port-matrix/impls/java
+        jbmc    6.11.0 (cbmc-6.11.0)
+        javac   javac 21.0.10
+        bounds  --unwind 30 --max-nondet-string-length 3, budget 25m0s (6m0s per obligation)
+        compile src + verification in 1.3s
+====================================================================================================
+obligation                         verdict    own assertion goals      wall      JBMC's own line
+----------------------------------------------------------------------------------------------------
+o1a_oneCharAcceptSet               VERIFIED   1 ok, 0 failed           9.3s      VERIFICATION SUCCESSFUL
+o1b_twoCharAcceptSet               VERIFIED   1 ok, 0 failed           9.6s      VERIFICATION SUCCESSFUL
+o1c_emptyAndBareSignRejected       VERIFIED   3 ok, 0 failed           1.6s      VERIFICATION SUCCESSFUL
+o3a_idsStrictlyIncrease            VERIFIED   1 ok, 0 failed           1.8s      VERIFICATION SUCCESSFUL
+o3b_createdAtNonDecreasing         VERIFIED   2 ok, 0 failed           1.8s      VERIFICATION SUCCESSFUL
+o3c_lemmaOverThreeAppends          VERIFIED   2 ok, 0 failed           1.8s      VERIFICATION SUCCESSFUL
+o5c_syntaxBeatsExistence           VERIFIED   1 ok, 0 failed           2.6s      VERIFICATION FAILED
+----------------------------------------------------------------------------------------------------
+negation canaries (F013): each MUST be refuted, or the obligation it names is vacuous
+c10_nonDigitIsANumber              refuted-ok 0 ok, 1 failed           1.7s      VERIFICATION FAILED
+c11_signThenSignIsANumber          refuted-ok 0 ok, 1 failed           1.6s      VERIFICATION FAILED
+c1_bareSignIsANumber               refuted-ok 0 ok, 1 failed           1.6s      VERIFICATION FAILED
+c2_idsDoNotIncrease                refuted-ok 0 ok, 1 failed           1.8s      VERIFICATION FAILED
+c7_storeIsReachable                refuted-ok 0 ok, 1 failed           1.7s      VERIFICATION FAILED
+c3_clockCanDecrease                refuted-ok 0 ok, 1 failed           1.7s      VERIFICATION FAILED
+c12_thirdAppendDoesNotIncrease     refuted-ok 0 ok, 1 failed           1.9s      VERIFICATION FAILED
+c8_serviceIsReachable              refuted-ok 0 ok, 1 failed           2.8s      VERIFICATION FAILED
+c9_syntaxDoesNotBeatExistence      refuted-ok 0 ok, 1 failed           2.7s      VERIFICATION FAILED
+====================================================================================================
+decidable 7   VERIFIED 7   REFUTED 0   VACUOUS 0   UNDECIDED 0
+blocked   8   (recorded JBMC 6.11.0 limits; in neither the numerator nor the denominator)
+    JBMC's String.getBytes(Charset) is nondeterministic (F014); the UTF-8 byte-length predicates are unreachable
+        o2a_emptyIsInvalid, o2b_goodHandleIsValid, o5a_unknownBeatsSelfFollow, o5b_knownSelfFollowIsForbidden
+    JBMC exhausts memory on this instance ("SAT checker ran out of memory"); a bounded-model-checking scalability wall, not a modelling gap
+        o4a_pageRespectsLimit, o5d_rejectionBurnsNoId
+    JBMC's String.equals is unsound (`assert "abc".equals("abc")` is FAILURE, F014); every visibility and error-code comparison is undecidable
+        o4b_cursorNullMeansExhausted, o4c_pageIsNewestFirst
+
+R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own assertion goals FAILURE), every one refutable in this tree; 8 obligation(s) blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator   [47.4s]

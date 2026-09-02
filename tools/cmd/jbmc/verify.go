@@ -60,7 +60,7 @@ func cmdVerify(args []string) error {
 	if err := os.MkdirAll(*work, 0o755); err != nil {
 		return err
 	}
-	tc, err := findToolchain(*jdk, *work)
+	tc, err := findToolchain(c, *jdk, *work)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func cmdVerify(args []string) error {
 	fmt.Printf("jbmc: bounded proof rung over the %s corner\n", c.Name)
 	fmt.Printf("        tree    %s\n", implDir)
 	fmt.Printf("        jbmc    %s\n", firstLine(capture(tc.JBMC, "--version")))
-	fmt.Printf("        kotlinc %s\n", firstLine(capture(tc.Compile, "-version")))
+	fmt.Printf("        %-7s %s\n", tc.Compiler, firstLine(capture(tc.Compile, "-version")))
 	fmt.Printf("        bounds  --unwind %d --max-nondet-string-length %d, budget %s (%s per obligation)\n",
 		*unwind, *strLen, *budget, *obBudget)
 
@@ -86,7 +86,7 @@ func cmdVerify(args []string) error {
 		return err
 	}
 	fmt.Printf("        compile %s in %s\n", strings.Join(c.SrcDirs, " + "), cel.Round(1e8))
-	cp := strings.Join([]string{classes, tc.Stdlib, tc.Models, tc.JavaUtil}, ":")
+	cp := tc.Classpath(classes)
 	fmt.Println(strings.Repeat("=", 100))
 
 	rep := &report{Corner: c.Name, Blocked: c.blocked()}
