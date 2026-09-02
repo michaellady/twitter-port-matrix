@@ -1,0 +1,1 @@
+{"kind":"floor","floor":{"impl":"rust","samples":3,"launch_ms":93.78333333333332,"build_ms":71.95566666666667,"min_ms":92.74,"max_ms":94.429}}
