@@ -101,7 +101,7 @@ func main() {
 		implsFlag = flag.String("impls", "go,rust", "corners to sweep, comma-separated")
 		idsFlag   = flag.String("ids", "", "restrict to these mutant ids, comma-separated")
 		family    = flag.String("family", "", "restrict to one mutant family")
-		rungsFlag = flag.String("rungs", "R0,R1,R2", "rungs to run, comma-separated; R0,R1 is a valid partial sweep. R4 (Gobra, Go corner only; ~1 min per mutant) is opt-in")
+		rungsFlag = flag.String("rungs", "R0,R1,R2", "rungs to run, comma-separated; R0,R1 is a valid partial sweep. R4 is opt-in and per corner: Gobra on go (~1 min per mutant), JBMC on kotlin (~2 min)")
 		out       = flag.String("out", "", "result directory (default evidence/runs/calibration/<stamp>)")
 		resume    = flag.Bool("resume", false, "reuse the journal already in -out and skip cells it records")
 

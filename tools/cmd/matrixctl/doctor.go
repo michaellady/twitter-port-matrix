@@ -101,7 +101,11 @@ func reportRungs(cs []check) {
 		{"R3 model check", "java", "TLC over twitter.tla + the S_obs link check"},
 		{"R4 proof / Rust", "verus", "cargo-verus over the five verify-enabled crates"},
 		{"R4 proof / Go", "gobra jar", "java -Xss128m -jar gobra.jar"},
-		{"R4 bounded / JVM", "jbmc", "JBMC over Kotlin and Java bytecode"},
+		// Kotlin only. The Java corner has the same checker available and the
+		// same F014 wall, but no obligation set is written for it, so there is
+		// nothing for the rung to run -- saying "Kotlin and Java" here would
+		// report a rung that does not exist as runnable.
+		{"R4 bounded / Kotlin", "jbmc", "jbmc verify: 7 decidable obligations, 8 blocked by F014"},
 		{"R5 refinement", "gobra jar", "31 of 42 discharged clauses are Gobra-backed"},
 	}
 	for _, r := range rows {

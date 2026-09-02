@@ -208,6 +208,18 @@ those obligations initially reported VERIFIED because an undischargeable
 erased checkcast made the code after it infeasible. Only a *negation* canary
 distinguished a real proof from a vacuous one.
 
+**And "7 VERIFIED" was, at the time it was recorded, four audited claims and
+three unexamined ones.** Three of the seven had no negation canary naming
+them, and the sweep only ever checked that the canaries it had were refuted —
+so a claim with no canary passed the gate built to catch exactly that
+(`evidence/findings/F024`). Canaries have since been added for all three and
+all three are refuted, so the number stands; what changed is that it is now
+earned. Since 2026-09-02 the bounded rung is a `calibrate` rung
+(`tools/cmd/jbmc verify`) and re-runs the whole audit **on every tree it
+judges**, which the Go corner cannot afford to do — negating a bounded
+obligation costs what the obligation costs, negating a deductive one does not
+(F021).
+
 **Kotlin has no mature deductive verifier.** The best available is compiling to
 JVM bytecode and running JBMC for bounded model checking, plus kotest property
 tests. So any port with Kotlin at either end cannot exceed bounded and

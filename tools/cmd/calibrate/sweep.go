@@ -144,7 +144,10 @@ func runRung(cfg Config, tools *toolset, m mutants.Mutant, r rung, implName, reg
 		Mutant: m.Key(), Impl: m.Impl, ID: m.ID, Family: m.Family,
 		TreeHash: treeHash, Rung: r.ID, Guard: guard,
 	}
-	tr, err := tools.run(cfg.Root, r.Tool, r.Args(cfg, implName, regPath), cfg.rungTimeout())
+	// The tool and its argv are resolved per corner: one rung may be driven by
+	// a different verifier on each corner (R4 is Gobra on Go and JBMC on
+	// Kotlin), and a corner with no override gets the rung's own fields.
+	tr, err := tools.run(cfg.Root, r.toolFor(m.Impl), r.argsFor(m.Impl)(cfg, implName, regPath), cfg.rungTimeout())
 	if err != nil {
 		c.Outcome, c.Error = outcomeError, err.Error()
 		fmt.Printf("  %-3s      ERROR      %s\n", r.ID, err)
@@ -245,9 +248,10 @@ func classify(m mutants.Mutant, cells []Cell, p *ProbeRecord, rungs []rung) {
 		// it does not. Liveness still comes from the probe, because a
 		// survivor nobody can tell from the original is equivalent whatever
 		// the verifier read.
+		reads := r.coversFor(m.Impl)
 		covered := true
-		if r.Covers != nil {
-			covered = r.Covers(m)
+		if reads != nil {
+			covered = reads(m)
 		}
 		if p == nil {
 			c.Detail = "not probed, so this survival is unexplained: it may be a rung weakness, an input gap, or a mutant with no observable effect"
@@ -264,7 +268,7 @@ func classify(m mutants.Mutant, cells []Cell, p *ProbeRecord, rungs []rung) {
 			c.Outcome = outcomeUnreached
 			c.Detail = fmt.Sprintf("live (reached by %s), but the verifier reads none of the files this mutant edits (%s); no obligation covers it",
 				strings.Join(p.Reached, ", "), editedFiles(m))
-		case r.Covers != nil:
+		case reads != nil:
 			c.Outcome = outcomeSurvived
 			c.Detail = fmt.Sprintf("live (reached by %s) and inside the verified core (%s), yet the proof passed: the contract does not constrain the mutated behaviour",
 				strings.Join(p.Reached, ", "), editedFiles(m))
