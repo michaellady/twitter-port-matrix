@@ -6,6 +6,8 @@ contract files
 flips no verdict recorded so far, and the bound on that claim is derived below
 rather than assumed
 **Found:** while reading Gobra's own error for F038, as standing rule 1 requires
+**FIXED** in the same branch's integration, with the gate this finding said was
+needed — see "The fix" at the end
 
 ## The symptom
 
@@ -150,3 +152,44 @@ the gate that proves the fix landed.
 - `tools/cmd/gobra/r5rung.go` — `memberAt`, the unordered map iteration
 - `evidence/experiments/r4-r5-separation/memberspans-overlap-probe_test.go.txt` — the probe
 - `evidence/findings/F038-*.md` — the run whose output surfaced it
+
+---
+
+## The fix
+
+`memberSpans` no longer scans for a bare `}`. It counts braces from the `func`
+line, over source with line comments and string and rune literals stripped, so
+a one-line method ends on its own line and a brace inside a Gobra annotation
+(`// @ pred (e T) ErrorMem() { true }`) is not mistaken for structure.
+
+The ghost-declaration half had a second, independent instance of the same bug,
+which this finding's overlap list shows and its prose does not name: three ghost
+members share one annotation block in `dom.go` — `ErrorMem`, `IsDuplicableMem`
+and `Duplicate` — and each one's scan back over the block reached the block's
+first line, so all three claimed the same lines. The scan-back now stops at the
+previous ghost declaration.
+
+**The gate this finding asked for is now in the suite**, as
+`TestMemberSpansDoNotOverlap` in `tools/cmd/gobra/memberspans_test.go`: no two
+members may claim the same line. It is joined by a unit reproduction of the
+one-line-method case and one for braces inside comments and strings. All three
+were run against the OLD implementation first, and it fails them:
+
+```
+--- FAIL: TestMemberSpansEndsAOneLineMethodOnItsOwnLine
+    line 16 is claimed by Error, span [5,20]: a one-line method swallowed the next function (F040)
+--- FAIL: TestMemberSpansDoNotOverlap
+    internal/dom/dom.go: (*invalidHandleError).Error[112,215] and ValidHandle[165,215] both claim lines 165..215
+    ... 10 more overlaps
+```
+
+The probe at `evidence/experiments/r4-r5-separation/memberspans-overlap-probe_test.go.txt`
+is kept as the record of how the defect was enumerated. It stays out of the
+package, for the reason its own header gives: it reports and always passes, and
+a check that cannot fail does not belong in a test suite.
+
+**No recorded verdict changed, and that is this finding's derivation rather than
+the fix's claim.** The argument above stands on its own: an overlap can flip an
+R5 verdict only if the candidate members disagree about carrying a refinement
+clause, and in this tree they never do. The fix removes the ambiguity; it does
+not repair a published number, because there was none to repair.

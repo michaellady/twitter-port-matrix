@@ -124,14 +124,7 @@ func memberSpans(path string) (map[string][2]int, error) {
 		for j := i - 1; j >= 0 && strings.HasPrefix(strings.TrimSpace(lines[j]), "//"); j-- {
 			start = j + 1
 		}
-		end := len(lines)
-		for j := i + 1; j < len(lines); j++ {
-			if lines[j] == "}" {
-				end = j + 1
-				break
-			}
-		}
-		out[name] = [2]int{start, end}
+		out[name] = [2]int{start, bodyEnd(lines, i)}
 	}
 	// Ghost declarations live entirely inside `// @` comments and have no
 	// body; span them over their annotation block.
@@ -149,11 +142,108 @@ func memberSpans(path string) (map[string][2]int, error) {
 		if name == "" {
 			continue
 		}
+		// Stop the scan-back at the PREVIOUS ghost declaration, not just at
+		// the top of the comment block. Three ghost members share one block in
+		// internal/dom/dom.go -- ErrorMem, IsDuplicableMem and Duplicate --
+		// and without this every one of them starts at the block's first line,
+		// so all three claim the same lines and an error inside the block is
+		// attributed to whichever the map happens to yield (F040).
 		start := i + 1
 		for j := i - 1; j >= 0 && isAnnot(lines[j]); j-- {
+			if isGhostDecl(lines[j]) {
+				break
+			}
 			start = j + 1
 		}
 		out[name] = [2]int{start, i + 1}
 	}
 	return out, nil
+}
+
+// bodyEnd returns the line AFTER the closing brace of the function whose
+// signature starts at line funcLine, by counting braces.
+//
+// F040 is why this is not a scan for the first line equal to "}". A one-line
+// method -- `func (e invalidHandleError) Error() string { return "..." }`, of
+// which internal/dom/dom.go has three -- closes its body on its own line and
+// never produces a bare "}". The old scan therefore ran past it and stopped at
+// the next function's closing brace, so `Error` claimed every line up to the
+// end of ValidHandle. Gobra reported a failing loop invariant at dom.go:206,
+// inside ValidHandle, and the R5 rung attributed it to `(*invalidHandleError).Error`
+// at line 115. Which member a line resolves to decided nothing that has been
+// published, but it decides the R5 column, and "the answer depends on map
+// iteration order" is not a property an instrument may have.
+func bodyEnd(lines []string, funcLine int) int {
+	depth, opened := 0, false
+	for j := funcLine; j < len(lines); j++ {
+		for _, ch := range codeOnly(lines[j]) {
+			switch ch {
+			case '{':
+				depth++
+				opened = true
+			case '}':
+				depth--
+			}
+		}
+		if opened && depth <= 0 {
+			return j + 1
+		}
+	}
+	return len(lines)
+}
+
+// codeOnly strips line comments and the contents of string and rune literals,
+// so a brace inside either is not counted as structure. Gobra annotations are
+// comments and carry braces of their own -- `// @ pred (e T) ErrorMem() { true }`
+// -- and counting those would end a body in the middle of its own doc block.
+func codeOnly(s string) string {
+	var b strings.Builder
+	const (
+		plain = iota
+		inStr
+		inRaw
+		inRune
+	)
+	state := plain
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		switch state {
+		case inStr:
+			if c == '\\' {
+				i++
+			} else if c == '"' {
+				state = plain
+			}
+		case inRaw:
+			if c == '`' {
+				state = plain
+			}
+		case inRune:
+			if c == '\\' {
+				i++
+			} else if c == '\'' {
+				state = plain
+			}
+		default:
+			switch {
+			case c == '/' && i+1 < len(s) && s[i+1] == '/':
+				return b.String()
+			case c == '"':
+				state = inStr
+			case c == '`':
+				state = inRaw
+			case c == '\'':
+				state = inRune
+			default:
+				b.WriteByte(c)
+			}
+		}
+	}
+	return b.String()
+}
+
+// isGhostDecl reports whether an annotation line declares a ghost member.
+func isGhostDecl(line string) bool {
+	body := strings.TrimSpace(annotBody(line))
+	return strings.HasPrefix(body, "func ") || strings.HasPrefix(body, "pred ")
 }
