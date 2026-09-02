@@ -170,17 +170,40 @@ whole contract.
    is done when `calibrate -rungs R4` produces a kill row for one corner and
    `mutate verify` still passes.
 2. **Re-run the four-corner sweep** on the 72-mutant catalogue, all rungs
-   that exist. `evidence/CALIBRATION-four-corner.md` is the R0-R2 baseline to
-   extend, not replace.
+   that exist, attributing each kill to **every** rung that kills it rather
+   than the first to run. `evidence/CALIBRATION-four-corner.md` is the R0-R2
+   baseline to extend, not replace.
 3. **The twelve cells.** For each ordered pair, run `calibrate` with A as the
    base and B as the subject, and shape `evidence/MATRIX.md` as the 12 x 6
-   table GOAL.md opens with. Cells whose weaker end caps the rung say so in
-   the cell rather than leaving it blank.
+   table GOAL.md opens with, with a **coverage denominator** beside each kill
+   rate (F008). Cells whose weaker end caps the rung say so in the cell rather
+   than leaving it blank.
 4. **A second catalogue from a source other than the contract** -- incident
    history, a fuzzer corpus. Until this exists the 100% rows partly measure
    that catalogue and corpus share a parent.
 5. Fix or delete the four drifted Verus twins (F012, F016).
 6. S-10 `specgen`, S-24 the adversarial refutation pass.
+
+### Related work to feed back into
+
+`michaellady/mike-skills` PR #7 (branch `claude/port-jvm-to-rust-skills`) is a
+twelve-skill family for behaviour-preserving JVM-to-Rust ports, much of it
+distilled from this repository: `S_obs`/`DECISIONS.md` became `port-model`,
+`tlclink --canary` the refinement link, `calibrate`'s exercised-mutant guard
+and launch-floor subtraction `port-calibrate`, `ASSURANCE.md`'s ceilings
+`port-ceiling`, and the findings the reason `port-learn` exists. It names
+three things this matrix still lacks, and two of them belong in the queue:
+
+- the R4/R5 rows of the kill table -- queue item 1;
+- **a coverage denominator** (F008: a kill rate over mutants says nothing
+  about inputs the rungs never reach) -- add to item 3's `MATRIX.md` shape;
+- **per-judge mutation attribution** rather than first-judge -- when a
+  mutant dies at several rungs, every rung that would have killed it gets
+  the credit, not only the first to run. Add to item 2's re-run.
+
+A fire that adopts or contradicts any of it feeds back through `port-learn`
+with a PR against that family citing the finding. Not a directive for the
+current step.
 
 ### One iteration
 
