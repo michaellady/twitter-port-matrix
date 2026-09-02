@@ -258,6 +258,16 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 11:01 (interactive session)** — Fire 3 (10:12, Fable, clone-first
+  prompt, session `cse_01BjLpDECEYMroHsHGBgdfkx`) also pushed nothing: 17
+  minutes, no loop-log line. Its session record shows no repository source
+  attached, unlike a probe spawned interactively, so a routine-spawned fresh
+  session cannot attach the repo even when told to. The fresh-session routine
+  is disabled. The loop now fires into a **persistent worker session**
+  (`session_01Mdy8cUZTbcq2fXuZ1BRi4X`) created with the repository as its
+  source and `claude/goal-loop` as its outcome branch. Same cadence, same
+  contract; the worker's context accumulates, so fires rely on this file, not
+  memory. The next-fire entry below is unchanged and still the entry point.
 - **2026-09-02 09:25 (interactive session, PR #3)** — Diagnosed the two
   silent fires. A session spawned into this environment by the routine has
   **no checkout of the repository**; a probe session reported `repo not
