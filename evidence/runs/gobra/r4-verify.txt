@@ -1,0 +1,110 @@
+--- run 1 of 5 ---
+Gobra's own verdict lines:
+  clock      no errors
+  dom        no errors
+  ids        no errors
+  service    no errors
+  store      no errors
+  TOTAL      Gobra has found 0 error(s)   [52.9s]
+
+Viper members (from Gobra's own stats.json):
+  238 distinct, 134 with a body and verified
+  (140 Gobra members, 290 task rows before de-duplicating imports)
+    clock       22 total   11 verified
+    dom         64 total   37 verified
+    errors       1 total    0 verified
+    ids         19 total    9 verified
+    log          2 total    0 verified
+    service     41 total   34 verified
+    sort         1 total    0 verified
+    store       82 total   43 verified
+    sync         6 total    0 verified
+
+--- run 2 of 5 ---
+Gobra's own verdict lines:
+  clock      no errors
+  dom        no errors
+  ids        no errors
+  service    no errors
+  store      no errors
+  TOTAL      Gobra has found 0 error(s)   [51.6s]
+
+Viper members (from Gobra's own stats.json):
+  238 distinct, 134 with a body and verified
+  (140 Gobra members, 290 task rows before de-duplicating imports)
+    clock       22 total   11 verified
+    dom         64 total   37 verified
+    errors       1 total    0 verified
+    ids         19 total    9 verified
+    log          2 total    0 verified
+    service     41 total   34 verified
+    sort         1 total    0 verified
+    store       82 total   43 verified
+    sync         6 total    0 verified
+
+--- run 3 of 5 ---
+Gobra's own verdict lines:
+  clock      no errors
+  dom        no errors
+  ids        no errors
+  service    no errors
+  store      no errors
+  TOTAL      Gobra has found 0 error(s)   [53.7s]
+
+Viper members (from Gobra's own stats.json):
+  236 distinct, 132 with a body and verified
+  (140 Gobra members, 288 task rows before de-duplicating imports)
+    clock       21 total   10 verified
+    dom         64 total   37 verified
+    errors       1 total    0 verified
+    ids         18 total    8 verified
+    log          2 total    0 verified
+    service     41 total   34 verified
+    sort         1 total    0 verified
+    store       82 total   43 verified
+    sync         6 total    0 verified
+
+--- run 4 of 5 ---
+Gobra's own verdict lines:
+  clock      no errors
+  dom        no errors
+  ids        no errors
+  service    no errors
+  store      no errors
+  TOTAL      Gobra has found 0 error(s)   [54.9s]
+
+Viper members (from Gobra's own stats.json):
+  238 distinct, 134 with a body and verified
+  (140 Gobra members, 290 task rows before de-duplicating imports)
+    clock       22 total   11 verified
+    dom         64 total   37 verified
+    errors       1 total    0 verified
+    ids         19 total    9 verified
+    log          2 total    0 verified
+    service     41 total   34 verified
+    sort         1 total    0 verified
+    store       82 total   43 verified
+    sync         6 total    0 verified
+
+--- run 5 of 5 ---
+Gobra's own verdict lines:
+  clock      no errors
+  dom        no errors
+  ids        no errors
+  service    no errors
+  store      no errors
+  TOTAL      Gobra has found 0 error(s)   [59.2s]
+
+Viper members (from Gobra's own stats.json):
+  238 distinct, 134 with a body and verified
+  (140 Gobra members, 290 task rows before de-duplicating imports)
+    clock       22 total   11 verified
+    dom         64 total   37 verified
+    errors       1 total    0 verified
+    ids         19 total    9 verified
+    log          2 total    0 verified
+    service     41 total   34 verified
+    sort         1 total    0 verified
+    store       82 total   43 verified
+    sync         6 total    0 verified
+

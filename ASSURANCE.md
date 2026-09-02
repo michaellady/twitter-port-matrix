@@ -75,7 +75,7 @@ argued away.
 
 | Corner | R0-R3 | R4 | R5-core | R5-wire | Ceiling |
 |---|---|---|---|---|---|
-| Go | yes | Gobra, **~43 load-bearing** | **partial** | no | **R5-core, partial** |
+| Go | yes | Gobra, **83 of 91 clauses refutable, 0 vacuous, 8 undecided** | **26 of 42 clauses** | no | **R5-core, partial** |
 | Rust | yes | Verus, **1 property** | **no** | no | **R4, one property (F4)** |
 | Java | yes | not attempted | unknown | no | **R3** |
 | Kotlin | yes | JBMC, bounded | no | no | **R3 + bounded (measured)** |
@@ -107,6 +107,57 @@ until that state is lifted out of the lock. That is a refactor, not an
 annotation: make the verified core a pure value type and move the lock into the
 trusted shim — the shape `S_obs` itself has. **Until then every port with Rust
 at either end is capped below R5.**
+
+### What Go's R4 number means, audited
+
+The Go row is not a count of Viper members. `CLOUD.md` recorded 283 of those
+and it neither reproduces nor decomposes into obligations — see
+[F019](evidence/findings/F019-the-obligation-count-is-not-reproducible.md);
+eight runs give 236-238, and 82 of the ~134 "verified" are compiler-generated
+termination, import and initialisation proofs rather than anything anyone
+wrote. The unit below is the `ensures` clause.
+
+The contracts carry **146 `ensures` clauses**:
+
+| | |
+|---|---|
+| functional obligations | 91 |
+| permission framing (`acc(...)`) | 30 |
+| assumed — the member is `// @ trusted` | 13 |
+| assumed — the member is a body-less ghost declaration | 12 |
+
+**25 of the 146 are never checked by Gobra at all.**
+
+**The reachability probe is clean, and F013 does not replicate here.** Every
+member carrying a checked clause was given `ensures false`; Gobra refutes it on
+30 of 33, so those exits are reachable and the obligations on them are about
+something. No member has an unreachable exit
+(`evidence/runs/gobra/reachability.json`). Kotlin's six vacuous obligations have
+no counterpart in the Go corner.
+
+Three members returned no verdict — `(*MemStore).HomeTimeline` (11 clauses),
+`(*MemStore).Replace` (2) and `isMonotoneLog` (2): two clean timeouts and,
+for `isMonotoneLog`, a Silicon exception followed by `did not terminate`, with
+a plain timeout on reproduction. Gobra reports all of these as `0 error(s)`,
+which is why they are read from its wording rather than its count. Those 15 clauses are **unaudited, not
+verified**.
+
+**The per-clause negation sweep**, corrected key, 12-minute budget per canary:
+
+```
+91 clauses: 83 refutable, 0 VACUOUS, 8 timed out, 0 ill-formed
+audited 83 REFUTABLE verdicts: 83 backed by an error inside the clause's
+own member, 0 backed only by an error elsewhere.
+```
+
+All eight undecided clauses are on `(*MemStore).HomeTimeline`, and three of
+them are trivial framing negations that refute in seconds on every other
+member — so it is the method's proof that is at the edge of the budget, not
+the canaries. Those eight, F1 / D10 / no-fabrication / no-loss among them, are
+**unaudited, not verified** —
+[F021](evidence/findings/F021-the-audit-fails-where-the-obligations-are-strongest.md).
+The first run of this sweep reported 86/5; that figure was produced by a
+colliding checkpoint key and is withdrawn.
 
 ### Why Rust's R4 is one property, not 23
 
@@ -199,10 +250,20 @@ concurrency semantics, or a rung would have to exist that does not consult it.
 | R1 | Not built. Phase 1 |
 | R2 | Not built. Phase 1 |
 | R3 | **PASSING.** TLC green on `twitter.tla` (8,989,719 distinct states, depth 20). `S_obs` link check green over 16 state-changing steps, and the known-bad canary is correctly rejected |
-| R4 | Not started. Phase 1 |
-| R5-core | Go partial; Rust blocked on `RwLock` having no Verus model |
+| R4 | **Go: green and audited.** All five packages `Gobra found no errors`, `0 error(s)`, reproduced eight times. 0 of 33 members unreachable; 83 of 91 functional clauses refutable, 0 vacuous, 8 undecided (all on `HomeTimeline`, F021). Rust: Verus green over hand-written twins (F012, F016) |
+| R5-core | **Go: 26 of 42 clauses VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS** (`evidence/runs/gobra/r5-clause-status.txt`, derived by `gobra r5`). Rust blocked on `RwLock` having no Verus model |
 | R5-wire | Not reachable — the decode boundary is unverified by construction |
 | R6 | Not reachable by design |
 
-No claim above R3 is currently supported by anything in this repository, and
-none should be made.
+**R4 and R5-core are now supported for the Go corner, and bounded.** What that
+licenses precisely: on the decoded-operation alphabet, restricted to
+syntactically valid arguments, 26 of the 42 R5 clauses hold with per-clause
+evidence — Gobra's own refutation of each clause's negation, not a
+package-level green. Four more (F1, D10, no-fabrication, no-loss on the store's
+`HomeTimeline`) are unaudited for vacuity. Everything above R5-core, and every
+claim involving the Rust corner at R5, remains unsupported.
+
+`ASSURANCE.md` has twice asserted a ceiling it could not back. The numbers in
+this file are now derived from `evidence/runs/gobra/` by
+`go run ./tools/cmd/gobra r5`, so a claim here that drifts from the verifier
+shows up as a join failure rather than as prose.

@@ -1,0 +1,128 @@
+R5 clause status — joined from Gobra's own output, not from obligations.json's
+recorded status. VERIFIED requires both a green package and a refutable negation.
+
+#   CORNER OP          SITE                       STATUS       CLAUSE
+1   go     init        (*MemStore).New            VERIFIED     abs(init) == init_S on users, follows and log axes
+2   go     CreateUser  (*MemStore).PutUser        VERIFIED     fresh handle => AbsUsers' == AbsUsers + {h}
+3   go     CreateUser  (*MemStore).PutUser        VERIFIED     taken handle => AbsUsers' == AbsUsers
+4   go     CreateUser  (*MemStore).PutUser        VERIFIED     fresh handle => err == nil
+5   go     CreateUser  (*MemStore).PutUser        UNATTEMPTED  taken handle => err != nil
+6   go     CreateUser  (*MemStore).HasUser        VERIFIED     response commutation for HasUser: result == h in AbsUsers
+7   go     Follow      (*MemStore).PutFollow      VERIFIED     both endpoints known => AbsFollows' == AbsFollows + {e} and e…
+8   go     Follow      (*MemStore).PutFollow      VERIFIED     either endpoint unknown => AbsFollows' == AbsFollows
+9   go     Unfollow    (*MemStore).DeleteFollow   VERIFIED     AbsFollows' == AbsFollows - {e}, unconditionally (F3 idempote…
+10  go     Timeline    (*MemStore).Follows        VERIFIED     response commutation for Follows: result == e in AbsFollows
+11  go     PostTweet   (*MemStore).PutTweet       VERIFIED     AbsAcceptsTweet(t) => log length +1, t last, err == nil (F6)
+12  go     PostTweet   (*MemStore).PutTweet       VERIFIED     not AbsAcceptsTweet(t) => log length unchanged
+13  go     PostTweet   (*MemStore).PutTweet       VERIFIED     the existing log prefix is never rewritten
+14  go     Timeline    (*MemStore).HomeTimeline   VERIFIED     F2 ordering: descending (created_at, id)
+15  go     Timeline    (*MemStore).HomeTimeline   UNAUDITED    F1 visibility: every entry authored by user or followed by us…
+16  go     Timeline    (*MemStore).HomeTimeline   UNAUDITED    D10 cursor: cursor > 0 => every returned id < cursor
+17  go     Timeline    (*MemStore).HomeTimeline   UNAUDITED    no fabrication: every returned tweet is some log entry
+18  go     Timeline    (*MemStore).HomeTimeline   UNAUDITED    no loss: if !more, every visible entry under the cursor is on…
+19  go     admin       (*MemStore).Replace        UNATTEMPTED  Replace installs a log satisfying the append-log invariant
+20  go     PostTweet   (*ids.Generator).Next      VERIFIED     F8: every issued id is the previous counter value, and the co…
+21  go     init        (*Service).New             VERIFIED     abs(init) == init_S on users, follows and log axes
+22  go     CreateUser  (*Service).CreateUser      VERIFIED     at most the requested handle is added; no other user appears
+23  go     CreateUser  (*Service).CreateUser      VERIFIED     already-registered handle => AbsUsers unchanged
+24  go     CreateUser  (*Service).CreateUser      UNATTEMPTED  valid, fresh handle => added
+25  go     Follow      (*Service).Follow          VERIFIED     at most the named edge is added
+26  go     Follow      (*Service).Follow          VERIFIED     F4 on abs: from == to => AbsFollows unchanged
+27  go     Follow      (*Service).Follow          VERIFIED     F9 on abs: unknown endpoint => AbsFollows unchanged
+28  go     Follow      (*Service).Follow          UNATTEMPTED  valid, known, distinct => edge added
+29  go     Unfollow    (*Service).Unfollow        VERIFIED     at most the named edge is removed; unknown endpoint removes n…
+30  go     PostTweet   (*Service).PostTweet       VERIFIED     log grows by at most one
+31  go     PostTweet   (*Service).PostTweet       VERIFIED     F6 on abs: unknown author => log unchanged
+32  go     PostTweet   (*Service).PostTweet       VERIFIED     the existing log prefix is never rewritten
+33  go     PostTweet   (*Service).PostTweet       UNATTEMPTED  valid, known author => appended
+34  go     Timeline    (*Service).HomeTimeline    VERIFIED     F1, F2, D10 cursor, and framing on all three axes
+35  go     Timeline    (*Service).HomeTimeline    UNATTEMPTED  no fabrication, no loss
+36  go     Tick        (*clock.Logical).Tick      VERIFIED     F7: now' == now + 1
+37  go     Tick        (*Service).Tick            UNATTEMPTED  F7 forwarded through the interface-typed clock field
+38  go     CreateUser… -                          UNATTEMPTED  id-counter axis of abs, and the id in the response body
+39  rust   all         -                          UNATTEMPTED  abs_rust has a body
+40  rust   all         -                          UNATTEMPTED  any state or response commutation clause
+41  rust   PostTweet   crates/ids                 UNATTEMPTED  F8
+42  rust   PostTweet   crates/store verus_proof   UNATTEMPTED  put_tweet_ensures describes the production put_tweet
+
+42 clauses: 26 VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED
+
+Gobra's own line for each VERIFIED clause (from the negation canary that
+refuted it — this is the per-clause evidence a package-level green cannot give):
+   1  (*MemStore).New
+      internal/store/memstore.go:100:9 Postcondition might not hold. 
+   2  (*MemStore).PutUser
+      internal/store/memstore.go:137:9 Postcondition might not hold. 
+   3  (*MemStore).PutUser
+      internal/store/memstore.go:139:9 Postcondition might not hold. 
+   4  (*MemStore).PutUser
+      internal/store/memstore.go:136:9 Postcondition might not hold. 
+   6  (*MemStore).HasUser
+      internal/store/memstore.go:163:9 Postcondition might not hold. 
+   7  (*MemStore).PutFollow
+      internal/store/memstore.go:195:9 Postcondition might not hold. 
+   8  (*MemStore).PutFollow
+      internal/store/memstore.go:198:9 Postcondition might not hold. 
+   9  (*MemStore).DeleteFollow
+      internal/store/memstore.go:231:9 Postcondition might not hold. 
+  10  (*MemStore).Follows
+      internal/store/memstore.go:289:9 Postcondition might not hold. 
+  11  (*MemStore).PutTweet
+      internal/store/memstore.go:344:9 Postcondition might not hold. 
+  12  (*MemStore).PutTweet
+      internal/store/memstore.go:347:9 Postcondition might not hold. 
+  13  (*MemStore).PutTweet
+      internal/store/memstore.go:342:9 Postcondition might not hold. 
+  14  (*MemStore).HomeTimeline
+      internal/store/memstore.go:528:9 Postcondition might not hold. 
+  20  (*ids.Generator).Next
+      internal/ids/ids.go:55:9 Postcondition might not hold. 
+  21  (*Service).New
+      internal/service/service.go:83:9 Postcondition might not hold. 
+  22  (*Service).CreateUser
+      internal/service/service.go:145:9 Postcondition might not hold. 
+  23  (*Service).CreateUser
+      internal/service/service.go:147:9 Postcondition might not hold. 
+  25  (*Service).Follow
+      internal/service/service.go:231:9 Postcondition might not hold. 
+  26  (*Service).Follow
+      internal/service/service.go:233:9 Postcondition might not hold. 
+  27  (*Service).Follow
+      internal/service/service.go:234:9 Postcondition might not hold. 
+  29  (*Service).Unfollow
+      internal/service/service.go:313:9 Postcondition might not hold. 
+  30  (*Service).PostTweet
+      internal/service/service.go:392:1 Precondition of call s.AbsLogAt(k) might not hold. 
+  31  (*Service).PostTweet
+      internal/service/service.go:390:9 Postcondition might not hold. 
+  32  (*Service).PostTweet
+      internal/service/service.go:391:9 Postcondition might not hold. 
+  34  (*Service).HomeTimeline
+      internal/service/service.go:463:9 Postcondition might not hold. 
+  36  (*clock.Logical).Tick
+      internal/clock/clock.go:68:9 Postcondition might not hold. 
+
+UNAUDITED — the package verifies with the clause present, but its negation
+was not decided, so nothing rules out the clause being vacuous:
+  15  (*MemStore).HomeTimeline   1 of 1 sites: the solver did not decide the negation within the budget, so reachability is unestablished
+      F1 visibility: every entry authored by user or followed by user
+  16  (*MemStore).HomeTimeline   1 of 1 sites: the solver did not decide the negation within the budget, so reachability is unestablished
+      D10 cursor: cursor > 0 => every returned id < cursor
+  17  (*MemStore).HomeTimeline   1 of 1 sites: the solver did not decide the negation within the budget, so reachability is unestablished
+      no fabrication: every returned tweet is some log entry
+  18  (*MemStore).HomeTimeline   1 of 1 sites: the solver did not decide the negation within the budget, so reachability is unestablished
+      no loss: if !more, every visible entry under the cursor is on the page
+
+UNATTEMPTED, with the reason:
+   5  (*MemStore).PutUser        no Gobra site exists; recorded as blocked on B2 — Gobra does not thread a package-level var's initializer postcondition into method bodies; `assert ErrHandleTaken != nil` fails inside PutUser.
+  19  (*MemStore).Replace        no postcondition to negate; discharged as a fold obligation, not canaried
+  24  (*Service).CreateUser      no Gobra site exists; recorded as blocked on B1 — Gobra has no string indexing in the ghost language, and pure functions must be a single expression, so dom.ValidHandle / dom.ValidText cannot appear in a specification.
+  28  (*Service).Follow          no Gobra site exists; recorded as blocked on B1 — Gobra has no string indexing in the ghost language, and pure functions must be a single expression, so dom.ValidHandle / dom.ValidText cannot appear in a specification.
+  33  (*Service).PostTweet       no Gobra site exists; recorded as blocked on B1 — Gobra has no string indexing in the ghost language, and pure functions must be a single expression, so dom.ValidHandle / dom.ValidText cannot appear in a specification.
+  35  (*Service).HomeTimeline    no Gobra site exists; recorded as blocked on B3 — Gobra does not re-instantiate an existentially-quantified postcondition at a call site; restating the store's clause verbatim one line after the call fails.
+  37  (*Service).Tick            no Gobra site exists; recorded as blocked on B7 — Gobra cannot fold a concrete type's predicate through an interface-typed field, so clock.Clock reaches the service only via the untyped `nowLogical` / `tickLogical` trusted shims, which carry no postcondition.
+  38  -                          no Gobra site exists; recorded as blocked on B7 — Gobra cannot fold a concrete type's predicate through an interface-typed field, so clock.Clock reaches the service only via the untyped `nowLogical` / `tickLogical` trusted shims, which carry no postcondition.
+  39  -                          no Gobra site exists; recorded as blocked on B4 — vstd has no model of std::sync::RwLock or std::sync::Mutex (no std_specs/sync.rs), so a Verus spec fn cannot project MemStore's state.
+  40  -                          no Gobra site exists; recorded as blocked on B4 — vstd has no model of std::sync::RwLock or std::sync::Mutex (no std_specs/sync.rs), so a Verus spec fn cannot project MemStore's state.
+  41  crates/ids                 no Gobra site exists; recorded as blocked on B4 — vstd has no model of std::sync::RwLock or std::sync::Mutex (no std_specs/sync.rs), so a Verus spec fn cannot project MemStore's state.
+  42  crates/store verus_proof   no Gobra site exists; recorded as corrected_in_S-13

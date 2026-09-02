@@ -8,3 +8,7 @@ states/
 # Rust corner was vendored, which meant every cargo build dirtied the tree and
 # buried real changes under thousands of artefact diffs.
 impls/rust/target/
+
+# Negation-canary checkpoint. Resumable working state, not evidence --
+# the completed sweep is written to negation-canaries.json.
+evidence/runs/gobra/*.jsonl

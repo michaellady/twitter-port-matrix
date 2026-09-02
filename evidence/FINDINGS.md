@@ -1,4 +1,4 @@
-# What eighteen findings have in common
+# What twenty-one findings have in common
 
 An index, and an argument. The findings are in `evidence/findings/`; this file
 is for the patterns that only appear when you read them together — which is
@@ -28,6 +28,9 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F016 | 23 verified means one property proved | 11 of 23 units carry no `ensures` at all; one real, non-vacuous, undelegated clause |
 | F017 | the same defect is not the same defect | a mutant catalogue does not transfer across corners as cleanly as its name suggests |
 | F018 | the oracle itself cannot express the bug | a sequential reference machine has no vocabulary for interleaving, so no rung derived from it can score a concurrency defect |
+| F019 | the obligation count is not reproducible | 283 recorded, 236-238 measured across eight runs, and 61% of what it counts is compiler-generated scaffolding |
+| F020 | the prose contradicted its own commit | one commit discharged F8 in Go, recorded it as discharged, and said in the file beside it that F8 was unproved |
+| F021 | the audit fails where the obligations are strongest | vacuity-checking cost rises with clause strength, so the five clauses most worth auditing are the five the auditor cannot decide |
 
 ---
 
@@ -53,7 +56,7 @@ reference machine: it counts durable records against accepted writes.
 
 ## Pattern 1 — a count that looks like evidence
 
-Four findings are the same mistake wearing different clothes: **a number was
+Five findings are the same mistake wearing different clothes: **a number was
 produced without the thing that would make it mean something.**
 
 | | the count | why it meant nothing |
@@ -115,6 +118,15 @@ unique signature of an unreachable obligation (F013).
 **The rule.** Injection proves a gate can detect defects. Negation proves an
 obligation is reachable. Every proved obligation needs both.
 
+**Applied to the Go corner, F013's mode does not replicate:** 30 of 33 members
+refute `ensures false`, and 83 of 91 functional clauses refute their own
+negation, with 0 vacuous. But the eight that could not be decided are all on
+one member, and it carries the store's strongest clauses (F021). So a third state is needed alongside "refutable" and
+"vacuous": **unaudited**, meaning the package is green and nothing rules out
+the obligation being empty. Folding that into either neighbour is how a
+verified count goes wrong — in the F016 direction if you round it up, and in
+the opposite direction if you round it down.
+
 ---
 
 ## Pattern 4 — the ceiling is set by tool coverage of the standard library
@@ -148,6 +160,13 @@ ships four); and `home_timeline` needing a sort spec, when there had been no
 sort for weeks.
 
 Two more were mine — F004's shim count, and the R5 claim in `ASSURANCE.md`.
+
+F020 is the degenerate case: the interval between a blocker being true and
+being recorded as true was **zero**. One commit discharged F8 on Go's id
+generator, wrote `"status": "discharged"` into `obligations.json`, and left the
+prose two files away saying `Next` "is `// @ trusted` and carries no
+postcondition at all". Nothing compares a document to a data file, so nothing
+noticed for two sessions.
 
 Every one was written honestly, was true when written, and was then inherited
 by every later reader as a fact about the world.

@@ -186,16 +186,42 @@ bodies for `POST /users` and `POST /tweets`. So the id counters are part of
   production code calls. So F8 in Rust is an assumed postcondition, on a
   function that is never executed, stated over symbols with no definition. Zero
   obligations means zero obligations.
-- **Go `(*ids.Generator).Next` is `// @ trusted` and carries no postcondition at
-  all.** The `GhostNext` declaration in `ids.gobra` — which does state F8 — is a
-  separate ghost function that nothing calls.
+- **Go: F8 is proved.** `(*ids.Generator).Next` carries three functional
+  postconditions and is not `// @ trusted`:
 
-F8 is therefore unproved in both corners, symmetrically. This matters beyond
-F8: it is exactly the premise `(*MemStore).PutTweet`'s accept condition needs.
-The store's guard rejects an append whose id does not strictly exceed the last
-one, and discharging "that guard never fires" is what would let the service
-layer prove that a post from a known author is always accepted. See
-`AbsAcceptsTweet` in `internal/store/memstore.gobra`.
+  ```
+  // @ ensures result == old(unfolding acc(g.LockP()) in g.next)
+  // @ ensures unfolding acc(g.LockP()) in g.next == result + 1
+  // @ ensures result >= 1
+  ```
+
+  All three are refutable — Gobra rejects each negation at that member — and
+  the member refutes `ensures false`, so its exit is reachable and they are not
+  vacuous. `obligations.json` clause 20 has recorded this as `discharged` since
+  S-13; `GhostNext` in `ids.gobra` is a leftover ghost declaration that nothing
+  calls and that nothing now depends on.
+
+**This paragraph previously said the opposite**, in the same commit that
+discharged the obligation and recorded it as discharged in `obligations.json`.
+The correction is [F020](../../evidence/findings/F020-the-prose-contradicted-its-own-commit.md);
+it is left visible here rather than quietly rewritten, because the failure mode
+— prose and data file stating the same fact with nothing comparing them — is
+the finding.
+
+So F8 is **not** symmetric across the corners: proved in Go, and in Rust an
+assumed postcondition on a function that is never executed. That asymmetry is a
+result, not a gap to close.
+
+The Go half matters beyond F8: it is exactly the premise
+`(*MemStore).PutTweet`'s accept condition needs. The store's guard rejects an
+append whose id does not strictly exceed the last one, and discharging "that
+guard never fires" is what would let the service layer prove that a post from a
+known author is always accepted. See `AbsAcceptsTweet` in
+`internal/store/memstore.gobra`. Note what F018 established about that guard,
+though: ids being *allocated* in order is not ids being *appended* in order,
+and the composition only holds because `Service.wmu` now spans allocate-then-
+write. F8 alone does not discharge it, and `S_obs` has no vocabulary for the
+part that does.
 
 ## 7. Rust: what `verus_proof` actually verifies
 
@@ -233,7 +259,19 @@ claim built on this shape would be a claim about the twins.
 
 ## 8. Status of R5-core, per clause
 
-`D` = discharged by the verifier named, from its own output.
+`D` = discharged by the verifier named, from its own output, **and** refutable:
+Gobra rejects the clause's negation at that member, so the obligation is not
+vacuous. `U` = the package verifies with the clause present but the negation was
+not decided within a 6-minute budget, so vacuity is **unruled-out** and the
+clause is unaudited rather than discharged. That distinction is F013's: a green
+package is compatible with an obligation nothing reaches.
+
+This table is now derived rather than asserted. `spec/refinement/clause-sites.json`
+maps each clause to the `ensures` that carries it, and `go run ./tools/cmd/gobra r5`
+prints the status together with the Gobra line that refuted each negation.
+Current run: **26 VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS**
+(`evidence/runs/gobra/r5-clause-status.txt`). An earlier run's 25/5 was
+produced by a colliding checkpoint key and is withdrawn.
 `—` = not stated, with the blocker named.
 
 ### Go — `internal/store` (Gobra, image `sha256:2ef080cc`)
@@ -254,11 +292,25 @@ claim built on this shape would be a claim about the twins.
 | `PutTweet` | `¬AbsAcceptsTweet(t)` ⇒ length unchanged | **D** |
 | `PutTweet` | prefix of the log unchanged (append-only) | **D** |
 | `HomeTimeline` | descending `(created_at, id)` | **D** (F2) |
-| `HomeTimeline` | every entry authored by `user` or followed by `user` | **D** (**F1**) |
-| `HomeTimeline` | `cursor > 0 ⇒ every id < cursor` | **D** (D10) |
-| `HomeTimeline` | no fabrication: every entry is some log entry | **D** |
-| `HomeTimeline` | no loss: if `!more`, every visible entry under the cursor is on the page | **D** |
-| `Replace` | installs a log satisfying the append-log invariant | **D** |
+| `HomeTimeline` | every entry authored by `user` or followed by `user` | **U** (**F1**) |
+| `HomeTimeline` | `cursor > 0 ⇒ every id < cursor` | **U** (D10) |
+| `HomeTimeline` | no fabrication: every entry is some log entry | **U** |
+| `HomeTimeline` | no loss: if `!more`, every visible entry under the cursor is on the page | **U** |
+| `Replace` | installs a log satisfying the append-log invariant | **D**, not canaried — see below |
+
+**The four `U` rows are all on `HomeTimeline`**, and so are three framing
+negations that refute in seconds on every other member: it is that method's
+proof that sits at the edge of the budget, not the canaries. Auditing cost
+rises with obligation strength, so the obligations most worth checking for
+vacuity are the ones the check cannot reach. See
+[F021](../../evidence/findings/F021-the-audit-fails-where-the-obligations-are-strongest.md).
+
+`Replace` carries no functional postcondition at all. What it discharges is the
+`fold acc(s.LockP())` closing its body — `LockP()` carries the append-log
+invariant, so the fold succeeds only if the installed log satisfies it. A
+negation canary over an `ensures` cannot reach a fold obligation, so this row is
+discharged but unaudited by a different route than the five above. Its canary
+(CANARY H in `impls/go/internal/_broken/`) is a Go test, not a Gobra one.
 
 ### Go — `internal/service` (the boundary a request crosses)
 
