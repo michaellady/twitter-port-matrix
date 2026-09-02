@@ -64,7 +64,39 @@ object Refinement {
         assert(s.clock() == 0L)
     }
 
-    /** Clause 2: a fresh handle => `AbsUsers' == AbsUsers + {h}` -- added, and nothing else. */
+    /**
+     * Clause 2: a fresh handle => `AbsUsers' == AbsUsers + {h}` -- added, and nothing else.
+     *
+     * **This call to `Store.createUser` STAYS, and it is the one coupling in this corner's
+     * obligation set that is not decoration.** F035's rule -- an obligation should touch the
+     * smallest surface its property needs -- removed five `s.createUser("a")` calls from
+     * `Obligations.kt` and `Canaries.kt`, where a timeline property never needed a registered
+     * user at all. Clause 2 is not that. `obligations.json` records clause 2 at `layer: "store"`,
+     * `op: "CreateUser"`, site `(*MemStore).PutUser` on the Go corner; the *whole* content of the
+     * clause is that THIS store method's effect on the users axis commutes with `S_obs`. The
+     * smallest surface it needs IS `Store.createUser`.
+     *
+     * Routing it through `Service.createUser` to dodge a signature change would not be a smaller
+     * mention of the same property, it would be a different property at a different layer:
+     *
+     *  - The store's `createUser` has the precondition "the caller has already established that
+     *    the handle is valid and free", so `s.createUser("!")` succeeds and adds `"!"`, while
+     *    `svc.createUser("!")` rejects it. Clause 2's antecedent is *fresh*; through the service
+     *    it would silently become *valid and fresh* -- strictly weaker, and no longer the sentence
+     *    the Go corner discharges.
+     *  - `clause-sites-kotlin.json` keys clause 2 to (member, text) HERE, and the only thing that
+     *    makes a `go <- kotlin` R5 cell mean anything is that the two ends carry the same sentence
+     *    at the same layer.
+     *  - `id-burned-on-reject` is exactly the mutant whose signature change this coupling costs a
+     *    cell to. Rewriting the obligation onto the service would be rewriting it to accommodate
+     *    a held-out defect, which is the move F031 says must not be made.
+     *
+     * The price is recorded, not paid: the `id-burned-on-reject` tree cannot compile this file, so
+     * the Kotlin R4 and R5 cells for that mutant are ERROR cells -- missing measurements, neither
+     * kill nor survival. In Gobra the same clause is a GHOST postcondition on `PutUser` and the
+     * mutant's own edit carries it; Kotlin has no ghost mode, so the obligation is ordinary code
+     * compiled against the tree under test. See F048 and F045.
+     */
     @JvmStatic
     fun c02_createUserAddsExactlyThatHandle() {
         val s = Store()
@@ -153,7 +185,11 @@ object RefinementCanaries {
         assert(!(s.absLogLen() == 0 && s.absUserCount() == 0 && s.absFollowCount() == 0 && s.clock() == 0L))
     }
 
-    /** Negation of c02. */
+    /**
+     * Negation of c02. Its `Store.createUser` call stays for c02's reason and no other: a negation
+     * canary that reached the property by a different route would not be c02's negation. See the
+     * long note on `Refinement.c02_createUserAddsExactlyThatHandle`.
+     */
     @JvmStatic
     fun k02_createUserDoesNotAddThatHandle() {
         val s = Store()

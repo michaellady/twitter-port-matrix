@@ -54,11 +54,16 @@ object Canaries {
         assert(t1.createdAt > t2.createdAt)
     }
 
+    // c4 and c5 do NOT register the author with `Store.createUser` first, and until F035 they
+    // did. `timelinePage` never reads `userByHandle`, so the call changed no answer -- but the
+    // obligation set is compiled against the tree under test, so mentioning a method couples the
+    // canary to that method's SIGNATURE, and `id-burned-on-reject` is entitled to change it.
+    // A canary that does not compile is not a weaker canary; it is a lost cell (F031, F035).
+
     /** Negation of O4a: claims a page may exceed the requested limit. */
     @JvmStatic
     fun c4_pageMayExceedLimit() {
         val s = Store()
-        s.createUser("a")
         s.appendTweet("a", "1")
         s.appendTweet("a", "2")
         s.appendTweet("a", "3")
@@ -70,7 +75,6 @@ object Canaries {
     @JvmStatic
     fun c5_timelineIsOldestFirst() {
         val s = Store()
-        s.createUser("a")
         val t1 = s.appendTweet("a", "1")
         s.appendTweet("a", "2")
         val p = s.timelinePage("a", 50, null)

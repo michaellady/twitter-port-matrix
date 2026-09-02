@@ -170,13 +170,28 @@ object Obligations {
     // ======================================================================
     // GROUP 4 -- store.timelinePage: pagination arithmetic (D10). REACHABLE.
     // ======================================================================
+    //
+    // These three do NOT register the author with `Store.createUser` first, and until F035 they
+    // did. The call was decoration: `timelinePage` decides visibility with
+    // `t.author == user || isFollowing(user, t.author)` and never reads `userByHandle`, so
+    // registering "a" changed no answer in any of them. It was not free, though. The whole
+    // obligation set is COMPILED against the tree under test -- that is the point of a proof rung
+    // over a mutant -- so an obligation that mentions a method it does not need is coupled to that
+    // method's SIGNATURE. The `id-burned-on-reject` mutant splits `Store.createUser(handle)` into
+    // `allocUserId()` plus `createUser(handle, id)`, which made this file fail to COMPILE and
+    // turned a reached mutant into an ERROR cell -- a missing measurement, neither kill nor
+    // survival (F031, F035).
+    //
+    // The rule: an obligation should touch the smallest surface its property needs. On a mutation
+    // rung that is not taste. Setup you would write in a test is a liability in an obligation,
+    // because a test is run against one tree and an obligation is compiled against every tree the
+    // catalogue can produce.
 
     /** O4a: over every legal limit, a page never exceeds it. */
     @JvmStatic
     fun o4a_pageRespectsLimit(limit: Int) {
         if (limit < 1 || limit > 3) return
         val s = Store()
-        s.createUser("a")
         s.appendTweet("a", "1")
         s.appendTweet("a", "2")
         s.appendTweet("a", "3")
@@ -192,7 +207,6 @@ object Obligations {
     @JvmStatic
     fun o4b_cursorNullMeansExhausted() {
         val s = Store()
-        s.createUser("a")
         s.appendTweet("a", "1")
         s.appendTweet("a", "2")
         val all = s.timelinePage("a", 50, null)
@@ -205,7 +219,6 @@ object Obligations {
     @JvmStatic
     fun o4c_pageIsNewestFirst() {
         val s = Store()
-        s.createUser("a")
         val t1 = s.appendTweet("a", "1")
         s.tick()
         val t2 = s.appendTweet("a", "2")
