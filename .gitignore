@@ -12,3 +12,7 @@ impls/rust/target/
 # Negation-canary checkpoint. Resumable working state, not evidence --
 # the completed sweep is written to negation-canaries.json.
 evidence/runs/gobra/*.jsonl
+
+# Agent worktrees. Ephemeral checkouts created by Agent isolation; the work
+# they hold lands as pushed branches, never as files here.
+.claude/worktrees/
