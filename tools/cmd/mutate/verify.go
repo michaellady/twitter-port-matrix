@@ -162,8 +162,29 @@ func compileMutant(m mutants.Mutant, spec implrun.Spec, sites []string, keep boo
 		}
 		return false
 	}
-	fmt.Printf("  ok     %-38s %-34s %s  %.1fs\n",
-		m.Key(), strings.Join(sites, " "), short(res.TreeHash), time.Since(start).Seconds())
+	// F031: the implementation compiling is not the same question as the
+	// proof rung being able to build this tree. Ask the second one too.
+	oblOut, ran, oerr := implrun.CompileObligations(mspec)
+	if oerr != nil {
+		fmt.Printf("  FAIL   %-38s implementation compiles, OBLIGATIONS do not\n", m.Key())
+		fmt.Printf("         %v\n", oerr)
+		for _, line := range tailLines(oblOut, 12) {
+			fmt.Printf("         | %s\n", line)
+		}
+		fmt.Printf("         The proof rung compiles the obligations against the tree under test,\n")
+		fmt.Printf("         so this mutant would reach it as an ERROR cell -- a missing\n")
+		fmt.Printf("         measurement, not a kill and not a survival (F031).\n")
+		if keep {
+			fmt.Printf("         tree kept at %s\n", res.TreeDir)
+		}
+		return false
+	}
+	note := ""
+	if ran {
+		note = " +obl"
+	}
+	fmt.Printf("  ok     %-38s %-34s %s  %.1fs%s\n",
+		m.Key(), strings.Join(sites, " "), short(res.TreeHash), time.Since(start).Seconds(), note)
 	return true
 }
 

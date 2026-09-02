@@ -129,3 +129,44 @@ in the middle of a long sweep rather than as a gate failure before it.
 
 This is the fourth arrival of F007's shape: the cost lands somewhere other than
 where the change was made.
+
+---
+
+## Fixed
+
+`implrun.Spec` gained `verify_build`, a per-corner command that compiles the
+corner's OBLIGATIONS against the tree, and `mutate verify` now runs it after the
+implementation build. The Kotlin and Java corners declare it in
+`impls/registry.json`; Go and Rust declare nothing and are unaffected, since
+their contracts are inline in the sources the implementation build already
+compiles.
+
+Shown failing on the exact mutant this finding is about:
+
+```
+  FAIL   kotlin/id-burned-on-reject             implementation compiles, OBLIGATIONS do not
+         | verification/Obligations.kt:208:22: error: no value passed for parameter 'id'.
+         | verification/Refinement.kt:72:22: error: no value passed for parameter 'id'.
+         The proof rung compiles the obligations against the tree under test,
+         so this mutant would reach it as an ERROR cell -- a missing
+         measurement, not a kill and not a survival (F031).
+
+verify FAILED: 1 mutant(s): kotlin/id-burned-on-reject
+```
+
+And not firing on a mutant that is fine (`kotlin/tick-goes-backwards`,
+`go/tick-goes-backwards`), so it is a gate rather than a blanket refusal.
+
+**The consequence is uncomfortable and is the right kind of uncomfortable.**
+`mutate verify` over the whole catalogue no longer passes: the Kotlin corner has
+one mutant that cannot be handed to its proof rung. That was already true before
+this change — it is what produced the ERROR cell — but it was invisible to the
+gate, so the run reported `18/18 build clean` and the failure surfaced fifteen
+minutes later inside the sweep. A red gate that names the mutant is strictly
+better than a green one that does not.
+
+The repair is [F035](F035-an-obligation-that-mentions-more-than-it-needs-loses-a-cell.md)'s:
+the obligation calls `s.createUser("a")` in a timeline obligation that never
+needed a user id, so it is coupled to a signature it does not use. Removing the
+decorative call restores the cell. That is an edit to the obligation sources on
+the Kotlin corner, and it has not been made yet.
