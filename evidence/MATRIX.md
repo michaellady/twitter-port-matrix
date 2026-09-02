@@ -79,10 +79,10 @@ pairs.
 
 | B ← A | R0 corpus | R1 diff-fuzz | R2 property | R3 model | R4 proof | R5 refinement |
 |---|---|---|---|---|---|---|
-| go ← rust | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 1/14 = 7% ‡ | cap←rust † |
+| go ← rust | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 1/14 = 7% ‡ ⚠ | cap←rust † |
 | go ← java | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 0/15 = 0% ‡ | cap←java † |
 | go ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | pending |
-| rust ← go | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 1/14 = 7% ‡ | cap←rust † |
+| rust ← go | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 1/14 = 7% ‡ ⚠ | cap←rust † |
 | rust ← java | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 0/15 = 0% ‡ | cap←rust,java |
 | rust ← kotlin | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | pending | cap←rust |
 | java ← go | 18/18 = 100% | 18/18 = 100% | 7/17 = 41% | n/a | 0/15 = 0% ‡ | cap←java † |
@@ -102,6 +102,7 @@ pairs.
 | `n/a` | R3 is a claim about the TLA⁺ model and the `S_obs` link, not about either corner's code (`ASSURANCE.md`: *"Says nothing about code"*). `calibrate` has no R3 rung and is not getting one |
 | `†` | one end of this pair is **Go**, whose own R4/R5 evidence is now a completed 18-mutant sweep (9 killed, 5 survived, 4 unreached, 9/14 = 64% killed/reached, R4 and R5 agreeing on all 18 — F028; that agreement is a fact about the shipped catalogue, and a scratch catalogue aimed at the perimeter difference separates the two columns on all three of its mutants — F038, F039). The cell is capped by the other end regardless, so the mark changes no cell; it records that the Go end's half of the pair is not what is missing |
 | `‡` | **the two ends' numbers are not comparable in meaning**, so the weaker-end rule produces an arithmetically correct cell that a reader will misread. See "What the measured R4 cells actually say" below. Applies to all six R4 cells that carry a number today |
+| `⚠` | **measured against a tree that no longer exists.** The Rust corner's verified core was lifted out of its locks after this cell was measured (F041), which moved contracts from hand-written twins onto shipped functions and re-anchored four mutants onto the lifted code. The number is what `calibrate` reported and it is not withdrawn, but it is not current: the Rust R4 sweep has to be re-run before it means anything about the tree in this repository. Marked rather than deleted, because a cell quietly holding a stale number is worse than one that says so |
 
 **Cell census.** 72 cells: **42 measured**, **10 capped**, **8 pending**,
 **12 n/a** (the whole R3 column). Every capped cell is now in the R5 column.
@@ -320,7 +321,7 @@ means. Each invocation is run from the repository root.
 | R4, R5 (Go end) | `go run ./tools/cmd/calibrate -impls go -rungs R4,R5 -out evidence/runs/calibration/go-proof -resume` | **done**, 18 mutants x 2 rungs, 36 cells, 2043s + 1059s. 9 killed / 5 survived / 4 unreached at both rungs, 0 disagreements (F028) |
 | R4/R5 separation (Go end, scratch catalogue) | `go run ./tools/cmd/calibrate -manifest evidence/experiments/r4-r5-separation/manifest.json -impls go -rungs R4,R5 -out evidence/runs/calibration/dom-separation -resume` | **done**, 3 mutants x 2 rungs, 6 cells, 203s + 197s. R4 3/3 killed; R5 2 unreached and 1 survived, `killed/reached 0/1`. Not part of any published denominator — its ids are outside `tools/cmd/mutate/mutants.json` on purpose (F038, F039) |
 | R5 (Kotlin end) | `go run ./tools/cmd/calibrate -impls kotlin -rungs R5 -out evidence/runs/calibration/kotlin-refinement -resume` | **rung exists, sweep not run** — gate only, in `evidence/runs/kotlin-r5-gate/`: one clean tree and three mutants through `calibrate` end to end. This is what the two new `pending` R5 cells are waiting on |
-| R4 (Rust end) | `go run ./tools/cmd/calibrate -impls rust -rungs R4 -out evidence/runs/calibration/rust-proof -resume` | **done**, all 14 covered mutants, 1 killed (F027). Vacuity audited: `go run ./tools/cmd/verus canary` reports REFUTABLE 5, VACUOUS 0 (F030) |
+| R4 (Rust end) | `go run ./tools/cmd/calibrate -impls rust -rungs R4 -out evidence/runs/calibration/rust-proof -resume` | **STALE, needs re-running.** It was done — all 14 covered mutants, 1 killed (F027), vacuity audited at REFUTABLE 5 / VACUOUS 0 (F030) — and then the lift (F041) changed the tree underneath it. Four mutants were re-anchored onto the lifted code and the shipped-clause census went from 5 to 37, so the 1-kill-in-14 was measured where only `domain` carried shipped contracts and that is no longer true. Re-running it is the single highest-value outstanding run on this table |
 | R4 (Kotlin end) | `go run ./tools/cmd/calibrate -impls kotlin -rungs R4 -out evidence/runs/calibration/kotlin-proof -resume` | **rung exists, sweep not run** — gate only, 5 mutants in `kotlin-r4-gate`. This is what the four `pending` cells are waiting on, and it is the cheapest cell-filling move on this table |
 | R4 (Java end) | `go run ./tools/cmd/calibrate -impls java -rungs R4 -out evidence/runs/calibration/java-proof -resume` | **done**, 18 mutants, window 2026-09-02T20:29:40Z .. 2026-09-02T20:44:36Z, 812s. 0 killed / 15 survived / 2 unreached / 1 error, `0/15 = 0%` (F036). Gate first: `java-r4-gate/canary-injection.log` is `R4 FAILED` on a hand-broken `parseInt64`, and `java-r4-gate/sweep` is a five-mutant `calibrate` run showing survivals and the vacuity error cell |
 | R3 | no invocation. `tlclink` checks the model and the `S_obs` link; it produces no per-corner kill verdict and no cell here | by design |
