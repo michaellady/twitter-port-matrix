@@ -230,6 +230,28 @@ measure that alignment.
 | Java | 56/56 | clean | pass | not attempted | JBMC string equality (F014) |
 | Kotlin | 56/56 | clean | pass | JBMC, 7 of 15 | same JBMC defect |
 
+### Loop log
+
+Fires append here, newest first. One line per fire: UTC time, what was done,
+the verdict line, and what the next fire should do.
+
+- **2026-09-02 06:34 (interactive session, PR #3)** — R4/R5 audit complete.
+  Negation sweep `91 clauses: 83 refutable, 0 VACUOUS, 8 timed out`; R5
+  `26 VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED`; F019–F021 written; `GOAL.md`
+  LOOP contract added; branch `claude/goal-loop` fast-forwarded to match.
+  **Next fire: queue item 1, first sub-step** — add an `R4` entry to
+  `tools/cmd/calibrate/rungs.go` for the Go corner that runs
+  `go run ./tools/cmd/gobra verify` over the mutant tree, reads the
+  `Gobra has found N error(s)` line for the verdict, and reports Pass/Fail the
+  way the R0–R2 entries do. Gate: `calibrate -impls go -rungs R4 -ids <one
+  mutant id>` produces a kill row, and an injected `// @ ensures false` in the
+  mutant tree makes it FAIL (standing rule 2). Do not add R5 in the same fire.
+- **2026-09-02 06:15 (routine fire 1, session `cse_013t8PuViUqGSYhhfdXwMjSN`)**
+  — ran 13 minutes and pushed nothing; no STATE entry was written, so what it
+  did is not recorded. That is the failure mode this log exists to prevent: a
+  fire that ends without a line here did not happen as far as the next fire
+  is concerned.
+
 ### Highest-priority outstanding work
 
 1. ~~**Fix the concurrency defect (F018).**~~ **DONE.** `Service.wmu` now holds
