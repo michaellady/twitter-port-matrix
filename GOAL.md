@@ -376,6 +376,51 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 21:05 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`,
+  branch `claude/loop-d-homeline-vacuity`)** — **F021's eight undecided clauses
+  are decided. None is vacuous.** All three levers F021 named as untried were
+  tried, in its order; the two it expected to work did nothing.
+  ```
+  1. --parallelizeBranches, default shape, 12 min  ->  no verdict,  723 s
+  2. 45-minute budget,      default shape         ->  no verdict, 2703 s
+  3. one clause at a time, three respelled by hand ->  8 of 8 REFUTABLE, 40-709 s
+  ```
+  Lever 2's own words, and the reason a driver must never read the count:
+  ```
+  The verification of package .../internal/store - store got terminated after 2700 seconds
+  The verification of member .../store.*MemStore.HomeTimeline(string, int, int64) did not terminate
+  The verification of 1 members timed out
+  Gobra has found 0 error(s)
+  ```
+  Zero errors, on a run that verified nothing — and in a negation sweep "no
+  errors" is what VACUOUS looks like. `tools/cmd/gobra` reads the wording.
+  What worked was `gobra canary -isolate` (elide the member's other eight
+  postconditions — sound, a postcondition is a goal and not an assumption, so
+  the exit state is unchanged) plus a three-entry hand-canary table for
+  negations the generator spells as `forall a int :: !(0 <= a && a <
+  len(out))`, which Gobra will not decide, instead of the equal `len(out) ==
+  0`, which it will. Corner-wide result:
+  ```
+  91 clauses: 91 refutable, 0 VACUOUS, 0 timed out, 0 ill-formed
+  audited 91 REFUTABLE verdicts: 91 backed by an error inside the clause's own
+  member, 0 backed only by an error elsewhere. (0 results were not REFUTABLE.)
+  42 clauses: 30 VERIFIED, 12 UNATTEMPTED
+  ```
+  R5 clauses 15-18 (F1, D10, no-fabrication, no-loss) move UNAUDITED ->
+  VERIFIED, each on Gobra's own line, e.g.
+  `internal/store/memstore.go:531:9 Postcondition might not hold.`
+  Standing rule 2 for the new shape: `gobra canary -control` re-runs every
+  canary against a copy of its own member with `assume false` in the body and
+  fails the sweep unless it comes back VACUOUS. Nine of nine did, in 23-44 s —
+  so the probe that returned those REFUTABLEs is one shown to see vacuity on
+  that member. Documented as CANARY I in
+  `impls/go/internal/_broken/intentional_failure.gobra.txt`. F029 written;
+  F021, ASSURANCE.md, MATRIX.md, OBLIGATION.md §8 and FINDINGS.md corrected.
+  **Next fire:** the `reach` probe still returns no verdict on three members
+  (`HomeTimeline`, `Replace`, `isMonotoneLog`) and now has an `-isolate` flag
+  that has not been run over the corner; re-running it would close the last
+  15 clauses that rung reports as unread.
+
 - **2026-09-02 20:45 (fan-out task `claude/task-java-obligations`)** — **The
   Java corner has an obligation set, an R4 rung runs over it, and the R4 column
   has no capped cell left.** `impls/java/verification/twitterport/verification/`

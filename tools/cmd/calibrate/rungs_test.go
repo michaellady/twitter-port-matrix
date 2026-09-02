@@ -473,3 +473,61 @@ func repoRootForRungs(t *testing.T) string {
 	t.Skip("repository root not found")
 	return ""
 }
+
+// TestNoConflictMarkersInTrackedFiles is a gate against an integration mistake
+// this repository has now actually made.
+//
+// Merging the Java branch, three files conflicted. Two were checked for markers
+// by name, resolved, and `git add -A` staged the third with its markers intact.
+// `go build`, `go vet` and `go test ./tools/...` all passed, because the file
+// was ASSURANCE.md and nothing compiles markdown. The unresolved conflict sat
+// in the ceiling table -- the document this project treats as the source no
+// cell may contradict -- and was found only because a later merge conflicted in
+// the same region.
+//
+// The lesson is not "grep more carefully next time". It is that the evidence
+// files carry the claims and nothing was checking them, so this walks the whole
+// tree rather than a list of files someone has to remember to extend.
+func TestNoConflictMarkersInTrackedFiles(t *testing.T) {
+	root := repoRootForRungs(t)
+	// Built by concatenation so this file does not match itself.
+	markers := []string{"<<<<" + "<<< ", ">>>>" + ">>> ", "====" + "===\n"}
+
+	skipDir := map[string]bool{".git": true, ".claude": true, "target": true, "node_modules": true}
+	var bad []string
+	err := filepath.Walk(root, func(p string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return nil // an unreadable path is not this test's business
+		}
+		if fi.IsDir() {
+			if skipDir[fi.Name()] {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		switch filepath.Ext(p) {
+		case ".md", ".go", ".json", ".rs", ".kt", ".java", ".tla", ".toml", ".yaml", ".yml", ".sh":
+		default:
+			return nil
+		}
+		b, rerr := os.ReadFile(p)
+		if rerr != nil {
+			return nil
+		}
+		rel, _ := filepath.Rel(root, p)
+		for _, ln := range strings.Split(string(b), "\n") {
+			for _, m := range markers {
+				if strings.HasPrefix(ln+"\n", m) {
+					bad = append(bad, rel+": "+ln)
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, b := range bad {
+		t.Errorf("unresolved conflict marker: %s", b)
+	}
+}

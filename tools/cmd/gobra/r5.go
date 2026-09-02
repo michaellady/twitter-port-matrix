@@ -111,7 +111,14 @@ func cmdR5(args []string) error {
 				case refutable:
 					refuted++
 					if len(cr.Errors) > 0 {
-						lines = append(lines, cr.Errors[0])
+						e := cr.Errors[0]
+						// A verdict reached in a non-default shape says so on
+						// the same line as the evidence, so the two cannot be
+						// read apart.
+						if cr.Mode != "" {
+							e += "   [canary shape: " + cr.Mode + "]"
+						}
+						lines = append(lines, e)
 					}
 				case vacuous:
 					vac++

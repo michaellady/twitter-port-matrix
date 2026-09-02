@@ -41,6 +41,17 @@ type canaryResult struct {
 	Errors   []string      `json:"errors,omitempty"`
 	Elapsed  time.Duration `json:"-"`
 	ElapsedS float64       `json:"elapsed_s"`
+	// Control is the same canary run against a copy of the member whose exit
+	// is genuinely unreachable (`assume false` at the top of the body). It
+	// must come back VACUOUS. Empty when no control run was asked for.
+	Control  verdict `json:"control_verdict,omitempty"`
+	ControlS float64 `json:"control_elapsed_s,omitempty"`
+	// Mode records how the question was put, when it was not put the default
+	// way. A verdict is only as good as the shape that produced it, so the
+	// shape travels with the verdict into the JSON and out again through
+	// `gobra r5` -- otherwise a reader has a status with no way to tell which
+	// run it came from.
+	Mode string `json:"mode,omitempty"`
 }
 
 func cmdCanary(args []string) error {
@@ -52,6 +63,15 @@ func cmdCanary(args []string) error {
 	only := fs.String("only", "", "restrict to clauses whose file:line or member contains this")
 	out := fs.String("out", "", "write the full result set here as JSON")
 	skipSelf := fs.Bool("skip-selftest", false, "do not run the sweep's own canary first")
+	isolate := fs.Bool("isolate", false,
+		"elide the clause's sibling postconditions on the same member, so the solver "+
+			"proves only the negation. Sound because a postcondition is a goal, not an "+
+			"assumption: the path condition at the exit is unchanged")
+	control := fs.Bool("control", false,
+		"for each clause also run the canary against an `assume false` copy of its own "+
+			"member and require VACUOUS -- standing rule 2 applied per member, not once "+
+			"per sweep")
+	fs.Var(extraArgsFlag{}, "gobra-arg", "extra argument passed to every Gobra invocation (repeatable)")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -104,6 +124,9 @@ func cmdCanary(args []string) error {
 	}
 	fmt.Fprintf(os.Stderr, "negation canaries: %d functional clauses, %d already done, %d to run, %d workers, %s budget each\n",
 		len(todo), skipped, len(pending), *jobs, *budget)
+	if len(gobraExtraArgs) > 0 {
+		fmt.Fprintf(os.Stderr, "extra Gobra arguments: %s\n", strings.Join(gobraExtraArgs, " "))
+	}
 
 	var ckptMu sync.Mutex
 	var ckptFile *os.File
@@ -127,12 +150,29 @@ func cmdCanary(args []string) error {
 			defer wg.Done()
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			r := runCanary(implDir, c, *budget)
+			var siblings []clause
+			if *isolate {
+				siblings = otherEnsuresOn(all, c)
+			}
+			r := runCanaryIsolating(implDir, c, siblings, *budget)
+			if *control {
+				ctl, err := runCanaryInfeasibleIsolating(implDir, c, siblings, *budget)
+				if err != nil {
+					r.Control = illFormed
+					r.Errors = append(r.Errors, "control run: "+err.Error())
+				} else {
+					r.Control, r.ControlS = ctl.Verdict, ctl.ElapsedS
+				}
+			}
 			fresh[i] = r
 			mu.Lock()
 			n++
-			fmt.Fprintf(os.Stderr, "  [%3d/%3d] %-12s %s:%d %s\n",
-				n, len(pending), r.Verdict, c.File, c.StartLine, trunc(c.Text, 60))
+			ctl := ""
+			if r.Control != "" {
+				ctl = fmt.Sprintf(" (control %s, %.0fs)", r.Control, r.ControlS)
+			}
+			fmt.Fprintf(os.Stderr, "  [%3d/%3d] %-12s %6.0fs%s %s:%d %s\n",
+				n, len(pending), r.Verdict, r.ElapsedS, ctl, c.File, c.StartLine, trunc(c.Text, 60))
 			mu.Unlock()
 			if ckptFile != nil {
 				if b, err := json.Marshal(r); err == nil {
@@ -169,6 +209,25 @@ func cmdCanary(args []string) error {
 			return err
 		}
 		fmt.Printf("\nfull results: %s\n", *out)
+	}
+	// A control run that did not come back VACUOUS means the probe cannot see
+	// vacuity on that member, so its REFUTABLE says nothing. That is a harder
+	// failure than a vacuous clause and is reported before one.
+	var blind []string
+	for _, r := range results {
+		if r.Control != "" && r.Control != vacuous {
+			blind = append(blind, fmt.Sprintf("%s:%d (control came back %s, expected VACUOUS)",
+				r.Clause.File, r.Clause.StartLine, r.Control))
+		}
+	}
+	if len(blind) > 0 {
+		fmt.Printf("\nCONTROL FAILED -- on these clauses the canary did not report VACUOUS even with\n" +
+			"the member's exit made unreachable, so it cannot detect vacuity here and its\n" +
+			"verdict for the shipped code carries no information:\n")
+		for _, b := range blind {
+			fmt.Printf("  %s\n", b)
+		}
+		return fmt.Errorf("%d control run(s) did not report VACUOUS", len(blind))
 	}
 	for _, r := range results {
 		if r.Verdict == vacuous {
@@ -227,7 +286,27 @@ func readCheckpoint(path string) (map[string]canaryResult, error) {
 }
 
 func runCanary(implDir string, c clause, budget time.Duration) canaryResult {
-	r := canaryResult{Clause: c}
+	return runCanaryIsolating(implDir, c, nil, budget)
+}
+
+// runCanaryIsolating is runCanary with the option of eliding the clause's
+// sibling postconditions on the same member.
+//
+// Isolation is sound as a vacuity probe and this is the whole reason it is
+// allowed: a postcondition is a *goal*, never an assumption. Deleting the
+// siblings cannot change the path condition Gobra reaches the member's exit
+// with, so the question "can Gobra prove this negation there" is the same
+// question, asked with less to prove alongside it. Eliding an *invariant*
+// would not be sound -- an invariant is assumed on the way round the loop, so
+// dropping one can make an exit state feasible that was not -- and this never
+// touches them.
+//
+// It exists because of F021: on (*MemStore).HomeTimeline the sweep's default
+// shape (all nine postconditions present, one of them negated) does not
+// terminate, and the cost is in what the solver carries alongside the goal
+// rather than in the goal.
+func runCanaryIsolating(implDir string, c clause, siblings []clause, budget time.Duration) canaryResult {
+	r := canaryResult{Clause: c, Mode: canaryMode(c, len(siblings) > 0)}
 	ws, err := newWorkspace(implDir)
 	if err != nil {
 		r.Verdict, r.Errors = illFormed, []string{err.Error()}
@@ -239,11 +318,18 @@ func runCanary(implDir string, c clause, budget time.Duration) canaryResult {
 		r.Verdict, r.Errors = illFormed, []string{err.Error()}
 		return r
 	}
+	if len(siblings) > 0 {
+		if err := elide(filepath.Join(ws.module, c.File), siblings); err != nil {
+			r.Verdict, r.Errors = illFormed, []string{err.Error()}
+			return r
+		}
+	}
 	res, err := runGobra(ws, []string{c.Pkg}, "", budget)
 	if errors.Is(err, errTimeout) {
 		r.Verdict = timedOut
 		r.Elapsed, r.ElapsedS = res.Elapsed, res.Elapsed.Seconds()
-		r.Errors = []string{fmt.Sprintf("no verdict within %s", budget)}
+		r.Errors = append([]string{fmt.Sprintf("no verdict within %s", budget)},
+			terminationLines(res.Raw)...)
 		return r
 	}
 	if err != nil {
@@ -301,6 +387,62 @@ func substitute(path string, c clause) error {
 	return os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0o644)
 }
 
+// canaryMode names the shape a verdict was produced in. The empty string means
+// the default: every postcondition present, one of them negated, Gobra invoked
+// with no extra arguments.
+func canaryMode(c clause, isolated bool) string {
+	var parts []string
+	if isolated {
+		parts = append(parts, "isolated")
+	}
+	if c.CanaryEquivalence != "" {
+		parts = append(parts, "hand-written canary")
+	}
+	parts = append(parts, gobraExtraArgs...)
+	return strings.Join(parts, " ")
+}
+
+// otherEnsuresOn returns the functional `ensures` clauses on the same member as
+// c, minus c itself. The framing (`acc(...)`) clauses are deliberately left in:
+// dropping the permission the method hands back would change what the exit
+// state is, which is the one thing isolation must not do.
+func otherEnsuresOn(all []clause, c clause) []clause {
+	var out []clause
+	for _, o := range all {
+		if o.File != c.File || o.Member != c.Member || o.Kind != kindFunctional {
+			continue
+		}
+		if o.StartLine == c.StartLine {
+			continue
+		}
+		out = append(out, o)
+	}
+	return out
+}
+
+// elide comments out whole `ensures` clauses, keeping the file's line count so
+// Gobra's reported positions still line up with the original. Only the clauses
+// named are touched; `requires`, `invariant` and the framing `acc` clauses stay
+// exactly as they are.
+func elide(path string, cs []clause) error {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(b), "\n")
+	for _, c := range cs {
+		if c.EndLine > len(lines) {
+			return fmt.Errorf("%s: clause runs past end of file", path)
+		}
+		for i := c.StartLine - 1; i < c.EndLine; i++ {
+			ln := lines[i]
+			indent := ln[:len(ln)-len(strings.TrimLeft(ln, " \t"))]
+			lines[i] = indent + "// (isolated: sibling postcondition elided)"
+		}
+	}
+	return os.WriteFile(path, []byte(strings.Join(lines, "\n")), 0o644)
+}
+
 func countVerdict(rs []canaryResult, v verdict) int {
 	n := 0
 	for _, r := range rs {
@@ -319,11 +461,15 @@ func report(rs []canaryResult) {
 		}
 		return sorted[i].Clause.StartLine < sorted[j].Clause.StartLine
 	})
-	fmt.Printf("\n%-34s %-26s %-11s %s\n", "SITE", "MEMBER", "VERDICT", "CLAUSE")
+	fmt.Printf("\n%-34s %-26s %-11s %8s %-10s %s\n", "SITE", "MEMBER", "VERDICT", "SECONDS", "CONTROL", "CLAUSE")
 	for _, r := range sorted {
-		fmt.Printf("%-34s %-26s %-11s %s\n",
+		ctl := "-"
+		if r.Control != "" {
+			ctl = string(r.Control)
+		}
+		fmt.Printf("%-34s %-26s %-11s %8.1f %-10s %s\n",
 			fmt.Sprintf("%s:%d", r.Clause.File, r.Clause.StartLine),
-			r.Clause.Member, r.Verdict, trunc(r.Clause.Text, 80))
+			r.Clause.Member, r.Verdict, r.ElapsedS, ctl, trunc(r.Clause.Text, 80))
 	}
 	fmt.Printf("\n%d clauses: %d refutable, %d VACUOUS, %d timed out, %d ill-formed\n",
 		len(rs), countVerdict(rs, refutable), countVerdict(rs, vacuous),

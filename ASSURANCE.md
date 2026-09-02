@@ -75,16 +75,10 @@ argued away.
 
 | Corner | R0-R3 | R4 | R5-core | R5-wire | Ceiling |
 |---|---|---|---|---|---|
-| Go | yes | Gobra, **83 of 91 clauses refutable, 0 vacuous, 8 undecided** | **26 of 42 clauses** | no | **R5-core, partial** |
-<<<<<<< HEAD
+| Go | yes | Gobra, **91 of 91 clauses refutable, 0 vacuous, 0 undecided** | **30 of 42 clauses** | no | **R5-core, partial** |
 | Rust | yes | Verus, **37 of 37 shipped clauses refutable, 0 vacuous** | **statable, partial: `abs` has a body; 17 clauses on 3 axes; no rung** | no | **R4 on 4 of 5 crates; R5-core has no rung** |
-| Java | yes | not attempted | unknown | no | **R3** |
-| Kotlin | yes | JBMC, bounded | **5 of 42 clauses, bounded** | no | **R5-core, bounded and partial (measured)** |
-=======
-| Rust | yes | Verus, **1 property** | **no** | no | **R4, one property (F4)** |
 | Java | yes | JBMC, bounded, **7 of 15 obligations decidable** (F034) | no | no | **R3 + bounded (measured)** |
-| Kotlin | yes | JBMC, bounded | no | no | **R3 + bounded (measured)** |
->>>>>>> origin/claude/task-java-obligations
+| Kotlin | yes | JBMC, bounded | **5 of 42 clauses, bounded** | no | **R5-core, bounded and partial (measured)** |
 
 ### Why R5-wire is not reachable, in either corner
 
@@ -184,27 +178,40 @@ something. No member has an unreachable exit
 (`evidence/runs/gobra/reachability.json`). Kotlin's six vacuous obligations have
 no counterpart in the Go corner.
 
-Three members returned no verdict — `(*MemStore).HomeTimeline` (11 clauses),
+Three members returned no verdict from the `ensures false` probe — `(*MemStore).HomeTimeline` (11 clauses),
 `(*MemStore).Replace` (2) and `isMonotoneLog` (2): two clean timeouts and,
 for `isMonotoneLog`, a Silicon exception followed by `did not terminate`, with
 a plain timeout on reproduction. Gobra reports all of these as `0 error(s)`,
-which is why they are read from its wording rather than its count. Those 15 clauses are **unaudited, not
-verified**.
+which is why they are read from its wording rather than its count. The
+per-clause sweep below has since decided all 11 of `HomeTimeline`'s, and its
+`assume false` control establishes directly that the member's exit is
+reachable, so the probe's silence there is a cost limit and not a gap in the
+evidence (F029). The 4 clauses on `Replace` and `isMonotoneLog` are covered by
+the per-clause sweep too. This probe on its own leaves 15 clauses unread.
 
 **The per-clause negation sweep**, corrected key, 12-minute budget per canary:
 
 ```
-91 clauses: 83 refutable, 0 VACUOUS, 8 timed out, 0 ill-formed
-audited 83 REFUTABLE verdicts: 83 backed by an error inside the clause's
+91 clauses: 91 refutable, 0 VACUOUS, 0 timed out, 0 ill-formed
+audited 91 REFUTABLE verdicts: 91 backed by an error inside the clause's
 own member, 0 backed only by an error elsewhere.
 ```
 
-All eight undecided clauses are on `(*MemStore).HomeTimeline`, and three of
-them are trivial framing negations that refute in seconds on every other
-member — so it is the method's proof that is at the edge of the budget, not
-the canaries. Those eight, F1 / D10 / no-fabrication / no-loss among them, are
-**unaudited, not verified** —
-[F021](evidence/findings/F021-the-audit-fails-where-the-obligations-are-strongest.md).
+The sweep first reported 83 refutable and **8 undecided, all on
+`(*MemStore).HomeTimeline`** — F1, D10, no-fabrication and no-loss among them
+([F021](evidence/findings/F021-the-audit-fails-where-the-obligations-are-strongest.md)).
+Those eight are now decided and none is vacuous
+([F029](evidence/findings/F029-the-audit-was-undecidable-as-spelled-not-as-asked.md)).
+Neither of the two levers F021 expected to work did: `--parallelizeBranches`
+still ran out the clock at 723 s, and a 45-minute budget ended with Gobra's own
+`did not terminate` at 2703 s. What decided them was asking one question at a
+time — the sweep's canary re-verified the whole member, so it was proving the
+other eight postconditions alongside the one it could not — and, for three
+clauses, spelling the negation as `len(out) == 0` rather than as the equivalent
+`forall a int :: !(0 <= a && a < len(out))` the generator derives. Each of the
+eight carries a control run on the same member with `assume false` in the body,
+and all nine controls came back VACUOUS, so the probe that produced these
+verdicts is one shown to detect vacuity here.
 The first run of this sweep reported 86/5; that figure was produced by a
 colliding checkpoint key and is withdrawn.
 
@@ -388,18 +395,19 @@ concurrency semantics, or a rung would have to exist that does not consult it.
 | R1 | Not built. Phase 1 |
 | R2 | Not built. Phase 1 |
 | R3 | **PASSING.** TLC green on `twitter.tla` (8,989,719 distinct states, depth 20). `S_obs` link check green over 16 state-changing steps, and the known-bad canary is correctly rejected |
-| R4 | **Go: green and audited.** All five packages `Gobra found no errors`, `0 error(s)`, reproduced eight times. 0 of 33 members unreachable; 83 of 91 functional clauses refutable, 0 vacuous, 8 undecided (all on `HomeTimeline`, F021). **Rust: green, audited, and no longer 8% of the corner.** `verus canary` reports `REFUTABLE 37, VACUOUS 0, ILL-FORMED 0, TIMEOUT 0` over the shipped clauses, with a self-test that returns VACUOUS under an injected false precondition. The lift (F041) took the shipped/twin/assumed census from 5/36/21 to **37/20/13**, measured with the same classifier on both trees; the corner's remaining twins are in `crates/service` and three `crates/store` reads. `verification results:: 32 verified, 0 errors over 5 of 5 verify-enabled crate(s)`. Before F030 this corner had no vacuity instrument of any kind, and until F042 that instrument was counting two admitted axioms as shipped obligations |
-| R5-core | **Go: 26 of 42 clauses VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS** (`evidence/runs/gobra/r5-clause-status.txt`, derived by `gobra r5`). **Rust: statable since 2026-09-02 and partially discharged — `abs_users` / `abs_follows` / `abs_tweets` have bodies, `abs(init) == init_S` and state commutation for `put_user` / `put_follow` / `put_tweet` are proved on shipped functions (17 clauses). Not a rung: `calibrate`'s R5 is Gobra-only, and the response axis is blocked on `String` view injectivity (F043)** |
+| R4 | **Go: green and audited.** All five packages `Gobra found no errors`, `0 error(s)`, reproduced eight times. 0 of 33 members unreachable; **91 of 91** functional clauses refutable, 0 vacuous, 0 undecided — the eight F021 could not decide were decided by asking one clause at a time, and none of them is vacuous (F029). **Rust: green, audited, and no longer 8% of the corner.** `verus canary` reports `REFUTABLE 37, VACUOUS 0, ILL-FORMED 0, TIMEOUT 0` over the shipped clauses, with a self-test that returns VACUOUS under an injected false precondition. The lift (F041) took the shipped/twin/assumed census from 5/36/21 to **37/20/13**, measured with the same classifier on both trees; the corner's remaining twins are in `crates/service` and three `crates/store` reads. `verification results:: 32 verified, 0 errors over 5 of 5 verify-enabled crate(s)`. Before F030 this corner had no vacuity instrument of any kind, and until F042 that instrument was counting two admitted axioms as shipped obligations. **Java: 7 of 15 obligations decidable, and the row kills nothing — 0 of 15 (F036).** **Kotlin: 7 of 15 decidable (F014 blocks 8).** |
+| R5-core | **Go: 30 of 42 clauses VERIFIED, 0 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS** (`evidence/runs/gobra/r5-clause-status.txt`, derived by `gobra r5`). **Rust: statable since 2026-09-02 and partially discharged** — `abs_users` / `abs_follows` / `abs_tweets` have bodies, `abs(init) == init_S` and state commutation for `put_user` / `put_follow` / `put_tweet` are proved on shipped functions (17 clauses). Not a rung: `calibrate`'s R5 has no Verus driver, and the response axis is blocked on `String` view injectivity (F043). **Kotlin: 5 of 42 clauses, bounded ground instances, and it IS a rung (`jbmc r5verify`, F046)** |
 | R5-wire | Not reachable — the decode boundary is unverified by construction |
 | R6 | Not reachable by design |
 
 **R4 and R5-core are now supported for the Go corner, and bounded.** What that
 licenses precisely: on the decoded-operation alphabet, restricted to
-syntactically valid arguments, 26 of the 42 R5 clauses hold with per-clause
+syntactically valid arguments, 30 of the 42 R5 clauses hold with per-clause
 evidence — Gobra's own refutation of each clause's negation, not a
-package-level green. Four more (F1, D10, no-fabrication, no-loss on the store's
-`HomeTimeline`) are unaudited for vacuity. Everything above R5-core, and every
-claim involving the Rust corner at R5, remains unsupported.
+package-level green. That includes F1, D10, no-fabrication and no-loss on the
+store's `HomeTimeline`, which were unaudited for vacuity until F029 decided
+them. Everything above R5-core, and every claim involving the Rust corner at
+R5, remains unsupported.
 
 **What the Rust corner's R4 now licenses, precisely.** Four crates' worth of
 shipped contract, not one: F4 on `domain::Follow::new`, F7 on `clock::Ts`, F8

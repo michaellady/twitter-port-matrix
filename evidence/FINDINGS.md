@@ -30,7 +30,7 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F018 | the oracle itself cannot express the bug | a sequential reference machine has no vocabulary for interleaving, so no rung derived from it can score a concurrency defect |
 | F019 | the obligation count is not reproducible | 283 recorded, 236-238 measured across eight runs, and 61% of what it counts is compiler-generated scaffolding |
 | F020 | the prose contradicted its own commit | one commit discharged F8 in Go, recorded it as discharged, and said in the file beside it that F8 was unproved |
-| F021 | the audit fails where the obligations are strongest | vacuity-checking cost rises with clause strength, so the five clauses most worth auditing are the five the auditor cannot decide |
+| F021 | the audit fails where the obligations are strongest | vacuity-checking cost appeared to rise with clause strength, so the five clauses most worth auditing were the five the auditor could not decide — corrected by F029 |
 | F022 | the proof rung's denominator is set by the trusted shim | 4 of 18 Go mutants edit code no obligation covers, so R4's ceiling is 78% before a clause is written |
 | F023 | the strongest rungs cannot see a constant | an id origin shifted by one is killed by R0 and R1, and survives R2, R4 and R5 |
 | F024 | a count that goes down is the repair | two of the four drifted Verus twins carried no `ensures` at all, so deleting them took 23 verified to 21 and lost nothing |
@@ -38,6 +38,7 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F026 | the proof half of the matrix has no cell | one corner has a proof rung and no ordered pair has that corner at both ends, so all 24 R4/R5 cells are capped and the Go sweep fills none of them — **R4 half superseded within the hour; the R5 half stands** |
 | F027 | the Rust proof row measures the twins | 1 of 14 covered Rust mutants is killed by Verus, because four of the five verified crates put their contracts on hand-written copies |
 | F028 | the refinement row is a copy of the proof row | R4 and R5 disagree on 0 of 18 mutants; the canary separates them, the catalogue never does |
+| F029 | the audit was undecidable as spelled, not as asked | the eight clauses F021 could not decide are all refutable; a solver flag and a 3.75x budget changed nothing, and asking one clause at a time in a decidable spelling changed everything |
 | F030 | an injection canary stood in for the instrument the rule asks for | the Rust R4 row shipped with no vacuity instrument at all; built one, and 5 of 5 shipped clauses are refutable — but 57 of the corner's 62 clauses are on twins |
 | F034 | the shared JBMC wall was an inference until Java had obligations | F014 concluded the wall is shared from a `javac` repro; measured on `impls/java` it is identical — same 7 decidable, same 8 blocked, same three reasons |
 | F035 | one decorative line in an obligation file costs a whole cell | the obligation set is compiled against the mutant, so it is coupled to every signature it mentions; `s.createUser("a")` in a timeline obligation that never needed it turns `id-burned-on-reject` into an error cell |
@@ -170,13 +171,26 @@ unique signature of an unreachable obligation (F013).
 obligation is reachable. Every proved obligation needs both.
 
 **Applied to the Go corner, F013's mode does not replicate:** 30 of 33 members
-refute `ensures false`, and 83 of 91 functional clauses refute their own
-negation, with 0 vacuous. But the eight that could not be decided are all on
-one member, and it carries the store's strongest clauses (F021). So a third state is needed alongside "refutable" and
-"vacuous": **unaudited**, meaning the package is green and nothing rules out
-the obligation being empty. Folding that into either neighbour is how a
-verified count goes wrong — in the F016 direction if you round it up, and in
-the opposite direction if you round it down.
+refute `ensures false`, and **91 of 91** functional clauses refute their own
+negation, with 0 vacuous.
+
+Getting to 91 took two findings. The sweep first returned 83, with eight
+undecided — all on one member, the one carrying the store's strongest clauses
+(F021). That needed a third state alongside "refutable" and "vacuous":
+**unaudited**, meaning the package is green and nothing rules out the
+obligation being empty. Folding that into either neighbour is how a verified
+count goes wrong — in the F016 direction if you round it up, and in the
+opposite direction if you round it down. Keeping it separate is what made the
+eight findable later.
+
+And they were findable: none was vacuous, and none was beyond the solver
+(F029). The audit had been re-verifying the whole member to ask about one
+clause, and putting three of its questions in a spelling the solver would not
+decide. **So "unaudited" is a statement about the instrument, and it should be
+read as one.** F021 read it as a statement about the clauses — that the
+strongest obligations are intrinsically the hardest to audit — and that was
+wrong in a way that would have quietly capped the corner's coverage story at
+exactly the clauses anyone cares about.
 
 **And a third form, from F028: a canary is about one rung, not about a row.**
 Injection and negation both ask whether *this* check can fail. Neither asks

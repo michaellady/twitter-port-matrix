@@ -274,9 +274,11 @@ package is compatible with an obligation nothing reaches.
 This table is now derived rather than asserted. `spec/refinement/clause-sites.json`
 maps each clause to the `ensures` that carries it, and `go run ./tools/cmd/gobra r5`
 prints the status together with the Gobra line that refuted each negation.
-Current run: **26 VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS**
-(`evidence/runs/gobra/r5-clause-status.txt`). An earlier run's 25/5 was
-produced by a colliding checkpoint key and is withdrawn.
+Current run: **30 VERIFIED, 0 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS**
+(`evidence/runs/gobra/r5-clause-status.txt`). The four `U` rows this table
+carried until 2026-09-02 were all on `HomeTimeline` and are now `D`: see F029
+and the "four `U` rows" note below. An earlier run's 25/5 was produced by a
+colliding checkpoint key and is withdrawn.
 `—` = not stated, with the blocker named.
 
 ### Go — `internal/store` (Gobra, image `sha256:2ef080cc`)
@@ -297,18 +299,28 @@ produced by a colliding checkpoint key and is withdrawn.
 | `PutTweet` | `¬AbsAcceptsTweet(t)` ⇒ length unchanged | **D** |
 | `PutTweet` | prefix of the log unchanged (append-only) | **D** |
 | `HomeTimeline` | descending `(created_at, id)` | **D** (F2) |
-| `HomeTimeline` | every entry authored by `user` or followed by `user` | **U** (**F1**) |
-| `HomeTimeline` | `cursor > 0 ⇒ every id < cursor` | **U** (D10) |
-| `HomeTimeline` | no fabrication: every entry is some log entry | **U** |
-| `HomeTimeline` | no loss: if `!more`, every visible entry under the cursor is on the page | **U** |
+| `HomeTimeline` | every entry authored by `user` or followed by `user` | **D** (**F1**), F029 |
+| `HomeTimeline` | `cursor > 0 ⇒ every id < cursor` | **D** (D10), F029 |
+| `HomeTimeline` | no fabrication: every entry is some log entry | **D**, F029 |
+| `HomeTimeline` | no loss: if `!more`, every visible entry under the cursor is on the page | **D**, F029 |
 | `Replace` | installs a log satisfying the append-log invariant | **D**, not canaried — see below |
 
-**The four `U` rows are all on `HomeTimeline`**, and so are three framing
-negations that refute in seconds on every other member: it is that method's
-proof that sits at the edge of the budget, not the canaries. Auditing cost
-rises with obligation strength, so the obligations most worth checking for
-vacuity are the ones the check cannot reach. See
-[F021](../../evidence/findings/F021-the-audit-fails-where-the-obligations-are-strongest.md).
+**The four `U` rows were all on `HomeTimeline`**, and so were three framing
+negations that refute in seconds on every other member. F021 read that as the
+method's proof sitting at the edge of the budget and concluded that auditing
+cost rises with obligation strength — so the obligations most worth checking
+for vacuity would be the ones the check cannot reach.
+
+That is measured now and it was the wrong diagnosis
+([F029](../../evidence/findings/F029-the-audit-was-undecidable-as-spelled-not-as-asked.md)).
+The clean package proves all nine of these postconditions in 42 s; what cost
+722 s and then 2703 s was the *canary's* shape, which re-verified the whole
+member to ask about one clause, and the *spelling* of three derived negations
+(`forall a int :: !(0 <= a && a < len(out))` rather than the equal and
+decidable `len(out) == 0`). Asked one at a time, in a decidable spelling, all
+four refute — 98 s to 637 s — and each carries a control run on the same member
+with `assume false` in the body that comes back VACUOUS. Neither
+`--parallelizeBranches` nor a 3.75x budget helped at all.
 
 `Replace` carries no functional postcondition at all. What it discharges is the
 `fold acc(s.LockP())` closing its body — `LockP()` carries the append-log

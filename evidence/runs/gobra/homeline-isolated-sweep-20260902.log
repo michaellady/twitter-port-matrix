@@ -1,0 +1,31 @@
+negation canaries: 9 functional clauses, 0 already done, 9 to run, 1 workers, 12m0s budget each
+  [  1/  9] REFUTABLE       150s (control VACUOUS, 23s) internal/store/memstore.go:528 forall a, b int :: 0 <= a && a < b && b < len(out) ==> (out…
+  [  2/  9] REFUTABLE        40s (control VACUOUS, 23s) internal/store/memstore.go:544 s.AbsLogLen() == old(s.AbsLogLen())
+  [  3/  9] REFUTABLE       464s (control VACUOUS, 26s) internal/store/memstore.go:531 forall a int :: 0 <= a && a < len(out) ==> (out[a].Author =…
+  [  4/  9] REFUTABLE        98s (control VACUOUS, 27s) internal/store/memstore.go:534 cursor > 0 ==> forall a int :: 0 <= a && a < len(out) ==> o…
+  [  5/  9] REFUTABLE       369s (control VACUOUS, 26s) internal/store/memstore.go:535 forall a int :: 0 <= a && a < len(out) ==> exists i int :: …
+  [  6/  9] REFUTABLE       637s (control VACUOUS, 25s) internal/store/memstore.go:537 !more ==> forall k int :: 0 <= k && k < s.AbsLogLen() && (c…
+  [  7/  9] REFUTABLE       138s (control VACUOUS, 26s) internal/store/memstore.go:542 s.AbsUsers() == old(s.AbsUsers())
+  [  8/  9] REFUTABLE       709s (control VACUOUS, 37s) internal/store/memstore.go:543 s.AbsFollows() == old(s.AbsFollows())
+  [  9/  9] TIMEOUT         723s (control VACUOUS, 31s) internal/store/memstore.go:527 len(out) <= limit
+
+SITE                               MEMBER                     VERDICT      SECONDS CONTROL    CLAUSE
+internal/store/memstore.go:527     (*MemStore).HomeTimeline   TIMEOUT        723.1 VACUOUS    len(out) <= limit
+internal/store/memstore.go:528     (*MemStore).HomeTimeline   REFUTABLE      150.0 VACUOUS    forall a, b int :: 0 <= a && a < b && b < len(out) ==> (out[a].CreatedAt > out[…
+internal/store/memstore.go:531     (*MemStore).HomeTimeline   REFUTABLE      464.0 VACUOUS    forall a int :: 0 <= a && a < len(out) ==> (out[a].Author == user || (dom.Follo…
+internal/store/memstore.go:534     (*MemStore).HomeTimeline   REFUTABLE       97.7 VACUOUS    cursor > 0 ==> forall a int :: 0 <= a && a < len(out) ==> out[a].ID < cursor
+internal/store/memstore.go:535     (*MemStore).HomeTimeline   REFUTABLE      369.0 VACUOUS    forall a int :: 0 <= a && a < len(out) ==> exists i int :: 0 <= i && i < s.AbsL…
+internal/store/memstore.go:537     (*MemStore).HomeTimeline   REFUTABLE      637.2 VACUOUS    !more ==> forall k int :: 0 <= k && k < s.AbsLogLen() && (cursor <= 0 || s.AbsL…
+internal/store/memstore.go:542     (*MemStore).HomeTimeline   REFUTABLE      138.5 VACUOUS    s.AbsUsers() == old(s.AbsUsers())
+internal/store/memstore.go:543     (*MemStore).HomeTimeline   REFUTABLE      709.4 VACUOUS    s.AbsFollows() == old(s.AbsFollows())
+internal/store/memstore.go:544     (*MemStore).HomeTimeline   REFUTABLE       39.6 VACUOUS    s.AbsLogLen() == old(s.AbsLogLen())
+
+9 clauses: 8 refutable, 0 VACUOUS, 1 timed out, 0 ill-formed
+
+TIMEOUT -- the solver did not decide the negation. Neither answer was
+established, so these obligations are UNAUDITED, not verified:
+  internal/store/memstore.go:527  (*MemStore).HomeTimeline
+      len(out) <= limit
+      canary: !(len(out) <= limit)
+
+full results: /tmp/claude-0/-home-user-twitter-port-matrix/bcd1fbd7-34e3-5ec2-b270-0c6061197557/scratchpad/lever/final-sweep.json

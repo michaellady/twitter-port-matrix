@@ -1,0 +1,9 @@
+negation canaries: 1 functional clauses, 0 already done, 1 to run, 1 workers, 25m0s budget each
+  [  1/  1] REFUTABLE       106s (control VACUOUS, 44s) internal/store/memstore.go:527 len(out) <= limit
+
+SITE                               MEMBER                     VERDICT      SECONDS CONTROL    CLAUSE
+internal/store/memstore.go:527     (*MemStore).HomeTimeline   REFUTABLE      105.6 VACUOUS    len(out) <= limit
+
+1 clauses: 1 refutable, 0 VACUOUS, 0 timed out, 0 ill-formed
+
+full results: /tmp/claude-0/-home-user-twitter-port-matrix/bcd1fbd7-34e3-5ec2-b270-0c6061197557/scratchpad/lever/retry-527.json
