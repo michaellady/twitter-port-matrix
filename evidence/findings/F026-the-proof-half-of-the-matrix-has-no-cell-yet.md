@@ -1,8 +1,37 @@
 # F026 — The proof half of the matrix cannot have a single cell, and running the Go sweep will not change that
 
 **Status:** derived while shaping `evidence/MATRIX.md`, from `ASSURANCE.md`'s
-ceiling table and `tools/cmd/calibrate/rungs.go`
+ceiling table and `tools/cmd/calibrate/rungs.go`.
+**PARTLY SUPERSEDED the same evening — see the note below.**
 **Class:** a structural property of the deliverable, not a defect
+
+> ## Superseded for R4, still exact for R5
+>
+> This finding was derived in an isolated worktree at the same time two other
+> worktrees were adding an R4 driver for Rust (Verus) and one for Kotlin
+> (JBMC). It was true of the tree it was derived from and false of the tree it
+> was merged into, within the hour. **The R4 column is no longer entirely
+> capped:** three corners now have an R4 rung that yields a kill verdict, so R4
+> is capped only where Java is an end — six of the twelve pairs — and
+> `MATRIX.md` now records 2 measured, 4 pending, 6 capped for that column.
+>
+> **The finding's reasoning is not what failed.** The rule it derives — a cell
+> is capped by its weaker end, and a rung absent at either end yields no cell —
+> is the rule `MATRIX.md` still applies, and it is what produces the six Java
+> caps. What changed is an input: how many corners have the rung. The
+> finding's own headline claim, "running the Go sweep will not change that",
+> was also correct and stayed correct; the Go sweep did not produce a cell.
+> It was the Rust and Kotlin *rungs* that did.
+>
+> **Everything it says about R5 stands unchanged.** Gobra on Go is still the
+> only R5 rung, no ordered pair has Go at both ends, and all twelve R5 cells
+> are still capped.
+>
+> Kept rather than rewritten, because the shape of the error is worth more than
+> a corrected copy: a finding about what is structurally impossible, derived
+> from a snapshot, in a fan-out where three agents were changing that structure
+> in parallel. A finding that quantifies over "every corner" needs to say which
+> tree it read.
 
 ## What it says
 
