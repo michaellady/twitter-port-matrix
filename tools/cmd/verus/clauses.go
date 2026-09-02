@@ -50,6 +50,17 @@ type clauseBlock struct {
 
 	Clauses []clause
 	Twin    bool // inside a #[cfg(verus_only)] mod verus_proof block
+	// Ghost is set for a `proof fn` or `spec fn`. Its `ensures` is a lemma
+	// about the ghost world, not an obligation on code that runs, so a
+	// negation canary over it does not say anything about the shipped row.
+	Ghost bool
+	// Assumed is set for a function carrying `#[verifier::external_body]` or
+	// whose body is `admit()`. Its postcondition is ASSUMED, so the canary
+	// would report VACUOUS for the trivial reason that Verus proves anything
+	// there -- a verdict that looks like a finding and is a tautology. These
+	// are counted and named, never swept and never folded into the shipped
+	// number. See F042.
+	Assumed bool
 }
 
 // A clause is one `ensures` obligation.
@@ -122,6 +133,11 @@ func parseEnsures(src, crateName, abs, rel string) []*clauseBlock {
 	twinDepth := -1 // brace depth at which `mod verus_proof` opened
 	depth := 0
 	fn := ""
+	ghost := false
+	assumed := false
+	// pendingAssumed carries an `#[verifier::external_body]` (or a nearby
+	// `admit()`) forward to the next signature line it applies to.
+	pendingAssumed := false
 
 	for i := 0; i < len(lines); i++ {
 		ln := lines[i]
@@ -130,14 +146,21 @@ func parseEnsures(src, crateName, abs, rel string) []*clauseBlock {
 		if strings.HasPrefix(t, "mod verus_proof") {
 			twinDepth = depth
 		}
+		if strings.Contains(t, "external_body") {
+			pendingAssumed = true
+		}
 		if f, ok := fnName(t); ok {
 			fn = f
+			ghost = isGhostSignature(t)
+			assumed = pendingAssumed || bodyIsAdmitted(lines, i)
+			pendingAssumed = false
 		}
 
 		if t == "ensures" {
 			blk := &clauseBlock{
 				Crate: crateName, File: abs, Rel: rel, Func: fn,
 				HeadLine: i, Twin: twinDepth >= 0,
+				Ghost: ghost, Assumed: assumed,
 			}
 			// Clauses run until the line that opens the body. `requires`
 			// always precedes `ensures` in Verus, so nothing but clauses and
@@ -194,6 +217,14 @@ func leadingSpace(s string) string {
 }
 
 // fnName pulls the name out of a function signature line.
+//
+// The modifier list is not decoration. Verus signatures carry `spec fn`,
+// `proof fn`, `open spec fn`, `closed spec fn` and `broadcast proof fn`, and a
+// prefix this function does not recognise makes it return the PREVIOUS
+// function's name -- so the block gets attributed to whatever `fn` was seen
+// last. That happened: two `broadcast proof fn` axioms in `crates/store` were
+// reported against `impl Display for StoreError`'s `fmt`, sixty lines away and
+// in a different impl. F042.
 func fnName(t string) (string, bool) {
 	idx := strings.Index(t, "fn ")
 	if idx < 0 {
@@ -202,9 +233,14 @@ func fnName(t string) (string, bool) {
 	// Only a signature, not `fn` inside a comment or a type.
 	if idx > 0 {
 		prefix := t[:idx]
-		if !strings.HasSuffix(prefix, "pub ") && !strings.HasSuffix(prefix, "unsafe ") &&
-			!strings.HasSuffix(prefix, "const ") && !strings.HasSuffix(prefix, "async ") &&
-			strings.TrimSpace(prefix) != "" {
+		ok := false
+		for _, m := range []string{"pub ", "unsafe ", "const ", "async ", "spec ", "proof ", "exec ", "broadcast "} {
+			if strings.HasSuffix(prefix, m) {
+				ok = true
+				break
+			}
+		}
+		if !ok && strings.TrimSpace(prefix) != "" {
 			return "", false
 		}
 	}
@@ -309,4 +345,41 @@ func spliceCanary(blk *clauseBlock, canary string, extra []string) (original []b
 		return nil, err
 	}
 	return original, nil
+}
+
+// isGhostSignature reports whether a signature line declares a `spec fn` or a
+// `proof fn` -- ghost items, which do not run. Their `ensures` is a lemma, and
+// a negation canary over a lemma measures the lemma.
+func isGhostSignature(t string) bool {
+	i := strings.Index(t, "fn ")
+	if i < 0 {
+		return false
+	}
+	head := t[:i]
+	return strings.Contains(head, "spec ") || strings.Contains(head, "proof ")
+}
+
+// bodyIsAdmitted reports whether the function opening at or just after `sig`
+// has `admit();` as its body. An admitted body makes every postcondition
+// provable, so its clauses are assumed, not proved, and the sweep must say so
+// rather than sweeping them.
+//
+// The scan is bounded: it looks only as far as the opening brace plus a few
+// lines, because an `admit()` deeper inside a real body is a different animal
+// (a hole in a proof) and is not what this flag is for.
+func bodyIsAdmitted(lines []string, sig int) bool {
+	for j := sig; j < len(lines) && j < sig+40; j++ {
+		t := strings.TrimSpace(lines[j])
+		if t == "{" || strings.HasSuffix(t, "{") {
+			for k := j + 1; k < len(lines) && k < j+4; k++ {
+				b := strings.TrimSpace(lines[k])
+				if b == "" || strings.HasPrefix(b, "//") {
+					continue
+				}
+				return strings.HasPrefix(b, "admit()") || strings.HasPrefix(b, "unimplemented!()")
+			}
+			return false
+		}
+	}
+	return false
 }

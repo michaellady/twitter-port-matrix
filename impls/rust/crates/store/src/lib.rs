@@ -1,5 +1,34 @@
 //! In-memory state for the verified core.
 //!
+//! # 2026-09-02 — the state was lifted out of the `RwLock`
+//!
+//! **Everything below this heading about `external_body` ghost views, per-shim
+//! trust rows and `*_ensures` twins describes the crate as it was before the
+//! lift, and is retained because the reasoning is what the lift falsified.**
+//! What is true now:
+//!
+//! - `Inner` — the three state fields — is declared inside a top-level
+//!   `verus! { … }` block. Verus sees the fields directly.
+//! - `abs_users`, `abs_follows` and `abs_tweets` are `open spec fn`s with
+//!   **bodies**. They are `abs_rust` from `ASSURANCE.md`'s R5 obligation, and
+//!   until the lift they could not be given one at all: `vstd
+//!   0.0.0-2026-04-20-1748` ships no `std_specs/sync.rs`, so a `spec fn`
+//!   cannot project through `std::sync::RwLock`. Reproduced verbatim in
+//!   `evidence/runs/verus/rwlock-blocker-reproduction.txt`.
+//! - `Inner::new`, `Inner::put_user`, `Inner::put_follow` and
+//!   `Inner::put_tweet` are the shipped functions and carry the contracts.
+//!   `MemStore` takes the lock and forwards to them; it is the trusted
+//!   boundary and holds nothing else.
+//! - `put_user_ensures`, `put_follow_ensures`, `put_tweet_ensures` and the six
+//!   `external_body` shims they went through are **deleted**. Keeping two
+//!   contracts for one operation is the drift hazard `evidence/findings/F024`
+//!   is about.
+//! - Three reads (`has_user`, `delete_follow`, `follow_set`) still have twins.
+//!   Their missing direction is blocked on `String`'s view not being known
+//!   injective, not on the lock — `evidence/findings/F043`.
+//!
+//! See `evidence/findings/F041`.
+//!
 //! # F-properties
 //! - **F3**: `put_follow` and `delete_follow` are idempotent (set semantics).
 //!   Repeated `put_follow(a -> b)` leaves the follows set unchanged after the
@@ -137,6 +166,8 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::RwLock;
 
+use vstd::prelude::*;
+
 use domain::{Follow, Tweet, User};
 
 /// Flat snapshot of the verified core's data model. Used by Stream 2's
@@ -177,19 +208,265 @@ impl std::fmt::Display for StoreError {
 
 impl std::error::Error for StoreError {}
 
-#[derive(Default)]
-struct Inner {
-    users: HashMap<String, User>,
+verus! {
+
+/// The store's entire state, as a plain owned value.
+///
+/// **This type is the reason R5 was unreachable on this corner.** Until
+/// 2026-09-02 the same three fields lived *inside* `MemStore`'s
+/// `RwLock<Inner>`, and `vstd 0.0.0-2026-04-20-1748` ships no
+/// `std_specs/sync.rs`. Making `MemStore` structurally visible to Verus so a
+/// `spec fn` could project the fields reports, verbatim (reproduced
+/// 2026-09-02, see `evidence/findings/F041`):
+///
+/// ```text
+/// error: `std::sync::poison::rwlock::RwLock` is not supported
+/// error: `std::sync::poison::rwlock::RwLockReadGuard` is not supported
+/// error: `std::sync::poison::rwlock::impl&%11::read` is not supported
+/// error: `std::sync::poison::PoisonError` is not supported
+/// error: `std::sync::poison::rwlock::impl&%23::deref` is not supported
+/// ```
+///
+/// `Inner` is now declared inside the `verus!` block, so the verifier sees
+/// the fields directly and the abstraction functions below have BODIES. The
+/// lock moved out to `MemStore`, which is the trusted boundary.
+pub struct Inner {
+    pub users: HashMap<String, User>,
     /// Follow edges, flat: the edge IS the key. Previously
     /// `HashMap<String, HashSet<String>>`, whose nested shape forced every
     /// inner operation into an `external_body` shim.
-    follows: HashSet<(String, String)>,
+    pub follows: HashSet<(String, String)>,
     /// Per-author append-only list, in insertion order.
     /// ONE append-ordered tweet log; never sorted. Replaces
     /// `HashMap<String, Vec<Tweet>>`. See F004/F005: the monotonicity lemma
     /// makes F2 a consequence of this shape rather than a claim about a sort.
-    tweets: Vec<Tweet>,
+    pub tweets: Vec<Tweet>,
 }
+
+/// `abs_rust`, users axis: the set of registered handles, viewed as
+/// `Seq<char>`. This is `abs_L` from `ASSURANCE.md`'s R5 obligation,
+/// projected onto the axis `S_obs` calls `users`.
+///
+/// It has a body. That is the whole point.
+pub open spec fn abs_users(i: &Inner) -> Set<Seq<char>> {
+    Set::new(|h: Seq<char>| exists|k: String| #[trigger] i.users@.contains_key(k) && k@ == h)
+}
+
+/// `abs_rust`, follows axis: the set of follow edges, viewed as pairs of
+/// `Seq<char>`.
+pub open spec fn abs_follows(i: &Inner) -> Set<(Seq<char>, Seq<char>)> {
+    Set::new(
+        |e: (Seq<char>, Seq<char>)|
+            exists|p: (String, String)|
+                #[trigger] i.follows@.contains(p) && p.0@ == e.0 && p.1@ == e.1,
+    )
+}
+
+/// `abs_rust`, tweets axis: the append-ordered log, as a `Seq`.
+pub open spec fn abs_tweets(i: &Inner) -> Seq<Tweet> {
+    i.tweets@
+}
+
+/// **Trusted (TCB), one axiom, and the only one this crate adds.**
+///
+/// `vstd`'s `HashMap` / `HashSet` specifications are all conditioned on
+/// `obeys_key_model::<Key>()`, an uninterpreted predicate meaning "this key
+/// type's `Hash` and `Eq` agree with `==` on the abstract value". vstd proves
+/// it by broadcast axiom for every primitive and `Box` thereof, and **not for
+/// `String`** — see `vstd/std_specs/hash.rs`, whose own doc comment says the
+/// user must `assume(obeys_key_model::<MyKey>())` and that "in the future, we
+/// plan to devise a way for you to prove that it does so". vstd's own
+/// `StringHashMap` / `StringHashSet` wrappers are `external_body` and assume
+/// exactly this.
+///
+/// It is stated here as one named, greppable axiom rather than buried in an
+/// `assume` inside a body, so `TCB.md` can carry one row for it.
+pub broadcast proof fn axiom_string_obeys_key_model()
+    ensures
+        #[trigger] vstd::std_specs::hash::obeys_key_model::<String>(),
+{
+    admit();
+}
+
+/// **Trusted (TCB), the second and last axiom.** The same `obeys_key_model`
+/// hole as above, for the follow-edge key type. `follows` is a
+/// `HashSet<(String, String)>` — the edge IS the key (F004) — and vstd proves
+/// the predicate for no tuple type either.
+pub broadcast proof fn axiom_string_pair_obeys_key_model()
+    ensures
+        #[trigger] vstd::std_specs::hash::obeys_key_model::<(String, String)>(),
+{
+    admit();
+}
+
+impl Inner {
+    /// R5, obligation 1 of 3: `abs_L(init_L) == init_S`.
+    ///
+    /// `init_S` is the empty state on all three axes. Before the lift this
+    /// clause could not be *stated*, because `abs_users` had no body.
+    pub fn new() -> (i: Inner)
+        ensures
+            abs_users(&i) == Set::<Seq<char>>::empty(),
+            abs_follows(&i) == Set::<(Seq<char>, Seq<char>)>::empty(),
+            abs_tweets(&i) == Seq::<Tweet>::empty(),
+    {
+        let i = Inner {
+            users: HashMap::new(),
+            follows: HashSet::new(),
+            tweets: Vec::new(),
+        };
+        assert(abs_users(&i) =~= Set::<Seq<char>>::empty());
+        assert(abs_follows(&i) =~= Set::<(Seq<char>, Seq<char>)>::empty());
+        assert(abs_tweets(&i) =~= Seq::<Tweet>::empty());
+        i
+    }
+
+    /// R5, obligation 3 of 3, users axis, `put_user` step:
+    /// `abs_L(step_L(s, r)) == step_S(abs_L(s), r)`.
+    ///
+    /// `step_S` for a `POST /users` that is accepted inserts the handle into
+    /// the user set and does nothing else; for one that is rejected it is the
+    /// identity. Both directions are stated, plus the accept/reject condition
+    /// that decides which applies — without that, "the state commutes" says
+    /// nothing about *when*.
+    ///
+    /// This is the shipped function. `MemStore::put_user` takes the lock and
+    /// calls it.
+    pub fn put_user(&mut self, u: User) -> (result: Result<(), StoreError>)
+        ensures
+            result is Err ==> abs_users(old(self)).contains(u.handle@),
+            result is Err ==> abs_users(self) == abs_users(old(self)),
+            result is Ok ==> abs_users(self) == abs_users(old(self)).insert(u.handle@),
+    {
+        broadcast use vstd::std_specs::hash::group_hash_axioms;
+        broadcast use axiom_string_obeys_key_model;
+
+        if self.users.contains_key(&u.handle) {
+            assert(self.users@.contains_key(u.handle));
+            assert(abs_users(self).contains(u.handle@));
+            return Err(StoreError::HandleTaken);
+        }
+        let ghost old_self = *self;
+        let ghost hv = u.handle@;
+        let h = u.handle.clone();
+        self.users.insert(h, u);
+        assert(self.users@ =~= old_self.users@.insert(h, u));
+        assert forall|x: Seq<char>| abs_users(self).contains(x) implies
+            abs_users(&old_self).insert(hv).contains(x) by {
+            let k = choose|k: String| #[trigger] self.users@.contains_key(k) && k@ == x;
+            if k != h {
+                assert(old_self.users@.contains_key(k));
+            }
+        }
+        assert forall|x: Seq<char>| abs_users(&old_self).insert(hv).contains(x) implies
+            abs_users(self).contains(x) by {
+            if x == hv {
+                assert(self.users@.contains_key(h));
+            } else {
+                let k = choose|k: String| #[trigger] old_self.users@.contains_key(k) && k@ == x;
+                assert(self.users@.contains_key(k));
+            }
+        }
+        assert(abs_users(self) =~= abs_users(&old_self).insert(hv));
+        Ok(())
+    }
+
+    /// R5, obligation 3 of 3, follows axis, `put_follow` step.
+    ///
+    /// Both the accept and the reject transition, plus the F9 premise that
+    /// decides between them: an accepted edge has both endpoints registered.
+    /// The users and tweets axes are stated as unchanged — a commutation
+    /// clause that only constrains the axis it writes to says nothing about
+    /// the ones it must leave alone.
+    pub fn put_follow(&mut self, f: Follow) -> (result: Result<(), StoreError>)
+        ensures
+            result is Ok ==> abs_users(old(self)).contains(f.from@),
+            result is Ok ==> abs_users(old(self)).contains(f.to@),
+            result is Ok ==> abs_follows(self) == abs_follows(old(self)).insert((f.from@, f.to@)),
+            result is Err ==> abs_follows(self) == abs_follows(old(self)),
+            abs_users(self) == abs_users(old(self)),
+            abs_tweets(self) == abs_tweets(old(self)),
+    {
+        broadcast use vstd::std_specs::hash::group_hash_axioms;
+        broadcast use axiom_string_obeys_key_model;
+        broadcast use axiom_string_pair_obeys_key_model;
+
+        if !self.users.contains_key(&f.from) {
+            return Err(StoreError::UnknownUser);
+        }
+        if !self.users.contains_key(&f.to) {
+            return Err(StoreError::UnknownUser);
+        }
+        assert(abs_users(self).contains(f.from@));
+        assert(abs_users(self).contains(f.to@));
+        let ghost old_self = *self;
+        let ghost e = (f.from@, f.to@);
+        let edge = (f.from, f.to);
+        self.follows.insert(edge);
+        assert(self.follows@ =~= old_self.follows@.insert(edge));
+        assert forall|x: (Seq<char>, Seq<char>)| abs_follows(self).contains(x) implies
+            abs_follows(&old_self).insert(e).contains(x) by {
+            let p = choose|p: (String, String)| #[trigger] self.follows@.contains(p)
+                && p.0@ == x.0 && p.1@ == x.1;
+            if p != edge {
+                assert(old_self.follows@.contains(p));
+            }
+        }
+        assert forall|x: (Seq<char>, Seq<char>)| abs_follows(&old_self).insert(e).contains(x)
+            implies abs_follows(self).contains(x) by {
+            if x == e {
+                assert(self.follows@.contains(edge));
+            } else {
+                let p = choose|p: (String, String)| #[trigger] old_self.follows@.contains(p)
+                    && p.0@ == x.0 && p.1@ == x.1;
+                assert(self.follows@.contains(p));
+            }
+        }
+        assert(abs_follows(self) =~= abs_follows(&old_self).insert(e));
+        Ok(())
+    }
+
+    /// R5, obligation 3 of 3, tweets axis, `put_tweet` step.
+    ///
+    /// This axis needs **no** project-local axiom: `Vec::push` is modelled by
+    /// vstd outright, so `abs_tweets` commutes on the strength of vstd's own
+    /// specification. Compare the two `obeys_key_model` axioms the hash-keyed
+    /// axes need.
+    pub fn put_tweet(&mut self, t: Tweet) -> (result: Result<(), StoreError>)
+        ensures
+            result is Ok ==> abs_users(old(self)).contains(t.author@),
+            result is Ok ==> abs_tweets(self) == abs_tweets(old(self)).push(t),
+            result is Err ==> abs_tweets(self) == abs_tweets(old(self)),
+            abs_users(self) == abs_users(old(self)),
+            abs_follows(self) == abs_follows(old(self)),
+    {
+        broadcast use vstd::std_specs::hash::group_hash_axioms;
+        broadcast use axiom_string_obeys_key_model;
+
+        if !self.users.contains_key(&t.author) {
+            return Err(StoreError::UnknownUser);
+        }
+        assert(abs_users(self).contains(t.author@));
+        // ENFORCE the monotonicity lemma's premises rather than assuming
+        // them. F2 is derived from the log being ordered by construction, and
+        // that rests on two facts about every append: ids strictly increase,
+        // created_at never decreases. Nothing previously checked either, so an
+        // out-of-order append would silently produce a mis-ordered timeline
+        // with no failing test and no failing proof. See F005.
+        let n = self.tweets.len();
+        if n > 0 {
+            let last_id = self.tweets[n - 1].id;
+            let last_created_at = self.tweets[n - 1].created_at;
+            if t.id <= last_id || t.created_at < last_created_at {
+                return Err(StoreError::NonMonotonic);
+            }
+        }
+        self.tweets.push(t);
+        Ok(())
+    }
+}
+
+} // verus!
 
 /// Thread-safe in-memory store. All exported methods take `&self` and lock
 /// internally; this is what F5-rust hangs on.
@@ -200,17 +477,13 @@ pub struct MemStore {
 impl MemStore {
     /// Returns an empty store.
     pub fn new() -> Self {
-        Self { inner: RwLock::new(Inner::default()) }
+        Self { inner: RwLock::new(Inner::new()) }
     }
 
     /// Registers a user. Returns `DuplicateUser` if the handle is taken.
     pub fn put_user(&self, u: User) -> Result<(), StoreError> {
         let mut g = self.inner.write().expect("store poisoned");
-        if g.users.contains_key(&u.handle) {
-            return Err(StoreError::HandleTaken);
-        }
-        g.users.insert(u.handle.clone(), u);
-        Ok(())
+        g.put_user(u)
     }
 
     /// Reports user existence.
@@ -222,14 +495,7 @@ impl MemStore {
     /// Records a follow edge. Idempotent (F3); rejects unknown users (F9).
     pub fn put_follow(&self, f: Follow) -> Result<(), StoreError> {
         let mut g = self.inner.write().expect("store poisoned");
-        if !g.users.contains_key(&f.from) {
-            return Err(StoreError::UnknownUser);
-        }
-        if !g.users.contains_key(&f.to) {
-            return Err(StoreError::UnknownUser);
-        }
-        g.follows.insert((f.from, f.to));
-        Ok(())
+        g.put_follow(f)
     }
 
     /// Reports whether `from` follows `to`. One flat lookup; this is the
@@ -248,22 +514,7 @@ impl MemStore {
     /// Appends a tweet to its author's list. Rejects unknown authors (F6).
     pub fn put_tweet(&self, t: Tweet) -> Result<(), StoreError> {
         let mut g = self.inner.write().expect("store poisoned");
-        if !g.users.contains_key(&t.author) {
-            return Err(StoreError::UnknownUser);
-        }
-        // ENFORCE the monotonicity lemma's premises rather than assuming
-        // them. F2 is derived from the log being ordered by construction, and
-        // that rests on two facts about every append: ids strictly increase,
-        // created_at never decreases. Nothing previously checked either, so an
-        // out-of-order append would silently produce a mis-ordered timeline
-        // with no failing test and no failing proof. See F005.
-        if let Some(last) = g.tweets.last() {
-            if t.id <= last.id || t.created_at < last.created_at {
-                return Err(StoreError::NonMonotonic);
-            }
-        }
-        g.tweets.push(t);
-        Ok(())
+        g.put_tweet(t)
     }
 
     /// Returns the set of handles `from` follows. Snapshot copy.
@@ -477,52 +728,6 @@ mod verus_proof {
             g.users.contains_key(handle)
         }
 
-        // Trusted shim around the lock-acquire + `HashMap::insert` step
-        // inside `MemStore::put_user`. Models the post-state of the
-        // ghost view: the inserted handle is now in `users_keys(s)`,
-        // and no other handle's membership changed. The signature
-        // takes `&mut MemStore` so Verus can express the post-state;
-        // the production op only needs `&self` (interior mutability
-        // via `RwLock`). The shim is sound because `RwLock::write`
-        // provides exclusive access while held — the critical section
-        // is observationally a `&mut` step.
-        #[verifier::external_body]
-        pub fn proof_users_insert(s: &mut MemStore, u: User)
-            ensures users_keys(s) == users_keys(old(s)).insert(u.handle@)
-        {
-            let mut g = s.inner.write().expect("store poisoned");
-            g.users.insert(u.handle.clone(), u);
-        }
-
-        // F3 (dup-rejection) discharge for `MemStore::put_user`. The
-        // body is the production control flow — read the membership
-        // bit, branch, optionally insert. Verus chains the two
-        // trusted shims' postconditions through the structural
-        // definition of `users_keys(s)` to discharge all four
-        // ensures clauses below.
-        //
-        // This is the actually-verified contract; the production
-        // `MemStore::put_user` is the same control flow expressed
-        // against the real `RwLock` + `HashMap` (no shims). The
-        // handle clone in the shim mirrors the production
-        // `g.users.insert(u.handle.clone(), u)` exactly — what
-        // we're trusting is that the std `HashMap::insert` and the
-        // `RwLock::write` pair faithfully realize "add `u.handle@`
-        // to the key set, observe nothing else."
-        pub fn put_user_ensures(s: &mut MemStore, u: User) -> (result: Result<(), StoreError>)
-            ensures
-                users_keys(old(s)).contains(u.handle@) ==> result is Err,
-                !users_keys(old(s)).contains(u.handle@) ==> result is Ok,
-                result is Ok ==> users_keys(s) == users_keys(old(s)).insert(u.handle@),
-                result is Err ==> users_keys(s) == users_keys(old(s)),
-        {
-            if proof_users_contains(s, &u.handle) {
-                return Err(StoreError::HandleTaken);
-            }
-            proof_users_insert(s, u);
-            Ok(())
-        }
-
         // Read-only `MemStore::has_user` discharge (Stream 3 Phase 4 sub-PR 2).
         // Pure verified wrapper: takes `&MemStore` (no `&mut` needed —
         // `has_user` is a read), reuses the existing `proof_users_contains`
@@ -567,27 +772,6 @@ mod verus_proof {
             g.follows.contains(&(from.clone(), to.clone()))
         }
 
-        // Trusted shim around the lock-acquire + `entry().or_default().insert()`
-        // step inside `MemStore::put_follow`. Models the post-state along
-        // both ghost-view axes: the targeted edge ends up in `follow_edges`
-        // (exactly the set-insert axiom), and `users_keys` is unaffected
-        // (the production write touches only the `follows` HashMap, never
-        // the `users` HashMap; the two project disjoint state). F3
-        // idempotency falls out structurally because `Set::insert` is
-        // idempotent: inserting an already-present element returns the
-        // same set. Signature takes `&mut MemStore` for the same reason
-        // `proof_users_insert` does (lock provides exclusive access; the
-        // critical section is observationally a `&mut` step).
-        #[verifier::external_body]
-        pub fn proof_follow_insert(s: &mut MemStore, from: &String, to: &String)
-            ensures
-                follow_edges(s) == follow_edges(old(s)).insert((from@, to@)),
-                users_keys(s) == users_keys(old(s)),
-        {
-            let mut g = s.inner.write().expect("store poisoned");
-            g.follows.insert((from.clone(), to.clone()));
-        }
-
         // Trusted shim around the lock-acquire + `HashSet::remove` step
         // inside `MemStore::delete_follow`. Models the post-state along
         // both ghost-view axes: the targeted edge is removed from
@@ -608,39 +792,6 @@ mod verus_proof {
             g.follows.remove(&(from.clone(), to.clone()));
         }
 
-        // F3-idempotent / F9-rejecting discharge for `MemStore::put_follow`.
-        // Production control flow is identical: read both endpoint
-        // memberships, branch on either-missing, otherwise insert. F4
-        // (no self-follow) is discharged upstream by `dom::Follow::new`
-        // (Stream 3 Phase 3) — the `Follow` argument has already passed
-        // that gate, so we do not re-encode it here. F3 (idempotent) is
-        // structural: `proof_follow_insert`'s post-state is
-        // `old.insert((from@, to@))`, and `Set::insert` is idempotent.
-        // The `users_keys`-framing clause on `proof_follow_insert` is
-        // what lets the `f.from` / `f.to` membership facts established
-        // by the two `proof_users_contains` checks survive the insert
-        // step — without it the verifier could not rule out that the
-        // insert silently dropped a user.
-        pub fn put_follow_ensures(s: &mut MemStore, f: Follow) -> (result: Result<(), StoreError>)
-            ensures
-                !users_keys(old(s)).contains(f.from@) ==> result is Err,
-                !users_keys(old(s)).contains(f.to@)   ==> result is Err,
-                (users_keys(old(s)).contains(f.from@) && users_keys(old(s)).contains(f.to@))
-                    ==> result is Ok,
-                result is Ok ==>
-                    follow_edges(s) == follow_edges(old(s)).insert((f.from@, f.to@)),
-                result is Err ==> follow_edges(s) == follow_edges(old(s)),
-        {
-            if !proof_users_contains(s, &f.from) {
-                return Err(StoreError::UnknownUser);
-            }
-            if !proof_users_contains(s, &f.to) {
-                return Err(StoreError::UnknownUser);
-            }
-            proof_follow_insert(s, &f.from, &f.to);
-            Ok(())
-        }
-
         // F3-idempotent discharge for `MemStore::delete_follow`. No
         // upstream user-existence check (matches production: deleting
         // a follow whose `from` isn't even registered is a no-op). F3
@@ -657,193 +808,6 @@ mod verus_proof {
                 !follow_edges(s).contains((from@, to@)),
         {
             proof_follow_remove(s, from, to);
-        }
-
-        // -----------------------------------------------------------------
-        // Stream 3 Phase 4 sub-PR 4 — `put_tweet` F6 discharge.
-        //
-        // Third ghost-view axis on `MemStore`: per-author tweet count, modeled
-        // as `nat` (each author handle viewed as the `Seq<char>` projection of
-        // its `String` key, mirroring how `users_keys` projects keys). Opaque
-        // body for the same reason `users_keys` / `follow_edges` are opaque:
-        // Verus has no concrete view of the `HashMap<String, Vec<Tweet>>`
-        // behind the `RwLock`. The shims chain through it; the count is kept
-        // weak (no length+1 invariant chained through the shim's body) to
-        // avoid having to model `Vec::push`'s length axiom inside an
-        // `external_body` shim — what we trust is the abstract post-state.
-        // -----------------------------------------------------------------
-        #[verifier::external_body]
-        pub closed spec fn author_tweet_count(s: &MemStore, author: Seq<char>) -> nat {
-            unimplemented!()
-        }
-
-        // Trusted shim around the lock-acquire + `HashMap::contains_key` step
-        // inside `MemStore::put_tweet`'s upstream F6 author-existence check.
-        // Pins the returned `bool` to `users_keys(s).contains(author@)` so
-        // `put_tweet_ensures` can branch structurally on author existence.
-        // Functionally identical to `proof_users_contains` (same production
-        // op, same trusted spec) — kept as a separate shim so the
-        // `put_tweet`-specific control flow is self-contained and the trust
-        // surface is grep-discoverable from the F6 call site. Body calls
-        // the real production `g.users.contains_key(author)`.
-        #[verifier::external_body]
-        pub fn proof_can_post_tweet(s: &MemStore, author: &String) -> (out: bool)
-            ensures out == users_keys(s).contains(author@)
-        {
-            let g = s.inner.read().expect("store poisoned");
-            g.users.contains_key(author)
-        }
-
-        // Trusted shim around the lock-acquire +
-        // `entry().or_default().push()` step inside `MemStore::put_tweet`.
-        // Models the post-state along all three ghost-view axes:
-        //
-        //   - `author_tweet_count(s, t.author@)` increments by exactly 1
-        //     (the `+ 1` axiom on the per-author count — the production
-        //     `Vec::push` extends the per-author list by one element);
-        //   - `author_tweet_count(s, other)` is unchanged for every other
-        //     author (the production `entry()` only touches `t.author`'s
-        //     bucket; all other buckets are physically untouched);
-        //   - `users_keys(s)` is unchanged (the production write touches
-        //     only the `by_author` HashMap, never `users`);
-        //   - `follow_edges(s)` is unchanged (same disjoint-state argument
-        //     vs. the `follows` HashMap).
-        //
-        // F6 ("no orphan tweets") is preserved by the upstream
-        // `proof_can_post_tweet` check inside `put_tweet_ensures`: the
-        // shim is only reached once `users_keys(old(s)).contains(t.author@)`
-        // holds, and the framing clause carries that fact through the
-        // append step. Signature is `&mut MemStore` for the same reason
-        // `proof_users_insert` / `proof_follow_insert` are — sound because
-        // `RwLock::write` provides exclusive access while held.
-        #[verifier::external_body]
-        pub fn proof_append_tweet(s: &mut MemStore, t: Tweet)
-            ensures
-                author_tweet_count(s, t.author@)
-                    == author_tweet_count(old(s), t.author@) + 1,
-                forall|other: Seq<char>| other != t.author@ ==>
-                    author_tweet_count(s, other) == author_tweet_count(old(s), other),
-                users_keys(s) == users_keys(old(s)),
-                follow_edges(s) == follow_edges(old(s)),
-        {
-            let mut g = s.inner.write().expect("store poisoned");
-            g.tweets.push(t);
-        }
-
-        // F6 (no-orphan-tweets) discharge for `MemStore::put_tweet`.
-        // Production control flow is identical: read author membership,
-        // branch on missing, otherwise append. Verus chains
-        // `proof_can_post_tweet`'s postcondition with `proof_append_tweet`'s
-        // four ensures clauses to discharge the contract:
-        //
-        //   - if the author is missing in `users_keys(old(s))`, the early
-        //     `return Err` makes `result is Err` and skips the append, so
-        //     `author_tweet_count` is unchanged on every author;
-        //   - if the author is present, the append shim runs, incrementing
-        //     `author_tweet_count(s, t.author@)` by exactly 1 and leaving
-        //     `users_keys` + `follow_edges` framed.
-        //
-        // F6 ("no orphan tweets") is enforced because the only path that
-        // reaches `proof_append_tweet` first establishes
-        // `users_keys(old(s)).contains(t.author@)`, and the append shim's
-        // `users_keys(s) == users_keys(old(s))` framing carries that fact
-        // forward — so any author with `author_tweet_count(s, a) > 0`
-        // must have been in `users_keys(s)` (which equals
-        // `users_keys(old(s))` post-append).
-        // -----------------------------------------------------------------
-        // S-13. The log ghost view, added so `put_tweet_ensures` can describe
-        // the function it claims to describe.
-        //
-        // The previous contract said
-        //
-        //     users_keys(old(s)).contains(t.author@) ==> result is Ok
-        //
-        // and that is FALSE of the production `MemStore::put_tweet`, which has
-        // a THIRD branch: it rejects an append that would break the append-log
-        // invariant (`t.id <= last.id || t.created_at < last.created_at`).
-        // Verus could not notice, because the function it checks is this
-        // hand-written twin and not the production method -- the twin's body
-        // simply did not have the branch. Adding the branch and re-running
-        // produced, verbatim:
-        //
-        //     error: postcondition not satisfied
-        //        --> crates/store/src/lib.rs:750:17
-        //     750 |  users_keys(old(s)).contains(t.author@)  ==> result is Ok,
-        //     766 |  return Err(StoreError::NonMonotonic);   at this exit
-        //
-        // The fix is not to drop the clause. It is to say what is true: the
-        // accept condition is author-existence CONJOINED with the guard. That
-        // is also the shape the refinement obligation wants, because it is
-        // stated over the abstract state and the request rather than over the
-        // returned error value.
-        #[verifier::external_body]
-        pub closed spec fn log_len(s: &MemStore) -> nat {
-            unimplemented!()
-        }
-
-        #[verifier::external_body]
-        pub closed spec fn log_last_id(s: &MemStore) -> int {
-            unimplemented!()
-        }
-
-        #[verifier::external_body]
-        pub closed spec fn log_last_created_at(s: &MemStore) -> int {
-            unimplemented!()
-        }
-
-        /// Abstract accept predicate for an append: exactly the two guards the
-        /// production `MemStore::put_tweet` applies, in order.
-        pub open spec fn accepts_tweet(s: &MemStore, t: Tweet) -> bool {
-            users_keys(s).contains(t.author@) && (
-                log_len(s) == 0 || (
-                    t.id > log_last_id(s) && t.created_at >= log_last_created_at(s)
-                )
-            )
-        }
-
-        /// Trusted shim for the production monotonicity guard. Body is the
-        /// production expression; what is trusted is that the ghost views
-        /// `log_len` / `log_last_id` / `log_last_created_at` project the
-        /// `Vec<Tweet>` behind the `RwLock` -- which cannot be discharged
-        /// because vstd has no model of `std::sync::RwLock` (blocker B4 in
-        /// spec/refinement/OBLIGATION.md).
-        #[verifier::external_body]
-        pub fn proof_log_breaks_monotonicity(s: &MemStore, t: &Tweet) -> (out: bool)
-            ensures
-                out == !(log_len(s) == 0 || (
-                    t.id > log_last_id(s) && t.created_at >= log_last_created_at(s)
-                ))
-        {
-            let g = s.inner.read().expect("store poisoned");
-            match g.tweets.last() {
-                None => false,
-                Some(last) => t.id <= last.id || t.created_at < last.created_at,
-            }
-        }
-
-        pub fn put_tweet_ensures(s: &mut MemStore, t: Tweet) -> (result: Result<(), StoreError>)
-            ensures
-                !users_keys(old(s)).contains(t.author@) ==> result is Err,
-                accepts_tweet(old(s), t)  ==> result is Ok,
-                !accepts_tweet(old(s), t) ==> result is Err,
-                result is Ok ==>
-                    author_tweet_count(s, t.author@)
-                        == author_tweet_count(old(s), t.author@) + 1,
-                result is Err ==>
-                    author_tweet_count(s, t.author@)
-                        == author_tweet_count(old(s), t.author@),
-                users_keys(s) == users_keys(old(s)),
-                follow_edges(s) == follow_edges(old(s)),
-        {
-            if !proof_can_post_tweet(s, &t.author) {
-                return Err(StoreError::UnknownUser);
-            }
-            // The branch the previous twin omitted. Mirrors production.
-            if proof_log_breaks_monotonicity(s, &t) {
-                return Err(StoreError::NonMonotonic);
-            }
-            proof_append_tweet(s, t);
-            Ok(())
         }
 
         // -----------------------------------------------------------------

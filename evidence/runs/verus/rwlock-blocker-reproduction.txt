@@ -1,0 +1,104 @@
+    Checking domain v0.1.0 (/home/user/twitter-port-matrix/impls/rust/crates/domain)
+warning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl
+  --> crates/domain/src/lib.rs:45:21
+   |
+45 |     #[derive(Debug, Clone, PartialEq, Eq)]
+   |                     ^^^^^
+
+warning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl
+  --> crates/domain/src/lib.rs:52:21
+   |
+52 |     #[derive(Debug, Clone, PartialEq, Eq)]
+   |                     ^^^^^
+
+warning: Verus does not (yet) support autoderive Clone impl when the clone is not a copy; continuing, but without adding a specification for the derived Clone impl
+  --> crates/domain/src/lib.rs:62:21
+   |
+62 |     #[derive(Debug, Clone, PartialEq, Eq)]
+   |                     ^^^^^
+
+warning: autoderive Clone impl does not take the form Verus expects; continuing, but without adding a specification for the derived Clone impl
+  --> crates/domain/src/lib.rs:69:21
+   |
+69 |     #[derive(Debug, Clone, PartialEq, Eq)]
+   |                     ^^^^^
+
+verification results:: 9 verified, 0 errors
+warning: `domain` (lib) generated 4 warnings
+    Checking store v0.1.0 (/home/user/twitter-port-matrix/impls/rust/crates/store)
+error: `std::sync::poison::rwlock::impl&%23::deref` is not supported (note: you may be able to add a Verus specification to this function with `assume_specification`) (note: the vstd library provides some specification for the Rust std library, but it is currently limited)
+   --> crates/store/src/lib.rs:464:37
+    |
+464 |             Set::new(|k: Seq<char>| s.inner.read().unwrap().users.len() as int == k.len())
+    |                                     ^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: The following declaration may resolve this error:
+            pub assume_specification<'a, T> [<std::sync::RwLockReadGuard<'a, T> as std::ops::Deref>::deref] (_0: &std::sync::RwLockReadGuard<'a, T>) -> &T
+            where
+            T: std::marker::MetaSized + ?Sized,;
+
+error: `std::sync::poison::rwlock::RwLockReadGuard` is not supported (note: you may be able to add a Verus specification to this type with the `external_type_specification` attribute) (note: the vstd library provides some specification for the Rust std library, but it is currently limited)
+   --> crates/store/src/lib.rs:464:37
+    |
+464 |             Set::new(|k: Seq<char>| s.inner.read().unwrap().users.len() as int == k.len())
+    |                                     --------------^^^^^^^^^
+    |
+    = help: The following declaration may resolve this error:
+            #[verifier::reject_recursive_types(T)]
+            #[verifier::external_type_specification]
+            pub struct ExRwLockReadGuard<'rwlock, T>(std::sync::RwLockReadGuard<'rwlock, T>)
+            where
+            T: std::marker::MetaSized + ?Sized,;
+
+error: `std::sync::poison::PoisonError` is not supported (note: you may be able to add a Verus specification to this type with the `external_type_specification` attribute) (note: the vstd library provides some specification for the Rust std library, but it is currently limited)
+   --> crates/store/src/lib.rs:464:37
+    |
+464 |             Set::new(|k: Seq<char>| s.inner.read().unwrap().users.len() as int == k.len())
+    |                                     --------------^^^^^^^^^
+    |
+    = help: The following declaration may resolve this error:
+            #[verifier::reject_recursive_types(T)]
+            #[verifier::external_type_specification]
+            pub struct ExPoisonError<T>(std::sync::PoisonError<T>);
+
+error: `std::sync::poison::rwlock::impl&%11::read` is not supported (note: you may be able to add a Verus specification to this function with `assume_specification`) (note: the vstd library provides some specification for the Rust std library, but it is currently limited)
+   --> crates/store/src/lib.rs:464:37
+    |
+464 |             Set::new(|k: Seq<char>| s.inner.read().unwrap().users.len() as int == k.len())
+    |                                     ^^^^^^^^^^^^^^
+    |
+    = help: The following declaration may resolve this error:
+            pub assume_specification<T> [std::sync::RwLock::<T>::read] (_0: &std::sync::RwLock<T>) -> std::result::Result<std::sync::RwLockReadGuard<'_, T>, std::sync::PoisonError<std::sync::RwLockReadGuard<'_, T>>>
+            where
+            T: std::marker::MetaSized + ?Sized,;
+
+error: `std::sync::poison::rwlock::RwLock` is not supported (note: you may be able to add a Verus specification to this type with the `external_type_specification` attribute) (note: the vstd library provides some specification for the Rust std library, but it is currently limited)
+   --> crates/store/src/lib.rs:464:37
+    |
+452 |         pub struct ExMemStore(crate::MemStore);
+    |         ---------------------------------------
+...
+464 |             Set::new(|k: Seq<char>| s.inner.read().unwrap().users.len() as int == k.len())
+    |                                     ^^^^^^^
+    |
+    = help: The following declaration may resolve this error:
+            #[verifier::reject_recursive_types(T)]
+            #[verifier::external_type_specification]
+            pub struct ExRwLock<T>(std::sync::RwLock<T>)
+            where
+            T: std::marker::MetaSized + ?Sized,;
+
+error: cannot use type `store::Inner` which is ignored because it is either declared outside the verus! macro or it is marked as `external`.
+   --> crates/store/src/lib.rs:464:37
+    |
+452 |         pub struct ExMemStore(crate::MemStore);
+    |         ---------------------------------------
+...
+464 |             Set::new(|k: Seq<char>| s.inner.read().unwrap().users.len() as int == k.len())
+    |                                     -----------------------^^^^^^
+    |
+    = help: The following declaration may resolve this error:
+            #[verifier::external_type_specification]
+            struct ExInner(crate::Inner);
+
+error: could not compile `store` (lib) due to 6 previous errors

@@ -6,88 +6,167 @@
 //!   `tick()` advances by exactly 1. Ties are explicitly allowed and are the
 //!   reason F2's tweet-id tiebreak exists.
 //!
-//! # Verus annotations
-//! Verus is **not** required to compile this crate. The deductive proof
-//! obligations are encoded as `cfg(verus)`-gated module blocks below; under
-//! stable rustc they vanish, and `cargo check` / `cargo test` succeed without
-//! Verus installed. When Verus is installed, the same source file is the
-//! input to the verifier (the `verus!{ ... }` macro is invoked via the
-//! `cfg(verus)` block, which expands to the proof obligations).
+//! # Verus annotations — the state is lifted OUT of the lock
 //!
-//! See `README.md > How to run Verus` for the verification path.
+//! Until 2026-09-02 F7 was discharged on `verus_proof::now_ensures` and
+//! `verus_proof::tick_ensures`: hand-written twins inside a
+//! `#[cfg(verus_only)]` module, whose bodies called two `external_body`
+//! shims (`proof_lock_value`, `proof_lock_increment`) that stood in for
+//! `std::sync::Mutex::lock`, chained through an `external_body` ghost view
+//! `lock_state_value`. Three assumed hooks, and nothing mechanically tying
+//! the twins to `Logical::now` / `Logical::tick`, the functions that ship.
 //!
-//! # Stream 3 Phase 1a — state lift, Phase 1b — F7 discharge
+//! The blocker was never F7. It was that the clock's state lived behind
+//! `std::sync::Mutex<i64>`, and `vstd 0.0.0-2026-04-20-1748` ships no
+//! `std_specs/sync.rs` — no model of `std::sync::Mutex` or
+//! `std::sync::RwLock`. A `spec fn` cannot project through a lock the
+//! verifier cannot see, so the projection had to be assumed.
 //!
-//! The internal state of `Logical` is held in a `LockState` newtype rather
-//! than a bare `std::sync::Mutex<i64>`. The newtype gives the Verus proof
-//! block a stable handle (`LockState::lock_value()`) it can reference from
-//! the `spec fn ts(c: &Logical)` definition, instead of treating the
-//! whole clock as opaque via `external_body`.
+//! The repair is a refactor, not an annotation. The timestamp is now a plain
+//! owned value type, [`Ts`], defined inside a top-level `verus! { .. }` block
+//! with `&mut self` methods carrying `ensures` clauses that Verus discharges
+//! **against their own bodies**. The lock is pushed out to [`LockState`], a
+//! thin trusted boundary holding `Mutex<Ts>` — the same verified-core /
+//! trusted-shim split `internal/httpshim` has on the Go corner.
 //!
-//! Phase 1b discharges the F7 obligations (`now_ensures`,
-//! `tick_ensures`) without `external_body`: their bodies are the
-//! production reads/writes, and Verus chains `assume_specification`s on
-//! `LockState::lock_value` / `LockState::lock_increment` (trusted shims
-//! standing in for `std::sync::Mutex::lock`, which has no vstd model)
-//! through the structural definition of `ts(c)`.
+//! Discharged contract, on the shipped function (`Ts::tick`):
 //!
-//! The plan called for lifting `Logical.inner` to `vstd::sync::Mutex<i64>`
-//! directly. That primitive does **not exist** in this `vstd` release
-//! (vstd 0.0.0-2026-04-20-1748 ships `vstd::rwlock::RwLock` but no
-//! `sync::Mutex`); see `CHANGELOG-tier4.md` `Trust-Boundary` for the
-//! design call. The newtype shape is the alternative the plan
-//! explicitly endorses ("Newtype if needed to keep the public API
-//! stable"). The `verus_proof` block below imports `vstd::rwlock::RwLock`
-//! so the verifier sees a real vstd lock primitive in scope; the
-//! production `LockState` continues to use `std::sync::Mutex<i64>` at
-//! runtime so concurrency semantics are unchanged.
+//! ```text
+//! requires
+//!     old(self).wf(),
+//!     old(self).value < i64::MAX,
+//! ensures
+//!     self.value == old(self).value + 1,
+//!     self.value > old(self).value,
+//!     self.wf(),
+//! ```
+//!
+//! `Ts::get` carries `out == self.value`, which is the other half of F7:
+//! two `now()` calls with no intervening `tick()` return the same value
+//! because `get` does not write.
+//!
+//! Verus is **not** required to compile this crate: the `verus!` macro erases
+//! its ghost annotations under stable rustc, exactly as `crates/domain` has
+//! always done. What remains trusted is the lock, and only the lock:
+//! `LockState` and `Logical` sit OUTSIDE the `verus!` block, which is how
+//! Verus is told not to look at them. `TCB.md` carries the row.
 
 use std::sync::Mutex;
 
-#[cfg(verus_only)]
-#[allow(unused_imports)]
 use vstd::prelude::*;
 
-/// Thin newtype around `std::sync::Mutex<i64>`. Lives between `Logical`
-/// and the bare mutex so the Verus proof block has a stable name to
-/// attach a ghost view to (see `verus_proof::ts`).
+verus! {
+
+/// The clock's entire state, as a plain owned value.
 ///
-/// Under stable rustc this is exactly a `Mutex<i64>` plus an `i64`
-/// accessor; the accessor is the production realization of the
-/// "ghost view of the clock value" that `verus_proof::ts` references.
+/// This is the verified core of `crates/clock`. It has no interior mutability
+/// and no lock: the state IS the value, so Verus can name it, project it and
+/// reason about a transition on it. Everything F7 asserts is asserted here,
+/// about the functions that ship.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Ts {
+    /// The current logical timestamp.
+    pub value: i64,
+}
+
+impl Ts {
+    /// The clock's invariant: the logical timestamp never goes negative.
+    ///
+    /// `open` on purpose — a caller outside this crate must be able to
+    /// re-establish it, and there is nothing to hide behind.
+    pub open spec fn wf(&self) -> bool {
+        self.value >= 0
+    }
+
+    /// A timestamp holding `v`.
+    ///
+    /// No `requires`: `Logical::new_at` accepts any `i64` and this function
+    /// must not claim otherwise. `wf()` is the caller's to establish.
+    pub fn new(v: i64) -> (t: Ts)
+        ensures
+            t.value == v,
+    {
+        Ts { value: v }
+    }
+
+    /// F7, read half. Returns the timestamp without advancing it: two
+    /// consecutive calls with no intervening `tick` return the same value
+    /// because this function does not write.
+    pub fn get(&self) -> (out: i64)
+        ensures
+            out == self.value,
+    {
+        self.value
+    }
+
+    /// F7, advance half. Advances by exactly 1.
+    ///
+    /// The `requires` is the honest half of the contract. `self.value + 1`
+    /// overflows at `i64::MAX`, and Verus will not let that pass unstated;
+    /// the caller that has to discharge it is [`LockState::lock_increment`],
+    /// which is the trusted boundary.
+    pub fn tick(&mut self)
+        requires
+            old(self).wf(),
+            old(self).value < i64::MAX,
+        ensures
+            self.value == old(self).value + 1,
+            self.value > old(self).value,
+            self.wf(),
+    {
+        self.value = self.value + 1;
+    }
+
+    /// **Trusted entry (TCB).** Overwrites the timestamp. This is the one
+    /// operation that can move the clock backwards, and it is the one
+    /// `Logical::set_now` already documents as bypassing F7.
+    pub fn set(&mut self, v: i64)
+        ensures
+            self.value == v,
+    {
+        self.value = v;
+    }
+}
+
+} // verus!
+
+/// **Trusted (TCB).** The lock, and nothing but the lock.
 ///
-/// In the future (Phase 1b), the inner type can be swapped for
-/// `vstd::rwlock::RwLock<i64, ...>` (or `vstd::sync::Mutex<i64>` if
-/// vstd ever ships one) under a `cfg(verus_only)` gate without
-/// touching `Logical`'s public API.
+/// `vstd 0.0.0-2026-04-20-1748` ships no `std_specs/sync.rs`, so
+/// `std::sync::Mutex` has no model and Verus cannot look inside this type.
+/// It is left outside the `verus!` block for that reason, which is also why
+/// it holds as little as possible: it wraps a [`Ts`] and forwards, and every
+/// claim about what the clock does is discharged on `Ts` above rather than
+/// assumed here.
+///
+/// The one obligation this shim owes and Verus does not check is `Ts::tick`'s
+/// `requires old(self).value < i64::MAX`.
 #[derive(Debug)]
 pub(crate) struct LockState {
-    inner: Mutex<i64>,
+    inner: Mutex<Ts>,
 }
 
 impl LockState {
     pub(crate) fn new(v: i64) -> Self {
-        Self { inner: Mutex::new(v) }
+        Self { inner: Mutex::new(Ts::new(v)) }
     }
 
-    /// Atomic read of the protected value. This is the production
-    /// implementation of the spec view `ts(c)` (see `verus_proof::ts`).
+    /// Atomic read of the protected timestamp.
     pub(crate) fn lock_value(&self) -> i64 {
-        *self.inner.lock().expect("clock mutex poisoned")
+        self.inner.lock().expect("clock mutex poisoned").get()
     }
 
-    /// Atomic increment-by-one of the protected value.
+    /// Atomic advance-by-one of the protected timestamp. The critical
+    /// section is one call to the verified `Ts::tick`.
     pub(crate) fn lock_increment(&self) {
-        let mut g = self.inner.lock().expect("clock mutex poisoned");
-        *g += 1;
+        self.inner.lock().expect("clock mutex poisoned").tick();
     }
 
-    /// Atomic set of the protected value. **Trusted (TCB).** Used by
+    /// Atomic set of the protected timestamp. **Trusted (TCB).** Used by
     /// the Stream 2 snapshot-load admin path; bypasses F7 if `value`
     /// goes backwards.
     pub(crate) fn lock_set(&self, value: i64) {
-        let mut g = self.inner.lock().expect("clock mutex poisoned");
-        *g = value;
+        self.inner.lock().expect("clock mutex poisoned").set(value);
     }
 }
 
@@ -122,27 +201,10 @@ pub trait Clock: Send + Sync {
 /// which makes timeline timestamps fully reproducible from the conformance
 /// suite.
 ///
-/// Internal state is guarded by a `LockState` (a thin newtype around
-/// `std::sync::Mutex<i64>`) rather than `AtomicI64` so the Verus
-/// annotations can reason about the lock-protected critical section as a
-/// single transition. Verus understands `Mutex` exclusivity natively;
-/// `Atomic` would require a separate ghost protocol.
-///
-/// **`inner` is `pub`** so the `verus_proof` block's transparent
-/// `ExLogical(crate::Logical)` external_type_specification can see the
-/// field — Verus does not allow `pub(crate)` on transparent
-/// external types. `LockState` itself is `pub(crate)`, so callers
-/// outside the crate still cannot construct or interact with `inner`.
+/// `Logical` is the trusted shim: it owns a [`LockState`] and forwards. The
+/// transitions it forwards to, [`Ts::get`] and [`Ts::tick`], are verified.
 pub struct Logical {
-    // `pub` (not `pub(crate)`) is required by Verus
-    // `external_type_specification` for transparent datatypes.
-    // `LockState` itself is `pub(crate)`, so the field is visibly
-    // typed but not constructible outside the crate. The lint is
-    // about exposing a `pub(crate)` type via a `pub` field — that
-    // exposure is intentional here, scoped to Verus's needs.
-    #[doc(hidden)]
-    #[allow(private_interfaces)]
-    pub inner: LockState,
+    pub(crate) inner: LockState,
 }
 
 impl Logical {
@@ -178,124 +240,6 @@ impl Clock for Logical {
     /// where the producer's snapshot is the source of truth.
     fn set_now(&self, value: i64) {
         self.inner.lock_set(value);
-    }
-}
-
-// =============================================================================
-// Verus proof obligations (F7).
-// =============================================================================
-//
-// Under stable rustc this module is compiled out. Under `--cfg verus` it is
-// expanded by the Verus toolchain and discharged by Z3.
-//
-// Stream 3 Phase 1b status (DISCHARGED):
-//   - `now_ensures` and `tick_ensures` are no longer `external_body`. Their
-//     bodies are the actual production reads/writes (`c.inner.lock_value()`
-//     / `c.inner.lock_increment()`), and Verus discharges
-//     `out as int == ts(c)` and `ts(c) == old(ts(c)) + 1` by chaining the
-//     `assume_specification`s on `LockState::lock_value` and
-//     `LockState::lock_increment` through the structural definition of
-//     `ts(c) := lock_state_value(&c.inner)`.
-//   - The trust footprint shrinks to two assume_specification stubs (one per
-//     mutex op) plus the opaque ghost view `lock_state_value`. The Phase 1a
-//     `inner_state(c)` projector is retired (the inner field is now visible
-//     to Verus directly).
-//   - `vstd::sync::Mutex` is still absent in this vstd release, so the
-//     ultimate end state — discharging through a vstd lock primitive's own
-//     postconditions instead of via assume_specification — remains future
-//     work tracked in `CHANGELOG-tier4.md`. Phase 1b is the Tier-4 milestone:
-//     F7 obligations themselves are no longer trusted.
-#[cfg(verus_only)]
-mod verus_proof {
-    use super::*;
-    use vstd::prelude::*;
-    // Visible vstd lock primitive in scope for the verifier. The plan
-    // originally targeted `vstd::sync::Mutex<i64>`; that primitive is
-    // not present in this vstd release, so we import the actual
-    // available vstd lock (`vstd::rwlock::RwLock`) instead. See module
-    // doc comment + CHANGELOG-tier4.md Trust-Boundary entry.
-    #[allow(unused_imports)]
-    use vstd::rwlock::RwLock;
-    verus! {
-        // `Logical` is structurally visible to Verus: `inner` is
-        // `pub` (and `LockState` is `pub(crate)`), so the verifier
-        // can write `c.inner` inside spec/exec bodies. This is what
-        // permits the structural definition of `ts(c)` below.
-        #[verifier::external_type_specification]
-        pub struct ExLogical(crate::Logical);
-
-        // `LockState` wraps a `std::sync::Mutex<i64>`. Verus has no
-        // model of `Mutex` (vstd 0.0.0-2026-04-20-1748 ships no
-        // `sync::Mutex`), so we keep `LockState` opaque
-        // (`external_body`) and reason about it through the trusted
-        // ghost view + shim functions below. These are the F7
-        // discharge's remaining trust hooks on the clock side.
-        #[verifier::external_type_specification]
-        #[verifier::external_body]
-        pub struct ExLockState(crate::LockState);
-
-        // Ghost view of the i64 currently stored behind the lock. The
-        // trusted shims chain through this. Body opaque (Verus has
-        // no concrete view of the std mutex's interior).
-        #[verifier::external_body]
-        pub closed spec fn lock_state_value(s: &LockState) -> int {
-            unimplemented!()
-        }
-
-        // Concrete ghost view of `Logical`'s current logical
-        // timestamp. Structural over the (now visible) `inner` field
-        // — no opaque projector hop needed (cf. Phase 1a's
-        // `inner_state`, retired).
-        pub open spec fn ts(c: &Logical) -> int {
-            lock_state_value(&c.inner)
-        }
-
-        // Trusted shim around `LockState::lock_value`. Pins the
-        // returned `i64` to the ghost view so callers (`now_ensures`)
-        // can chain it to `ts(c)`. The exec body calls
-        // `std::sync::Mutex::lock`; this trusted shim stands in for
-        // that call's return.
-        #[verifier::external_body]
-        pub fn proof_lock_value(s: &LockState) -> (out: i64)
-            ensures out as int == lock_state_value(s)
-        {
-            s.lock_value()
-        }
-
-        // Trusted shim around `LockState::lock_increment`. The
-        // production exec method takes `&self` (interior mutability
-        // via `Mutex`); for the proof we model it with `&mut` so
-        // Verus can express the post-state of the ghost view. The
-        // shim is sound because `Mutex::lock` provides exclusive
-        // access while held — the critical section is observationally
-        // a `&mut` step. Trusting this shim is exactly trusting that
-        // std's `Mutex` correctly implements mutual exclusion.
-        // Spec: bumps the ghost view by exactly 1. This is the F7
-        // tick-step axiom; everything else flows from it.
-        #[verifier::external_body]
-        pub fn proof_lock_increment(s: &mut LockState)
-            ensures lock_state_value(s) == lock_state_value(old(s)) + 1
-        {
-            s.lock_increment()
-        }
-
-        // F7 discharge — `out as int == ts(c)`. Body invokes the
-        // trusted read shim; Verus chains the shim's ensures through
-        // the structural definition of `ts(c) := lock_state_value(&c.inner)`.
-        pub fn now_ensures(c: &Logical) -> (out: i64)
-            ensures out as int == ts(c)
-        {
-            proof_lock_value(&c.inner)
-        }
-
-        // F7 discharge — `ts(c) == old(ts(c)) + 1`. Body invokes the
-        // trusted write shim; Verus chains the shim's ensures
-        // through the structural definition of `ts`.
-        pub fn tick_ensures(c: &mut Logical)
-            ensures ts(c) == ts(old(c)) + 1
-        {
-            proof_lock_increment(&mut c.inner)
-        }
     }
 }
 
@@ -427,5 +371,44 @@ mod tests {
         c.set_now(2); // value == now
         assert_eq!(c.now(), 2);
         assert_eq!(c.inner.lock().unwrap().1, pre_ticks);
+    }
+}
+
+#[cfg(test)]
+mod ts_tests {
+    use super::*;
+
+    #[test]
+    fn ts_new_holds_value() {
+        assert_eq!(Ts::new(7).get(), 7);
+    }
+
+    #[test]
+    fn ts_tick_advances_by_exactly_one() {
+        // The runtime witness for the clauses Verus discharges on `Ts::tick`.
+        let mut t = Ts::new(0);
+        for expected in 1..=100 {
+            let before = t.get();
+            t.tick();
+            assert_eq!(t.get(), expected);
+            assert_eq!(t.get(), before + 1);
+            assert!(t.get() > before);
+        }
+    }
+
+    #[test]
+    fn ts_get_does_not_advance() {
+        // F7's read half: no intervening tick, same value.
+        let t = Ts::new(3);
+        assert_eq!(t.get(), 3);
+        assert_eq!(t.get(), 3);
+    }
+
+    #[test]
+    fn ts_set_overwrites_and_may_rewind() {
+        // Trusted entry: this is the one operation that can go backwards.
+        let mut t = Ts::new(10);
+        t.set(4);
+        assert_eq!(t.get(), 4);
     }
 }

@@ -97,6 +97,27 @@ result:
   clauses:        5 shipped, 57 twin
 ```
 
+> **CORRECTED IN PLACE, 2026-09-02, twice over.**
+>
+> 1. The split reported below as `5 shipped, 57 twin` is really
+>    **5 shipped, 36 twin, 21 assumed**. The sweep was folding clauses on
+>    `external_body` and `admit()` bodies in with the twins, and the difference
+>    is the whole point of the instrument: a twin is checked against a body, an
+>    assumed clause is not checked at all. It was also mis-attributing two
+>    `broadcast proof fn` axioms to an unrelated `fmt` sixty lines away, because
+>    the signature scanner did not know Verus's modifiers. Both are
+>    [F042](F042-the-vacuity-instrument-counted-two-axioms-as-shipped-obligations.md),
+>    and both are fixed in `tools/cmd/verus/clauses.go`.
+> 2. The ratio itself has moved. `crates/ids`, `crates/clock` and
+>    `crates/store` had their state lifted out of `Mutex` / `RwLock`, and the
+>    census is now **37 shipped / 20 twin / 13 assumed**, with all 37 shipped
+>    clauses REFUTABLE and none vacuous
+>    ([F041](F041-the-r5-blocker-was-the-lock-not-the-property.md),
+>    `evidence/runs/verus/canary-2026-09-02-after-lift.txt`).
+>
+> The finding below — that an injection canary had been standing in for a
+> negation canary — is unaffected and stands.
+
 **Five of the Rust corner's sixty-two `ensures` clauses are on shipped
 functions. Fifty-seven are on twins.** F027 established the shape of that split
 by reading the code; this is the ratio, re-derived mechanically from the tree

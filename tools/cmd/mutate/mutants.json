@@ -586,15 +586,17 @@
         {
           "file": "crates/store/src/lib.rs",
           "anchor": [
-            "        g.follows.insert((f.from, f.to));",
-            "        Ok(())"
+            "        let edge = (f.from, f.to);",
+            "        self.follows.insert(edge);"
           ],
           "replacement": [
-            "        let e = (f.from, f.to);",
-            "        if !g.follows.remove(&e) {",
-            "            g.follows.insert(e);",
-            "        }",
-            "        Ok(())"
+            "        let key = (f.from.clone(), f.to.clone());",
+            "        let edge = (f.from, f.to);",
+            "        let was = self.follows.contains(&key);",
+            "        self.follows.insert(edge);",
+            "        if was {",
+            "            self.follows.remove(&key);",
+            "        }"
           ]
         }
       ]
@@ -642,13 +644,13 @@
         {
           "file": "crates/store/src/lib.rs",
           "anchor": [
-            "        if !g.users.contains_key(&t.author) {",
+            "        if !self.users.contains_key(&t.author) {",
             "            return Err(StoreError::UnknownUser);",
             "        }",
-            "        // ENFORCE the monotonicity lemma's premises rather than assuming"
+            "        assert(abs_users(self).contains(t.author@));"
           ],
           "replacement": [
-            "        // ENFORCE the monotonicity lemma's premises rather than assuming"
+            "        assert(abs_users(self).contains(t.author@));"
           ]
         }
       ]
@@ -679,15 +681,15 @@
         {
           "file": "crates/clock/src/lib.rs",
           "anchor": [
-            "    pub(crate) fn lock_increment(&self) {",
-            "        let mut g = self.inner.lock().expect(\"clock mutex poisoned\");",
-            "        *g += 1;",
+            "            self.wf(),",
+            "    {",
+            "        self.value = self.value + 1;",
             "    }"
           ],
           "replacement": [
-            "    pub(crate) fn lock_increment(&self) {",
-            "        let mut g = self.inner.lock().expect(\"clock mutex poisoned\");",
-            "        *g += 2;",
+            "            self.wf(),",
+            "    {",
+            "        self.value = self.value + 2;",
             "    }"
           ]
         }
@@ -702,15 +704,15 @@
         {
           "file": "crates/clock/src/lib.rs",
           "anchor": [
-            "    pub(crate) fn lock_increment(&self) {",
-            "        let mut g = self.inner.lock().expect(\"clock mutex poisoned\");",
-            "        *g += 1;",
+            "            self.wf(),",
+            "    {",
+            "        self.value = self.value + 1;",
             "    }"
           ],
           "replacement": [
-            "    pub(crate) fn lock_increment(&self) {",
-            "        let mut g = self.inner.lock().expect(\"clock mutex poisoned\");",
-            "        *g -= 1;",
+            "            self.wf(),",
+            "    {",
+            "        self.value = self.value - 1;",
             "    }"
           ]
         }

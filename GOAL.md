@@ -364,7 +364,7 @@ measure that alignment.
 | corner | R0 | R1 | R2 | R4 | limited by |
 |---|---|---|---|---|---|
 | Go | 56/56 | clean | pass | Gobra green; 91 functional clauses, reachability audit clean (0 of 33 unreachable), negation sweep in PR #3. **R4 and R5 are both `calibrate` rungs since 2026-09-02**, ceiling 14 of 18 mutants (F022) | Gobra ghost-language limits; 5 HomeTimeline clauses undecidable within budget; the trusted shim is 4 of 18 mutants |
-| Rust | 56/56 | clean | pass | Verus **21 verified, 0 errors**, still **1 property** (F016). The four drifted twins are fixed or deleted (F028); the count fell from 23 because two of them carried no `ensures` at all | `RwLock` has no vstd model; `ids::next_id_ensures` is an assumed axiom with a 0-unit count |
+| Rust | 56/56 | clean | pass | Verus **32 verified, 0 errors**. The lock lift (F041) moved F7, F8 and the store's three abstraction axes onto shipped functions: census **37 shipped / 20 twin / 13 assumed**, from 5 / 36 / 21, and **37 of 37 shipped clauses REFUTABLE, 0 VACUOUS** | `crates/service` is still all twins; `String`'s view is not known injective, which blocks R5's response axis (F043); there is no Verus R5 rung in `calibrate` |
 | Java | 56/56 | clean | pass | not attempted — and now blocked on something more mundane than F014: `impls/java` has **no obligation set**. The Kotlin corner's `Obligations.kt` has no Java twin, so there is nothing for a JBMC rung to run | JBMC string equality (F014); plus no obligations written |
 | Kotlin | 56/56 | clean | pass | JBMC, 7 of 15 decidable. **R4 is a `calibrate` rung since 2026-09-02** (`tools/cmd/jbmc verify`); the 8 blocked obligations are in neither numerator nor denominator, and the F013 vacuity audit re-runs on every tree judged. Coverage 16 of 18 mutants (2 are httpshim) | the JBMC defect sets the denominator, not the obligations (F014, F025) |
 | Go | 56/56 | clean | pass | Gobra green; 91 functional clauses, reachability audit clean (0 of 33 unreachable), negation sweep in PR #3. **R4 and R5 are both `calibrate` rungs since 2026-09-02**, ceiling 14 of 18 mutants (F022). **Full sweep 2026-09-02: R4 9/14 reached, R5 9/14 reached, the two rows disagree on 0 of 18 (F028)** | Gobra ghost-language limits; 5 HomeTimeline clauses undecidable within budget; the trusted shim is 4 of 18 mutants |
@@ -376,6 +376,75 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 20:35 (fan-out task, branch `claude/task-rust-r5-rwlock`)** —
+  **The R5 blocker was the lock, and the lock came out of three crates.**
+  Rule 3 first: the documented blocker was *reproduced*, not re-quoted. Making
+  `MemStore` structurally visible to Verus still gives all five errors
+  `ASSURANCE.md` quotes, plus a sixth, and `vstd 0.0.0-2026-04-20-1748` still
+  ships no `std_specs/sync.rs`
+  (`evidence/runs/verus/rwlock-blocker-reproduction.txt`). Then the refactor
+  F012 named in one sentence and nobody had done was done: `crates/ids`,
+  `crates/clock` and `crates/store` now hold their state as plain owned value
+  types inside a top-level `verus! { … }` block, with the lock pushed out to a
+  thin type that forwards. **`abs_users`, `abs_follows` and `abs_tweets` have
+  bodies.** Verus's own lines, before and after:
+  ```
+  before:  domain 9  store 6  ids 0  clock 2  service 4
+           R4 PASSED: verification results:: 21 verified, 0 errors over 5 of 5 verify-enabled crate(s)
+  after:   domain 9  store 9  ids 5  clock 5  service 4
+           R4 PASSED: verification results:: 32 verified, 0 errors over 5 of 5 verify-enabled crate(s)   [5.8s]
+  ```
+  `crates/ids` went from **zero** obligations to five: F8 is on `Counter::next`,
+  the transition `Generator::next_id` executes, not on `next_id_ensures`, an
+  `external_body` function with an `unimplemented!()` body that nothing called.
+  `store` went 6 → 9 *while three twins were deleted*, so they are a different
+  nine. Of R5's three obligations, `abs(init) == init_S` is discharged on all
+  three axes and state commutation on `put_user` / `put_follow` / `put_tweet` —
+  17 clauses, on shipped functions, in R5's own vocabulary. **F041.**
+  Rule 4, every clause moved onto a shipped function shown non-vacuous before
+  it is claimed — `verus canary`, its own last lines:
+  ```
+  self-test ... -> VACUOUS [6s]   self-test PASSED
+  baseline  R4 PASSED: verification results:: 32 verified, 0 errors over 5 of 5 verify-enabled crate(s)   [2m28.7s]
+  canary sweep: 37 clause(s)   REFUTABLE 37   VACUOUS 0   ILL-FORMED 0   TIMEOUT 0
+  ```
+  **The instrument itself was wrong, and the tree that exercised it found out.**
+  Two `broadcast proof fn … { admit(); }` axioms were entering the sweep as
+  *shipped obligations*, under the name `fmt` from an unrelated `impl Display`
+  sixty lines away, because `fnName` did not know Verus's `proof`/`spec`/
+  `broadcast` modifiers. An admitted body proves every postcondition, so the
+  canary would have printed VACUOUS as a tautology about `admit()` dressed as a
+  finding — the F016 mistake rebuilt inside the instrument built to catch it.
+  `splitBlocks` now returns four categories and prints ghost and assumed blocks
+  by name on every run. **F042.** Re-measuring the pre-lift tree with the fixed
+  classifier makes the comparison apples-to-apples: **5 shipped / 36 twin / 21
+  assumed → 37 / 20 / 13.** So F030's "57 twins" was 36 twins plus 21 assumed
+  clauses; F027 and F030 are corrected in place.
+  **The next blocker down is named and is not the lock.** `vstd`'s
+  `View for String` is `uninterp`, so nothing says `s@ == t@ ==> s == t`, and
+  Verus refuses `result is Ok ==> !abs_users(old(self)).contains(u.handle@)`
+  by name. Every read on this corner reduces to a membership test, so R5's
+  response axis is blocked on that. The deleted twin stated that direction only
+  because `proof_users_contains`, an `external_body` shim, assumed it — **a
+  twin can look stronger than the shipped contract that replaces it, and
+  deleting it lowers the count while raising the evidence. F043.**
+  **The two `go ↔ rust` R5 cells did NOT change and MATRIX.md is unchanged in
+  that column.** `tools/cmd/calibrate/rungs.go` hard-codes R5 as `Tool:
+  "gobra"` with a Go-only file list, so a cell is not available without a Verus
+  R5 rung, which is separate work and was not done here. What changed is the
+  *reason* the cells are capped, and `ASSURANCE.md` had been conflating "the
+  cells are capped" with "it is structurally impossible" in one sentence.
+  Behaviour unchanged and checked: `cargo test --workspace` 17/17 ok,
+  `replay -impl rust` **R0 PASSED, 56/56 exact, 0 differ**.
+  `TestShippedClausesAreExactlyFollowNew` fired as designed and is replaced by
+  `TestShippedClausesCoverTheLiftedCrates`, shown able to fail by reverting
+  `crates/ids` to its pre-lift source.
+  **Next fire:** (a) write the Verus R5 rung in `calibrate` — that is what
+  turns 17 discharged clauses into a matrix cell; (b) re-run the Rust mutant
+  sweep, since F027's 1-kill-in-14 was measured against a tree where only
+  `domain` had shipped contracts and that is no longer true; (c) lift
+  `crates/service`, the last twin holdout, expecting it to cost more than
+  `store` did because its write mutex spans allocate-then-write (F018).
 - **2026-09-02 20:15 (fan-out task, branch `claude/task-dom-separation`)** —
   **The R4 and R5 columns disagree for the first time, in both of the two ways
   they can.** F028 measured 18 mutants x 2 rungs and got zero disagreements,
@@ -1011,7 +1080,12 @@ the verdict line, and what the next fire should do.
    `ids::next_id_ensures`: an `external_body` function with an
    `unimplemented!()` body, contributing 0 verified units while F8 depends on
    it. That needs the counter lifted out of the `Mutex`, not a better
-   contract.
+   contract. **The lift was done 2026-09-02**
+   (`claude/task-rust-r5-rwlock`, `evidence/findings/F041`):
+   `next_id_ensures` is deleted, F8 is on `Counter::next` — the transition
+   `Generator::next_id` executes — and `crates/ids` reports 5 verified.
+   `crates/clock` and `crates/store` got the same lift; `crates/service` is
+   the last twin holdout.
 5. Remaining stories: S-10 specgen, S-18/S-21 the port matrix itself, S-24 the
    adversarial refutation pass.
 

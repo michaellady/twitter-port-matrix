@@ -76,7 +76,7 @@ argued away.
 | Corner | R0-R3 | R4 | R5-core | R5-wire | Ceiling |
 |---|---|---|---|---|---|
 | Go | yes | Gobra, **83 of 91 clauses refutable, 0 vacuous, 8 undecided** | **26 of 42 clauses** | no | **R5-core, partial** |
-| Rust | yes | Verus, **1 property** | **no** | no | **R4, one property (F4)** |
+| Rust | yes | Verus, **37 of 37 shipped clauses refutable, 0 vacuous** | **statable, partial: `abs` has a body; 17 clauses on 3 axes; no rung** | no | **R4 on 4 of 5 crates; R5-core has no rung** |
 | Java | yes | not attempted | unknown | no | **R3** |
 | Kotlin | yes | JBMC, bounded | no | no | **R3 + bounded (measured)** |
 
@@ -94,19 +94,62 @@ verified-core / trusted-shim split `TCB.md` chose, and that split is what keeps
 validation semantics inside code the verifier reads. The two goals are in
 direct tension, and **an earlier version of this file claimed both at once.**
 
-### Why Rust cannot reach even R5-core
+### Why Rust's R5-core was blocked, and what the lock came out of
 
-`abs_rust` cannot be given a body. Verus, verbatim:
-`std::sync::poison::rwlock::RwLock is not supported`. `vstd` ships no
-`sync.rs`, and `vstd::rwlock::RwLock` does not help — it has no
-`spec fn value(&self) -> V`, and cannot, since the value is only meaningful
-while a guard is held.
+**This section asserted the opposite until 2026-09-02, and had never been
+re-tested.** What it said:
 
-An abstraction function over state behind interior mutability is not definable
-until that state is lifted out of the lock. That is a refactor, not an
-annotation: make the verified core a pure value type and move the lock into the
-trusted shim — the shape `S_obs` itself has. **Until then every port with Rust
-at either end is capped below R5.**
+> `abs_rust` cannot be given a body. Verus, verbatim:
+> `std::sync::poison::rwlock::RwLock is not supported`. … An abstraction
+> function over state behind interior mutability is not definable until that
+> state is lifted out of the lock. That is a refactor, not an annotation …
+> **Until then every port with Rust at either end is capped below R5.**
+
+Both halves of the blocker were reproduced rather than re-quoted
+([F041](evidence/findings/F041-the-r5-blocker-was-the-lock-not-the-property.md),
+raw output in `evidence/runs/verus/rwlock-blocker-reproduction.txt`): making
+`MemStore` structurally visible to Verus still gives all five "is not
+supported" errors, `vstd 0.0.0-2026-04-20-1748` still ships no
+`std_specs/sync.rs`, and `vstd::rwlock::RwLock` still has no
+`spec fn value(&self)`.
+
+**Then the refactor this file named was done.** `crates/ids`, `crates/clock`
+and `crates/store` now hold their state as plain owned value types declared
+inside a top-level `verus! { … }` block, with the lock pushed out to a thin
+type that takes it and forwards — the verified-core / trusted-shim split
+`internal/httpshim` has on the Go corner. `abs_users`, `abs_follows` and
+`abs_tweets` have **bodies**.
+
+What is discharged, on the shipped functions, in R5's own vocabulary:
+
+| R5 obligation | Rust status |
+|---|---|
+| `abs_L(init_L) == init_S` | **discharged** on all three state axes |
+| `abs_L(step_L(s, r)) == step_S(abs_L(s), r)` | **discharged** for `put_user`, `put_follow`, `put_tweet` — each also constraining the two axes it must leave alone |
+| `resp_L(s, r) == resp_S(abs_L(s), r)` | **not discharged**, and not because of the lock — see below |
+
+**The two `go ↔ rust` R5 cells in `MATRIX.md` do not change, and the reason
+they do not is now a different reason.** Three things are still missing:
+
+1. **There is no R5 rung for the Rust corner.** `tools/cmd/calibrate/rungs.go`
+   hard-codes R5 as `Tool: "gobra"` with a Go-only file list. A matrix cell is
+   a `calibrate` verdict over the mutant catalogue, not a count of clauses in
+   a source file.
+2. **The response axis is blocked one level below the lock.** `vstd`'s
+   `View for String` is `uninterp`, so nothing says `s@ == t@ ==> s == t`.
+   Every read on this corner reduces to a membership test, and the direction
+   "the abstract set contains it, so the concrete map does" needs exactly that
+   injectivity. Verus refuses the clause by name
+   ([F043](evidence/findings/F043-the-abstraction-is-not-injective-and-vstd-will-not-say-it-is.md)).
+   The deleted twin stated that direction only because an `external_body` shim
+   assumed it.
+3. **`crates/service` is still entirely twins.** Same lift applies; its write
+   mutex spans allocate-then-write (F018), so its transition composes two
+   lifted cores rather than one, and it will cost more than `store` did.
+
+So: *"every port with Rust at either end is capped below R5"* is still true of
+the cells. Its stated reason is not. Those are different claims and this file
+conflated them for as long as the sentence stood.
 
 ### What Go's R4 number means, audited
 
@@ -159,52 +202,74 @@ the canaries. Those eight, F1 / D10 / no-fabrication / no-loss among them, are
 The first run of this sweep reported 86/5; that figure was produced by a
 colliding checkpoint key and is withdrawn.
 
-### Why Rust's R4 is one property, not 21
+### Why Rust's R4 was one property, and what it is now
 
 Audited obligation by obligation (`evidence/findings/F016`). Verus counts
 **units of work, not obligations**. Of the 23 units that stood when F016 was
-written, 11 carried no `ensures` clause at all. Exactly **one** —
-`domain::Follow::new`, F4 — is functional, non-vacuous, about shipped code,
-reachable from the API, and free of project-local assumed axioms. That is
-still true at 21.
+written, 11 carried no `ensures` clause at all, and exactly **one** —
+`domain::Follow::new`, F4 — was functional, non-vacuous, about shipped code,
+reachable from the API, and free of project-local assumed axioms. F024 then
+disposed of four drifted twins and the count fell 23 → 21, which is the right
+direction for a number nobody should read as a guarantee.
 
-**S-14 disposed of the four drifted twins** (`evidence/findings/F024`).
-`service::create_user_ensures` was *false* of the shipped code — it verified
-`handle@.len() > 0 && !contains ==> result is Ok`, which fails for `"Alice"`,
-an input already in the corpus at step 5 on a corner passing 56/56. It now
-guards on the predicate production actually applies. `service::follow_ensures`
-had the pre-D4 ordering in its body (the F003 defect); its body now mirrors
-production and two of its clauses name *which* error, so the ordering is
-checkable rather than invisible. The two `home_timeline_ensures` twins carried
-**zero** `ensures` clauses over a drifted, cursor-less copy of the timeline
-walk, and were **deleted** — an obligation with no postcondition cannot be
-refuted, so it was count and not evidence.
+**Since 2026-09-02 the corner has more than one.** The lift (F041) moved F7,
+F8 and the store's three abstraction axes onto shipped functions. Verus's own
+lines:
 
-The count is now **21 verified, 0 errors** (clock 2, ids 0, domain 9, store 6,
-service 4). It went *down* by deleting two things that proved nothing, which
-is the right direction for a number nobody should read as a guarantee.
+```
+domain 9   store 9   ids 5   clock 5   service 4
+R4 PASSED: verification results:: 32 verified, 0 errors over 5 of 5 verify-enabled crate(s)
+```
 
-`crates/ids` still contributes zero obligations while F8 depends on it: adding
-`false` to `next_id_ensures` gives `0 verified, 0 errors`.
+The clause census, from `verus canary`, which re-derives it from the tree:
 
-No vacuity was found — all clauses were refuted by negation canary, so F013's
-Kotlin mode does not replicate here.
+| | before the lift | after |
+|---|---|---|
+| on shipped exec functions | 5 | **37** |
+| on `verus_proof` twins | 36 | 20 |
+| assumed (`external_body` / `admit()`) | 21 | 13 |
 
-### Why Rust's R4 is weaker than its count
+Both columns are measured with the **same** classifier; the pre-lift row is a
+re-measurement of `origin/claude/goal-loop`, not the older figure. The
+difference between the two twin columns and F030's "57" is
+[F042](evidence/findings/F042-the-vacuity-instrument-counted-two-axioms-as-shipped-obligations.md):
+the sweep had been folding assumed clauses in with twins, and a twin is checked
+against a body while an assumed clause is not checked at all.
 
-The Verus contracts are on **hand-written twins**. `MemStore::put_tweet` is at
-`crates/store/src/lib.rs:249`; `put_tweet_ensures`, the function Verus
-verifies, is at 820. They are separate functions kept in step by hand, and one
-had already drifted into falsehood. Read "21 verified, 0 errors" as *21
-obligations about copies of the shipped code*. S-14 audited every twin against
-its production function and fixed or deleted the four that had drifted
-(`evidence/findings/F024`); the twins are in step with production as of that
-audit, and nothing mechanical keeps them there.
+`crates/ids` no longer contributes zero. F8 is on `Counter::next`, the
+transition `Generator::next_id` executes, and the crate reports 5 verified.
 
-`crates/ids` verifies **zero** obligations while F8 depends on it: assumed
-postcondition, never-executed function, uninterpreted symbols.
+**All 37 shipped clauses are refutable and none is vacuous** —
+`REFUTABLE 37, VACUOUS 0, ILL-FORMED 0, TIMEOUT 0`, with the sweep's self-test
+returning VACUOUS first, so the zero is earned rather than assumed
+(`evidence/runs/verus/canary-2026-09-02-after-lift.txt`).
 
-See `evidence/findings/F012` for the full assessment.
+### What is still on twins, and what a twin costs
+
+The Verus contracts used to be almost entirely on **hand-written twins**:
+`MemStore::put_tweet` at `crates/store/src/lib.rs:249` and `put_tweet_ensures`
+at 820, separate functions kept in step by hand, one of which had already
+drifted into falsehood (F012, F024). Twenty clauses are still in that state,
+all in `crates/service` and in the three `crates/store` reads that were not
+lifted.
+
+Two things the lift settled about that arrangement, both worth carrying:
+
+- **A twin can look stronger than the shipped contract that replaces it.**
+  `store::verus_proof::put_user_ensures` stated both directions of the
+  accept/reject condition. The shipped `Inner::put_user` states one. The twin
+  could state the other because it called `proof_users_contains`, an
+  `external_body` shim whose postcondition assumed the very injectivity vstd
+  will not give
+  ([F043](evidence/findings/F043-the-abstraction-is-not-injective-and-vstd-will-not-say-it-is.md)).
+  Deleting it lowered the clause count and raised the evidence.
+- **`crates/service` is the remaining holdout** and it is the expensive one.
+  Its state is three `Arc`-shared sub-stores plus a write mutex that spans
+  allocate-then-write (F018), so the lifted transition composes two cores
+  rather than one.
+
+See `evidence/findings/F012` for the full assessment and `F041` for what the
+lift cost, measured.
 
 **The operative limit is JBMC, not Kotlin.** `"abc".equals("abc")` verifies as
 **FALSE** on JBMC 6.11.0 — reproduced in plain Java, so it is a tool defect and
@@ -275,8 +340,8 @@ concurrency semantics, or a rung would have to exist that does not consult it.
 | R1 | Not built. Phase 1 |
 | R2 | Not built. Phase 1 |
 | R3 | **PASSING.** TLC green on `twitter.tla` (8,989,719 distinct states, depth 20). `S_obs` link check green over 16 state-changing steps, and the known-bad canary is correctly rejected |
-| R4 | **Go: green and audited.** All five packages `Gobra found no errors`, `0 error(s)`, reproduced eight times. 0 of 33 members unreachable; 83 of 91 functional clauses refutable, 0 vacuous, 8 undecided (all on `HomeTimeline`, F021). **Rust: green, and now audited too — but over 8% of the corner.** `verus canary` (F030) reports `REFUTABLE 5, VACUOUS 0, ILL-FORMED 0, TIMEOUT 0` on the shipped clauses, with a self-test that returns VACUOUS under an injected false precondition. That covers the 5 `ensures` clauses on shipped functions; the corner's other **57 clauses are on hand-written twins** inside `#[cfg(verus_only)] mod verus_proof` (F012, F016, F027), where a canary would measure the twin. Before F030 this corner had no vacuity instrument of any kind |
-| R5-core | **Go: 26 of 42 clauses VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS** (`evidence/runs/gobra/r5-clause-status.txt`, derived by `gobra r5`). Rust blocked on `RwLock` having no Verus model |
+| R4 | **Go: green and audited.** All five packages `Gobra found no errors`, `0 error(s)`, reproduced eight times. 0 of 33 members unreachable; 83 of 91 functional clauses refutable, 0 vacuous, 8 undecided (all on `HomeTimeline`, F021). **Rust: green, audited, and no longer 8% of the corner.** `verus canary` reports `REFUTABLE 37, VACUOUS 0, ILL-FORMED 0, TIMEOUT 0` over the shipped clauses, with a self-test that returns VACUOUS under an injected false precondition. The lift (F041) took the shipped/twin/assumed census from 5/36/21 to **37/20/13**, measured with the same classifier on both trees; the corner's remaining twins are in `crates/service` and three `crates/store` reads. `verification results:: 32 verified, 0 errors over 5 of 5 verify-enabled crate(s)`. Before F030 this corner had no vacuity instrument of any kind, and until F042 that instrument was counting two admitted axioms as shipped obligations |
+| R5-core | **Go: 26 of 42 clauses VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED, 0 FAILED, 0 VACUOUS** (`evidence/runs/gobra/r5-clause-status.txt`, derived by `gobra r5`). **Rust: statable since 2026-09-02 and partially discharged — `abs_users` / `abs_follows` / `abs_tweets` have bodies, `abs(init) == init_S` and state commutation for `put_user` / `put_follow` / `put_tweet` are proved on shipped functions (17 clauses). Not a rung: `calibrate`'s R5 is Gobra-only, and the response axis is blocked on `String` view injectivity (F043)** |
 | R5-wire | Not reachable — the decode boundary is unverified by construction |
 | R6 | Not reachable by design |
 
@@ -288,14 +353,20 @@ package-level green. Four more (F1, D10, no-fabrication, no-loss on the store's
 `HomeTimeline`) are unaudited for vacuity. Everything above R5-core, and every
 claim involving the Rust corner at R5, remains unsupported.
 
-**What the Rust corner's R4 now licenses, precisely.** One property, F4, on one
-shipped function: `Follow::new` rejects `from == to`, and the five `ensures`
-clauses stating it are each shown non-vacuous by Verus refuting the negated
-antecedent. That is a real, audited R4 claim and it is the whole of it. It does
-NOT extend to the four other verify-enabled crates: their obligations are on
-twins over `external_body` shims, nothing mechanically ties a twin to the
-function that ships, and 13 of the 14 catalogue mutants that reach this corner's
-proof perimeter leave the twin untouched and verifying.
+**What the Rust corner's R4 now licenses, precisely.** Four crates' worth of
+shipped contract, not one: F4 on `domain::Follow::new`, F7 on `clock::Ts`, F8
+on `ids::Counter`, and the store's three abstraction axes on `store::Inner`.
+All 37 clauses are shown non-vacuous by Verus refuting each negated antecedent.
+It does **not** extend to `crates/service`, whose obligations are still on twins
+over `external_body` shims with nothing mechanically tying a twin to the
+function that ships.
+
+**The mutant kill rate has not been re-measured against the lifted tree.** F027
+recorded 1 kill in 14 because `crates/domain` was the only crate whose contract
+sat on shipped code; that reason is now false for three more crates, so the
+number should move. It is a `calibrate` sweep and it was not run here — the
+figure in F027 stands as the last one actually measured, and is now known to be
+measured against a tree that no longer exists.
 
 `ASSURANCE.md` has twice asserted a ceiling it could not back. The numbers in
 this file are now derived from `evidence/runs/gobra/` by

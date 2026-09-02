@@ -129,3 +129,37 @@ Any statement of the form "Verus verifies N obligations" should be read as "N
 obligations about hand-written copies of the shipped code."
 
 See `evidence/findings/F012`.
+
+## Rust: the trusted boundary after the 2026-09-02 lock lift
+
+`crates/ids`, `crates/clock` and `crates/store` now hold their state as plain
+owned value types inside a top-level `verus! { … }` block, with the lock pushed
+out (`evidence/findings/F041`). The sentence above is no longer true of those
+three crates: 37 of the corner's 70 `ensures` clauses are on functions that
+ship. It remains true of `crates/service`.
+
+What that lift left trusted, exhaustively:
+
+| row | what is trusted | why |
+|---|---|---|
+| `ids::LockState`, `ids::Generator` | `std::sync::Mutex<Counter>` provides mutual exclusion, and the critical section is one call to the verified `Counter::next` | `vstd 0.0.0-2026-04-20-1748` ships no `std_specs/sync.rs`; the types sit outside the `verus!` block so Verus does not read them |
+| `clock::LockState`, `clock::Logical` | same, around `Ts::get` / `Ts::tick` / `Ts::set` | same |
+| `store::MemStore` | `std::sync::RwLock<Inner>`, and that each method's critical section is one call to the corresponding `Inner` method | same |
+| `Counter::next`'s `requires … < i64::MAX` | discharged by nobody; the shim owes it | Verus will not admit `+ 1` on an `i64` without it. Reaching it needs 9.2e18 calls |
+| `Ts::tick`'s `requires … < i64::MAX` | same | same |
+| `store::axiom_string_obeys_key_model` | `obeys_key_model::<String>()` | vstd proves it for primitives and `Box` thereof and **not** for `String`; its own `StringHashMap` / `StringHashSet` are `external_body` and assume exactly this |
+| `store::axiom_string_pair_obeys_key_model` | `obeys_key_model::<(String, String)>()` | same, for the follow-edge key type |
+
+Both axioms are `broadcast proof fn … { admit(); }`, named so they can be
+grepped, and `tools/cmd/verus canary` now prints them under `excluded:` on
+every run rather than counting them as shipped obligations
+(`evidence/findings/F042`). **`crates/store`'s tweets axis needs neither**:
+`Vec::push` is modelled by vstd outright.
+
+Not trusted, and this is the change: `Counter::next`, `Ts::tick`, `Ts::get`,
+`Inner::new`, `Inner::put_user`, `Inner::put_follow` and `Inner::put_tweet` all
+have their postconditions discharged against their own bodies. The
+`external_body` shims they used to go through — `next_id_ensures`,
+`proof_lock_value`, `proof_lock_increment`, `lock_state_value`, `inner_state`,
+`proof_users_insert`, `proof_follow_insert`, `proof_append_tweet`,
+`proof_can_post_tweet`, `proof_log_breaks_monotonicity` — are deleted.
