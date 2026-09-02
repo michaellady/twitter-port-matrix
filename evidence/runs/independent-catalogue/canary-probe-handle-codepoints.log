@@ -1,0 +1,20 @@
+mutate probe: 1 mutant(s) against 5 probe traces (536 requests each pass)
+========================================================================
+
+go/handle-length-in-code-points-canary  (canary)
+  tree      sha256:6613b4b0476cd929  (build 0.8s, copy walk)
+  witness   no difference in 3 requests
+  corpus    no difference in 56 requests
+  seed=1    no difference in 120 requests
+  seed=2    no difference in 120 requests
+  seed=3    no difference in 120 requests
+  seed=4    no difference in 120 requests
+  verdict   NO OBSERVABLE CHANGE in 539 requests
+            Treat as equivalent until shown otherwise. Counting it would
+            record a survivor at every rung and understate all of them.
+
+========================================================================
+live: 0/1   no observable change: 1
+
+probe FAILED: [go/handle-length-in-code-points-canary]
+exit status 1

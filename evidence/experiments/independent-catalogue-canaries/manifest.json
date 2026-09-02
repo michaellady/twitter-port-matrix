@@ -1,0 +1,82 @@
+{
+  "note": "CANARIES for the independent catalogue's two gates (GOAL.md standing rule 2: no gate is trusted until it has been shown to fail). Neither mutant belongs in tools/cmd/mutate/mutants-independent.json and neither is in any denominator. `drifted-anchor-canary` is a mutant whose anchor no longer matches any site, which is the failure mode `mutate verify` exists to catch -- a mutant that injects nothing looks exactly like a defect every rung killed. `dead-guard-equivalent-canary` is a real ROR mutant, produced by the same operator taxonomy as the shipped catalogue's boundary family, that turns out to be EQUIVALENT: it weakens a defensive guard that no reachable state can trip, so no request tells it apart from the original. It is the failure `mutate probe` exists to catch, and it is not hypothetical -- it was the first wrong-comparison-operator candidate written for the independent catalogue and it was dropped after probing.",
+  "families": {
+    "canary": "not a catalogue entry: a deliberately broken mutant used to show a gate can fail"
+  },
+  "sources": {
+    "mutation-operator-taxonomy": "INDEPENDENCE ARGUMENT: same as the shipped catalogue's -- the operator and its site are chosen by scanning source syntax, not by reading spec/s_obs/. Recorded here to show that an operator-derived mutant is not automatically a useful one.",
+    "service-failure-mode": "INDEPENDENCE ARGUMENT: same as the shipped catalogue's -- drawn from the operational failure vocabulary of production feed services, a vocabulary S_obs has no term for. Recorded here to show a source-independent defect that the contract's own design makes unobservable."
+  },
+  "mutants": [
+    {
+      "id": "drifted-anchor-canary",
+      "impl": "go",
+      "family": "canary",
+      "description": "The anchor names a line that does not exist in internal/dom/dom.go. `mutate verify` must report DRIFT; if it reported ok the mutant would inject nothing and be scored as killed by every rung.",
+      "edits": [
+        {
+          "file": "internal/dom/dom.go",
+          "anchor": [
+            "\tif len(b) == 0 || len(b) > MaxHandleLength {"
+          ],
+          "replacement": [
+            "\tif len(b) == 0 || len(b) >= MaxHandleLength {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dead-guard-equivalent-canary",
+      "impl": "go",
+      "family": "canary",
+      "source": "mutation-operator-taxonomy",
+      "description": "ROR on the id half of the append-log monotonicity guard: `t.ID <= last.ID` becomes `t.ID < last.ID`. The guard enforces F005's premise, and ids are allocated strictly increasing by ids.Generator, so NEITHER form of the test can fire on any state reachable through the HTTP API. A live-looking edit to defensive code. `mutate probe` must report NO OBSERVABLE CHANGE.",
+      "edits": [
+        {
+          "file": "internal/store/memstore.go",
+          "anchor": [
+            "\t\tif t.ID <= last.ID || t.CreatedAt < last.CreatedAt {"
+          ],
+          "replacement": [
+            "\t\tif t.ID < last.ID || t.CreatedAt < last.CreatedAt {"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "handle-length-in-code-points-canary",
+      "impl": "go",
+      "family": "canary",
+      "source": "service-failure-mode",
+      "description": "The same encoding defect that is LIVE on validText, applied to validHandle: the length bound is measured in code points instead of UTF-8 bytes. It is equivalent, and the reason is a contract decision -- S_obs D6 restricts handles to [a-z0-9_], so any multi-byte input is rejected by the alphabet scan whatever the length test decided, and the two versions cannot disagree on any input. `mutate probe` must report NO OBSERVABLE CHANGE, including against a witness written to break it.",
+      "witness": [
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"éééééééééééééééééééé\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"éééééééééééééééééééééééééééééééééééééééé\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/users",
+          "body": "{\"handle\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}"
+        }
+      ],
+      "edits": [
+        {
+          "file": "internal/dom/dom.go",
+          "anchor": [
+            "\tif len(b) == 0 || len(b) > MaxHandleLen {"
+          ],
+          "replacement": [
+            "\tif len([]rune(h)) == 0 || len([]rune(h)) > MaxHandleLen {"
+          ]
+        }
+      ]
+    }
+  ]
+}

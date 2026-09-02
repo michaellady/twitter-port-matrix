@@ -1,0 +1,21 @@
+mutate verify: 1 mutant(s)  [anchors + compile]
+               manifest=evidence/experiments/independent-catalogue-canaries/manifest.json registry=impls/registry.json
+========================================================================
+
+go  source impls/go  base sha256:1340d365e061bd23
+       baseline builds clean (0.8s)
+  DRIFT  go/drifted-anchor-canary              
+         go/drifted-anchor-canary edit[0]: anchor not found in internal/dom/dom.go.
+           The source has drifted under the manifest. Applying this mutant
+           would inject nothing, and a mutant that injects nothing looks
+           exactly like a defect every rung caught.
+           anchor (first line): if len(b) == 0 || len(b) > MaxHandleLength {
+
+========================================================================
+anchors: 0/1 match exactly one site
+compile: 0/1 build clean
+
+verify FAILED: 1 mutant(s): go/drifted-anchor-canary
+A drifted anchor injects nothing. Until it is repointed, that mutant would
+be recorded as killed by every rung, inflating the whole table.
+exit status 1

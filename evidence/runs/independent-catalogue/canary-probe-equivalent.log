@@ -1,0 +1,21 @@
+mutate probe: 1 mutant(s) against 5 probe traces (536 requests each pass)
+========================================================================
+
+go/dead-guard-equivalent-canary  (canary)
+  tree      sha256:8ce849dc2ef27057  (build 1.2s, copy walk)
+  corpus    no difference in 56 requests
+  seed=1    no difference in 120 requests
+  seed=2    no difference in 120 requests
+  seed=3    no difference in 120 requests
+  seed=4    no difference in 120 requests
+  verdict   NO OBSERVABLE CHANGE in 536 requests
+            No witness is declared for this mutant, so this is a failed
+            search, not a proof of equivalence. Add one, or drop it.
+            Treat as equivalent until shown otherwise. Counting it would
+            record a survivor at every rung and understate all of them.
+
+========================================================================
+live: 0/1   no observable change: 1
+
+probe FAILED: [go/dead-guard-equivalent-canary]
+exit status 1

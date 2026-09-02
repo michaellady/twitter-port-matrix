@@ -1,0 +1,66 @@
+mutate verify: 43 mutant(s)  [anchors + compile]
+               manifest=tools/cmd/mutate/mutants-independent.json registry=impls/registry.json
+========================================================================
+
+go  source impls/go  base sha256:1340d365e061bd23
+       baseline builds clean (0.6s)
+  ok     go/handle-bound-off-by-one             internal/dom/dom.go:201            sha256:3e09c71e694e6ed4  0.9s
+
+rust  source impls/rust  base sha256:92ceb95126667382
+       baseline builds clean (0.1s)
+  ok     rust/handle-bound-off-by-one           crates/domain/src/lib.rs:90        sha256:2147f4ccfc7807ac  50.4s
+
+java  source impls/java  base sha256:0b113dd5f0eaab76
+       baseline builds clean (1.9s)
+  ok     java/handle-bound-off-by-one           src/twitterport/dom/Dom.java:47    sha256:2c8de4f72a08ca19  1.5s
+
+kotlin  source impls/kotlin  base sha256:97ac6f6fcf387de6
+       baseline builds clean (11.9s)
+  ok     kotlin/handle-bound-off-by-one         src/twitterport/dom/Dom.kt:51      sha256:ea0aa5fc41745fe4  13.1s
+  ok     go/limit-bound-off-by-one              internal/httpshim/shim.go:383      sha256:52bdd833e50f7ed9  0.8s
+  ok     rust/limit-bound-off-by-one            crates/server/src/handlers.rs:390  sha256:6b47d580da71a4e8  48.0s
+  ok     java/limit-bound-off-by-one            src/twitterport/service/Service.java:135 sha256:f78de0d0968f1b1f  1.4s
+  ok     kotlin/limit-bound-off-by-one          src/twitterport/service/Service.kt:150 sha256:7d05bc16d1bec59d  12.0s
+  ok     go/text-rejects-space                  internal/dom/dom.go:236            sha256:a2172ad7a49f6847  0.9s
+  ok     rust/text-rejects-space                crates/domain/src/lib.rs:119       sha256:94d87503f23cdc7d  48.1s
+  ok     java/text-rejects-space                src/twitterport/dom/Dom.java:67    sha256:100e8c96b4bb4f8f  1.5s
+  ok     kotlin/text-rejects-space              src/twitterport/dom/Dom.kt:73      sha256:12f6ced22d34370c  12.0s
+  ok     go/timeline-drops-oldest               internal/store/memstore.go:603     sha256:d8327769ff034d68  0.9s
+  ok     rust/timeline-drops-oldest             crates/store/src/lib.rs:300        sha256:71a1f8862f1ba301  48.3s
+  ok     java/timeline-drops-oldest             src/twitterport/store/Store.java:144 sha256:324a0cc71a631215  1.4s
+  ok     kotlin/timeline-drops-oldest           src/twitterport/store/Store.kt:145 sha256:519754dd5b5151cb  12.3s
+  ok     go/visibility-args-swapped             internal/store/memstore.go:608     sha256:8c8a1c1f7f2afad8  0.8s
+  ok     rust/visibility-args-swapped           crates/store/src/lib.rs:304        sha256:3ed75ace2f5db9ea  49.6s
+  ok     java/visibility-args-swapped           src/twitterport/store/Store.java:149 sha256:4f33299df13d6a7c  1.5s
+  ok     kotlin/visibility-args-swapped         src/twitterport/store/Store.kt:150 sha256:a79fea23336eef5f  12.5s
+  ok     go/visibility-negation-dropped         internal/store/memstore.go:608     sha256:52a77143c8cf39b3  0.9s
+  ok     rust/visibility-negation-dropped       crates/store/src/lib.rs:304        sha256:521b2aaab22e5031  47.5s
+  ok     java/visibility-negation-dropped       src/twitterport/store/Store.java:149 sha256:6b288dfcba0f2801  1.4s
+  ok     kotlin/visibility-negation-dropped     src/twitterport/store/Store.kt:150 sha256:53e96ee8c8b302af  12.6s
+  ok     go/wrong-error-branch-cursor           internal/httpshim/shim.go:393      sha256:83c994722b1b5828  0.9s
+  ok     rust/wrong-error-branch-cursor         crates/server/src/handlers.rs:398  sha256:076c06fc55cc16a0  47.8s
+  ok     java/wrong-error-branch-cursor         src/twitterport/service/Service.java:145 sha256:cce858565cc0dcbd  1.6s
+  ok     kotlin/wrong-error-branch-cursor       src/twitterport/service/Service.kt:160 sha256:97012a801a82b887  12.3s
+  ok     go/handle-case-folded                  internal/dom/dom.go:209            sha256:f511130ef5977961  0.9s
+  ok     rust/handle-case-folded                crates/domain/src/lib.rs:98        sha256:8c4aa5918e1acefb  48.3s
+  ok     java/handle-case-folded                src/twitterport/dom/Dom.java:51    sha256:ada5d14b8e4bf48f  1.6s
+  ok     kotlin/handle-case-folded              src/twitterport/dom/Dom.kt:55      sha256:2145bdf016fd1a71  12.4s
+  ok     go/next-cursor-off-by-one              internal/httpshim/shim.go:408      sha256:2f5e4e25336ca457  0.8s
+  ok     rust/next-cursor-off-by-one            crates/server/src/handlers.rs:403  sha256:39b0f8476b49a592  48.2s
+  ok     java/next-cursor-off-by-one            src/twitterport/store/Store.java:154 sha256:a2c5781246465714  1.6s
+  ok     kotlin/next-cursor-off-by-one          src/twitterport/store/Store.kt:155 sha256:d25b729075bced42  11.5s
+  ok     go/text-length-in-code-points          internal/dom/dom.go:228            sha256:7f26697d1bbfec0b  0.8s
+  ok     rust/text-length-in-code-points        crates/domain/src/lib.rs:111       sha256:1070972c9f8398e6  33.0s
+  ok     java/text-length-in-code-points        src/twitterport/dom/Dom.java:63    sha256:db623dddd25ec5d9  1.7s
+  ok     kotlin/text-length-in-code-points      src/twitterport/dom/Dom.kt:69      sha256:33b54ba346c8ed51  14.0s
+  ok     go/go-slice-len-aliasing               internal/store/memstore.go:624     sha256:4dd34b51acb616f2  0.9s
+  ok     java/jvm-string-identity-compare       src/twitterport/store/Store.java:149 sha256:aeeb7a774627cae8  1.6s
+  ok     kotlin/jvm-string-identity-compare     src/twitterport/store/Store.kt:150 sha256:8e16a18eec60e631  13.9s
+
+========================================================================
+anchors: 43/43 match exactly one site
+compile: 43/43 build clean
+
+verify PASSED: every anchor matches one site; every mutant compiles
+(compiling proves the mutant is a legal program, NOT that it changes
+ behaviour -- run `mutate probe` for that)
