@@ -1,0 +1,151 @@
+CALIBRATION -- per-rung mutation kill table
+==============================================================================
+corners   go
+rungs     R4, R5
+R1        20 traces x 200 steps, seed 1
+R2        6 rounds x 40 setup requests, seed 1
+probe     any (4 traces x 120 steps, plus the corpus and each mutant's witness)
+window    2026-09-02T17:56:28Z .. 2026-09-02T18:48:46Z
+
+==============================================================================
+KILL TABLE
+==============================================================================
+rung             live  killed  survived  unreached  equiv   kill%   kill%     wall
+                                                            reach    live         
+R4 proof           18       9         5          4      0     64%     50%    2043s
+R5 refinement      18       9         5          4      0     64%     50%    1059s
+
+  live       mutants that change observable behaviour. Equivalent ones are excluded
+             from every denominator: no rung can kill them, so counting them would
+             understate every rung for a reason that is not about the rung.
+  survived   the rung's own inputs DO elicit the difference and it passed anyway.
+             A gap in the rung.
+  unreached  live, but nothing in this rung's input source elicits the difference.
+             A gap in the inputs. F009 is the worked example. For a proof rung the
+             input source is the contract: unreached means the verifier reads none
+             of the files the mutant edits.
+  capped     the corner has no verifier for this rung. Not a measurement; shown
+             per mutant and per corner, in no denominator.
+  kill%reach killed / (killed + survived) -- the rung's oracle.
+  kill%live  killed / every live mutant -- the rung as configured, inputs included.
+
+==============================================================================
+COST -- and which cost it is
+==============================================================================
+Every rung relaunches the implementation: R0 once for the whole corpus, R1 once
+per trace, R2 once per property-round. A launch is a warm build check plus a
+process start plus a health wait, and that price differs by language. So raw
+seconds mix what the RUNG costs with what the LANGUAGE costs. Both are below.
+
+  corner   floor/launch of which build  samples           spread
+  go             884 ms         861 ms        3      812-941 ms
+
+  corner   rung            launches wall killed  wall clean  tool clean
+  go       R4 proof               -     162.0s      65.1s          -
+  go       R5 refinement          -      53.9s      63.8s          -
+
+  wall killed  mean wall for a mutant this rung caught. NOT comparable with the
+               clean column, and not reliably smaller either. R1 stops at its
+               first mismatch -- then shrinks, and every shrink attempt is
+               another server launch, so at low trace counts a kill can cost
+               several times a clean pass. The launch count of a kill depends
+               on the defect, so it is not corrected and no tool figure is
+               derived from it.
+  wall clean   mean wall for a full pass -- the worst case, and what a sweep of
+               a correct implementation actually costs.
+  tool clean   wall clean minus launches x measured floor. The rung's own cost
+               with process startup removed. Reported only where the launch
+               count is known from the configuration -- never inferred.
+  *            the correction came out at or below zero. Not an error and not
+               hidden: it means this rung's own work costs no more than the
+               servers it launches, so at this configuration the rung IS process
+               startup. Compare rungs by their launch counts, not their seconds.
+  Mutant setup (materialise + warm the build cache) is charged to no rung; see
+  the setups block in results.json.
+
+==============================================================================
+PER MUTANT
+==============================================================================
+mutant                             R4          R5         
+go/id-first-is-two                 SURVIVED    SURVIVED   
+go/id-burned-on-reject             SURVIVED    SURVIVED   
+go/self-follow-guard-dropped       kill        kill       
+go/follow-precedence-flipped       SURVIVED    SURVIVED   
+go/timeline-scan-reversed          kill        kill       
+go/timeline-tiebreak-by-id-asc     kill        kill       
+go/follow-toggles                  kill        kill       
+go/unfollow-rejects-missing-edge   SURVIVED    SURVIVED   
+go/orphan-author-accepted          kill        kill       
+go/created-at-frozen               SURVIVED    SURVIVED   
+go/tick-advances-by-two            kill        kill       
+go/tick-goes-backwards             kill        kill       
+go/next-cursor-always-emitted      unreached   unreached  
+go/next-cursor-is-first-id         unreached   unreached  
+go/cursor-inclusive                kill        kill       
+go/limit-off-by-one                kill        kill       
+go/unknown-json-fields-accepted    unreached   unreached  
+go/repeated-query-param-accepted   unreached   unreached  
+
+==============================================================================
+REACHABILITY -- why each survivor survived
+==============================================================================
+  go/id-first-is-two             live
+      corpus     differs at request 0
+      seed=1     differs at request 0
+      seed=2     differs at request 0
+      seed=3     differs at request 0
+      seed=4     differs at request 0
+  go/id-burned-on-reject         live
+      witness    differs at request 2
+      corpus     differs at request 10
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 78
+      seed=3     differs at request 48
+      seed=4     differs at request 31
+  go/follow-precedence-flipped   live
+      corpus     differs at request 12
+      seed=1     no difference in 120 requests
+      seed=2     no difference in 120 requests
+      seed=3     no difference in 120 requests
+      seed=4     no difference in 120 requests
+  go/unfollow-rejects-missing-edge live
+      corpus     differs at request 34
+      seed=1     differs at request 6
+      seed=2     differs at request 30
+      seed=3     differs at request 4
+      seed=4     differs at request 16
+  go/created-at-frozen           live
+      corpus     differs at request 19
+      seed=1     differs at request 20
+      seed=2     differs at request 16
+      seed=3     differs at request 26
+      seed=4     differs at request 8
+  go/next-cursor-always-emitted  live
+      corpus     differs at request 20
+      seed=1     differs at request 11
+      seed=2     differs at request 14
+      seed=3     differs at request 5
+      seed=4     differs at request 38
+  go/next-cursor-is-first-id     live
+      corpus     differs at request 42
+      seed=1     no difference in 120 requests
+      seed=2     differs at request 51
+      seed=3     differs at request 11
+      seed=4     differs at request 66
+  go/unknown-json-fields-accepted live
+      corpus     differs at request 7
+      seed=1     differs at request 9
+      seed=2     differs at request 86
+      seed=3     differs at request 15
+      seed=4     differs at request 15
+  go/repeated-query-param-accepted live
+      corpus     differs at request 51
+      seed=1     differs at request 66
+      seed=2     no difference in 120 requests
+      seed=3     differs at request 10
+      seed=4     no difference in 120 requests
+
+==============================================================================
+READ WITH CARE
+==============================================================================
+  nothing flagged.

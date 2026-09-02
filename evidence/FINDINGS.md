@@ -1,4 +1,4 @@
-# What twenty-three findings have in common
+# What twenty-four findings have in common
 
 An index, and an argument. The findings are in `evidence/findings/`; this file
 is for the patterns that only appear when you read them together — which is
@@ -33,6 +33,7 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F021 | the audit fails where the obligations are strongest | vacuity-checking cost rises with clause strength, so the five clauses most worth auditing are the five the auditor cannot decide |
 | F022 | the proof rung's denominator is set by the trusted shim | 4 of 18 Go mutants edit code no obligation covers, so R4's ceiling is 78% before a clause is written |
 | F023 | the strongest rungs cannot see a constant | an id origin shifted by one is killed by R0 and R1, and survives R2, R4 and R5 |
+| F024 | the refinement row is a copy of the proof row | R4 and R5 disagree on 0 of 18 mutants; the canary separates them, the catalogue never does |
 
 ---
 
@@ -143,6 +144,14 @@ one member, and it carries the store's strongest clauses (F021). So a third stat
 the obligation being empty. Folding that into either neighbour is how a
 verified count goes wrong — in the F016 direction if you round it up, and in
 the opposite direction if you round it down.
+
+**And a third form, from F024: a canary is about one rung, not about a row.**
+Injection and negation both ask whether *this* check can fail. Neither asks
+whether it fails on anything the cheaper check above it missed. R4 and R5 on
+the Go corner each pass their canaries in both directions and are each
+non-vacuous — and then agree on all 18 mutants, because the one file that
+separates their perimeters is the one file no mutant touches. A gate answers
+"can this fail"; only a rate answers "does this ever differ".
 
 ---
 
