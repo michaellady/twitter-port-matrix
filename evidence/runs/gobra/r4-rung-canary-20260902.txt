@@ -1,0 +1,32 @@
+Wed Sep  2 14:24:51 UTC 2026
+### materialise the mutant R4 PASSED on
+mutate apply: go/next-cursor-is-first-id
+  family      pagination
+  what        next_cursor is the NEWEST id on the page rather than the oldest, so the following page re-serves the whole page -- pagination fabricates duplicates instead of partitioning
+  source      /home/user/twitter-port-matrix/impls/go
+              base sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae
+  mutant tree <scratch>/canary-tree/tree  (copy mode: walk)
+              tree sha256:6a66a65235e58787a557aa2cfc13810bef52acfb967405dc1900145c27203025
+  edits       1
+                internal/httpshim/shim.go:408  26 bytes -> 18 bytes
+  registry    <scratch>/canary-tree/registry.json
+
+  the rungs can be pointed at it directly:
+
+### 1. the mutant tree, untouched -- R4 must PASS (it is a shim mutant; no obligation covers it)
+    sync         6 total    0 verified
+
+R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [1m28.4s]
+exit=0
+
+### 2. the SAME tree with one injected `// @ ensures false` on (*Logical).Tick -- R4 must FAIL
+69:func (l *Logical) Tick() {
+injected `// @ ensures false` into <scratch>/canary-tree/tree/internal/clock/clock.go
+    sort         1 total    0 verified
+    store       81 total   42 verified
+    sync         6 total    0 verified
+
+R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [1m24.7s]
+exit status 1
+exit=0
+Wed Sep  2 14:27:46 UTC 2026

@@ -10,7 +10,8 @@
 // Subcommands:
 //
 //	verify   run Gobra over the five verified packages, print its verdict
-//	         lines verbatim, and report the Viper member counts
+//	         lines verbatim, report the Viper member counts, and end with
+//	         the R4 PASSED / R4 FAILED line calibrate reads
 //	clauses  list the specification clauses the canary sweep will target
 //	canary   negate each clause in turn and report refutable / VACUOUS
 //	r5       per-clause status for the R5 refinement obligation
@@ -19,6 +20,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 )
@@ -46,6 +48,11 @@ func main() {
 		usage()
 		os.Exit(2)
 	}
+	if errors.Is(err, errR4Failed) {
+		// The verdict line is already on stdout; the exit code is its
+		// required counterpart, and nothing else needs saying.
+		os.Exit(1)
+	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "gobra: "+err.Error())
 		os.Exit(1)
@@ -56,7 +63,10 @@ func usage() {
 	fmt.Fprint(os.Stderr, `usage: gobra <command> [flags]
 
   verify    run Gobra over internal/{clock,ids,dom,store,service} and report
-            its own verdict lines plus the Viper member counts
+            its own verdict lines plus the Viper member counts. The last line
+            is "R4 PASSED" or "R4 FAILED" (exit 1), or "R4 UNDECIDED" when the
+            -budget ran out. With -registry, -impl is an entry name such as
+            go@<mutant-id>, which is how calibrate points it at a mutant tree
   clauses   list the ensures clauses, classified (functional / framing /
             assumed-because-trusted)
   canary    negation-canary sweep: negate each functional clause in turn and

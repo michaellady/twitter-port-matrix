@@ -1,0 +1,229 @@
+{
+  "tool": "calibrate",
+  "started_at": "2026-09-02T14:19:54Z",
+  "finished_at": "2026-09-02T14:23:06Z",
+  "config": {
+    "root": "/home/user/twitter-port-matrix",
+    "manifest": "tools/cmd/mutate/mutants.json",
+    "registry": "impls/registry.json",
+    "corpus": "generated/conformance.jsonl",
+    "impls": [
+      "go",
+      "rust"
+    ],
+    "ids": [
+      "limit-off-by-one",
+      "next-cursor-is-first-id"
+    ],
+    "rungs": [
+      "R4"
+    ],
+    "r1_traces": 20,
+    "r1_steps": 200,
+    "r1_seed": 1,
+    "r2_rounds": 6,
+    "r2_setup": 40,
+    "r2_seed": 1,
+    "probe_mode": "any",
+    "probe_traces": 4,
+    "probe_steps": 120,
+    "floor_samples": 0,
+    "rung_timeout": "20m0s"
+  },
+  "launch_floors": {},
+  "setups": [
+    {
+      "mutant": "go/next-cursor-is-first-id",
+      "tree_hash": "sha256:6a66a65235e58787a557aa2cfc13810bef52acfb967405dc1900145c27203025",
+      "apply_ms": 22.488,
+      "warm_build_ms": 2770.375,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "go/limit-off-by-one",
+      "tree_hash": "sha256:b2d0b61f969e77e9ddb521fa95af3b1bde8a6c0dc09ec5fd8d60e49664ac6653",
+      "apply_ms": 27.826,
+      "warm_build_ms": 1167.309,
+      "copy_mode": "walk"
+    }
+  ],
+  "cells": [
+    {
+      "mutant": "go/next-cursor-is-first-id",
+      "impl": "go",
+      "id": "next-cursor-is-first-id",
+      "family": "pagination",
+      "tree_hash": "sha256:6a66a65235e58787a557aa2cfc13810bef52acfb967405dc1900145c27203025",
+      "rung": "R4",
+      "outcome": "unreached",
+      "wall_ms": 113756.97,
+      "verdict_line": "R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [1m53.7s]",
+      "guard": {
+        "impl_name": "go@next-cursor-is-first-id",
+        "dir": "/tmp/calibrate-mutant-1326128556/tree",
+        "tree_hash": "sha256:6a66a65235e58787a557aa2cfc13810bef52acfb967405dc1900145c27203025",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live (reached by corpus, seed=2, seed=3, seed=4), but the verifier reads none of the files this mutant edits (internal/httpshim/shim.go); no obligation covers it"
+    },
+    {
+      "mutant": "go/limit-off-by-one",
+      "impl": "go",
+      "id": "limit-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:b2d0b61f969e77e9ddb521fa95af3b1bde8a6c0dc09ec5fd8d60e49664ac6653",
+      "rung": "R4",
+      "outcome": "killed",
+      "wall_ms": 69854.292,
+      "verdict_line": "R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [1m9.8s]",
+      "guard": {
+        "impl_name": "go@limit-off-by-one",
+        "dir": "/tmp/calibrate-mutant-3040926907/tree",
+        "tree_hash": "sha256:b2d0b61f969e77e9ddb521fa95af3b1bde8a6c0dc09ec5fd8d60e49664ac6653",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/next-cursor-is-first-id",
+      "impl": "rust",
+      "id": "next-cursor-is-first-id",
+      "family": "pagination",
+      "tree_hash": "",
+      "rung": "R4",
+      "outcome": "capped",
+      "wall_ms": 0,
+      "detail": "corner rust has no R4 rung (proof exists for go); not a measurement and in no denominator"
+    },
+    {
+      "mutant": "rust/limit-off-by-one",
+      "impl": "rust",
+      "id": "limit-off-by-one",
+      "family": "pagination",
+      "tree_hash": "",
+      "rung": "R4",
+      "outcome": "capped",
+      "wall_ms": 0,
+      "detail": "corner rust has no R4 rung (proof exists for go); not a measurement and in no denominator"
+    }
+  ],
+  "probes": [
+    {
+      "mutant": "go/next-cursor-is-first-id",
+      "tree_hash": "sha256:6a66a65235e58787a557aa2cfc13810bef52acfb967405dc1900145c27203025",
+      "live": true,
+      "reached_by": [
+        "corpus",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 42,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 51,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 66,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 3629.331
+    }
+  ],
+  "summary": [
+    {
+      "rung": "R4",
+      "label": "proof",
+      "inputs": "contract",
+      "live": 2,
+      "killed": 1,
+      "survived": 0,
+      "unreached": 1,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "capped": 2,
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.5,
+      "wall_ms_total": 183611.262,
+      "wall_ms_mean_killed": 69854.292,
+      "wall_ms_mean_clean": 113756.97,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    },
+    {
+      "rung": "R4",
+      "label": "proof",
+      "inputs": "contract",
+      "impl": "go",
+      "live": 2,
+      "killed": 1,
+      "survived": 0,
+      "unreached": 1,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.5,
+      "wall_ms_total": 183611.262,
+      "wall_ms_mean_killed": 69854.292,
+      "wall_ms_mean_clean": 113756.97,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    },
+    {
+      "rung": "R4",
+      "label": "proof",
+      "inputs": "contract",
+      "impl": "rust",
+      "live": 0,
+      "killed": 0,
+      "survived": 0,
+      "unreached": 0,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "capped": 2,
+      "kill_rate_reachable": 0,
+      "kill_rate_live": 0,
+      "wall_ms_total": 0,
+      "wall_ms_mean_killed": 0,
+      "wall_ms_mean_clean": 0,
+      "tool_ms_mean_clean": 0,
+      "tool_samples": 0,
+      "launches_per_clean_run": 0
+    }
+  ],
+  "warnings": [
+    "R4: 2 cell(s) are capped -- the corner has no verifier this rung drives. They are in no denominator; the row measures only the corners that reach the rung.",
+    "no launch floor was measured, so the wall column mixes rung cost with process-startup cost and the corners are not comparable."
+  ]
+}

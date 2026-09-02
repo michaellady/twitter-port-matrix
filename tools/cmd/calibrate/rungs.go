@@ -10,14 +10,17 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/michaellady/twitter-port-matrix/tools/internal/mutants"
 )
 
 // A rung is one verification layer, described as data rather than as a branch.
 //
-// Adding R4 (deductive proof) and R5 (refinement) has to be an entry here, not
-// a new code path through the sweep, or the two rungs the repository exists to
-// reach would arrive with their own bespoke accounting and stop being
-// comparable with the three that already work.
+// R4 (deductive proof) is an entry here, not a new code path through the
+// sweep, so it arrives with the same accounting as the three empirical rungs
+// and stays comparable with them. R5 (refinement) will be another entry. Both
+// are per corner: a rung names the corners whose verifier it drives, and the
+// other corners get a "capped" cell rather than an error or a blank.
 type rung struct {
 	ID    string // "R0"
 	Label string // "corpus" -- the column heading
@@ -28,7 +31,21 @@ type rung struct {
 	// the rung. R0 replays a fixed corpus; R1 and R2 draw from tracegen. A
 	// mutant no corpus step distinguishes cannot be killed by R0 however good
 	// R0's oracle is.
-	Inputs string // "corpus" | "tracegen"
+	Inputs string // "corpus" | "tracegen" | "contract"
+
+	// Impls names the corners this rung exists for; nil means every corner.
+	// A deductive rung is per verifier, and a corner without one gets a
+	// "capped" cell rather than an error or a blank -- the cap is a result.
+	Impls []string
+
+	// Covers, when set, says whether the verifier READS any file the mutant
+	// edits. It is the proof rung's reachability: a proof has no input
+	// distribution to sample, so the analogue of "the corpus never elicits
+	// it" is "the verifier never sees it" -- internal/httpshim is trusted
+	// transport and no obligation is discharged over it. Without this a
+	// survivor in the shim would be scored against the contract, which never
+	// had a chance at it (F008's coverage denominator).
+	Covers func(m mutants.Mutant) bool
 
 	Args func(cfg Config, implName, regPath string) []string
 
@@ -100,6 +117,88 @@ var allRungs = []rung{
 			return n * cfg.R2Rounds, true
 		},
 	},
+	{
+		// R4 on the Go corner is Gobra over the verified core. The rung tool
+		// is `gobra verify`: it lays the mutant tree out GOPATH-style, runs
+		// the jar with a --packageTimeout, reads Gobra's own
+		// "Gobra has found N error(s)" line, and ends with one R4 verdict
+		// sentence. A run that exhausts its budget prints "R4 UNDECIDED"
+		// and no verdict, which this tool records as an error cell -- a
+		// proof the solver did not finish is a missing measurement, never
+		// a survival (see gobraTimedOut in tools/cmd/gobra/run.go).
+		//
+		// This rung's verdict on a mutant is only as good as the contract
+		// it discharges. Whether the clauses are refutable at all is the
+		// `gobra canary` / `gobra reach` audit (F013, F021), which is
+		// prior to this table, not part of it.
+		ID: "R4", Label: "proof", Tool: "gobra", Inputs: "contract",
+		Impls:  []string{"go"},
+		Covers: gobraReads,
+		Args: func(cfg Config, implName, regPath string) []string {
+			// Gobra's own timeout lands a minute before calibrate's, so an
+			// undecidable tree is reported in Gobra's words (UNDECIDED)
+			// rather than as a killed subprocess.
+			b := cfg.rungTimeout() - time.Minute
+			if b < time.Minute {
+				b = time.Minute
+			}
+			return []string{"verify", "-impl=" + implName, "-registry=" + regPath, "-budget=" + b.String()}
+		},
+		Pass: "R4 PASSED", Fail: "R4 FAILED",
+		// No server is launched: the tree is verified, not run. Zero is a
+		// known count, so the wall column is the rung's whole cost.
+		Launches: func(Config, string) (int, bool) { return 0, true },
+	},
+}
+
+// gobraVerified is Gobra's verification matrix, exactly as TCB.md records it
+// and as verifiedPackages in tools/cmd/gobra/run.go drives it. internal/httpshim
+// is deliberately absent: it is trusted transport.
+var gobraVerified = []string{
+	"internal/clock/",
+	"internal/ids/",
+	"internal/dom/",
+	"internal/store/",
+	"internal/service/",
+}
+
+// gobraReads reports whether any edit of the mutant lands in a package Gobra
+// verifies. One covered edit is enough: the proof can notice that one.
+func gobraReads(m mutants.Mutant) bool {
+	for _, e := range m.Edits {
+		for _, p := range gobraVerified {
+			if strings.HasPrefix(e.File, p) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// applies reports whether this rung exists for the corner at all.
+func (r rung) applies(impl string) bool {
+	if len(r.Impls) == 0 {
+		return true
+	}
+	for _, i := range r.Impls {
+		if i == impl {
+			return true
+		}
+	}
+	return false
+}
+
+// splitRungs partitions the selected rungs into those that can run on the
+// corner and those the corner caps.
+func splitRungs(impl string, rungs []rung) (runnable, capped []rung) {
+	for _, r := range rungs {
+		if r.applies(impl) {
+			runnable = append(runnable, r)
+		} else {
+			capped = append(capped, r)
+		}
+	}
+	return runnable, capped
 }
 
 var reProperties = regexp.MustCompile(`properties=(\d+)`)
@@ -141,7 +240,7 @@ type toolset struct {
 	own  bool
 }
 
-var neededTools = []string{"replay", "diffrun", "proptest", "mutate"}
+var neededTools = []string{"replay", "diffrun", "proptest", "mutate", "gobra"}
 
 func buildTools(root, binDir string) (*toolset, error) {
 	ts := &toolset{bins: map[string]string{}}

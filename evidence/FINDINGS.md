@@ -1,4 +1,4 @@
-# What twenty-one findings have in common
+# What twenty-two findings have in common
 
 An index, and an argument. The findings are in `evidence/findings/`; this file
 is for the patterns that only appear when you read them together — which is
@@ -31,6 +31,7 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F019 | the obligation count is not reproducible | 283 recorded, 236-238 measured across eight runs, and 61% of what it counts is compiler-generated scaffolding |
 | F020 | the prose contradicted its own commit | one commit discharged F8 in Go, recorded it as discharged, and said in the file beside it that F8 was unproved |
 | F021 | the audit fails where the obligations are strongest | vacuity-checking cost rises with clause strength, so the five clauses most worth auditing are the five the auditor cannot decide |
+| F022 | the proof rung's denominator is set by the trusted shim | 4 of 18 Go mutants edit code no obligation covers, so R4's ceiling is 78% before a clause is written |
 
 ---
 
@@ -100,6 +101,21 @@ defects and observing which rungs sleep through them, which is the argument
 for the calibration table being the deliverable rather than a by-product.
 
 ---
+
+### F022 extends this to the proof rung
+
+F008 and F009 are about inputs a rung's *corpus* never emits. A proof has no
+corpus, so the same question becomes: what does the verifier *read*? On the Go
+corner the answer is five of six packages — the trusted shim is excluded by
+design (F004), and 4 of 18 mutants live entirely inside it. Scored without
+that distinction, R4 reads as passing live defects; scored with it, those four
+are unreached and R4's oracle is undiminished. Both readings are in the table,
+and the ceiling — 14 of 18, 78% — is a property of where the perimeter was
+drawn, not of how good the obligations are.
+
+The transferable form: **every rung has a reach, and for a deductive rung the
+reach is the verification matrix.** A kill rate quoted without it is quoted
+over a denominator nobody chose deliberately.
 
 ## Pattern 3 — falsifiability has two forms and they are not interchangeable
 

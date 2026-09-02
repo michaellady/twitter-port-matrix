@@ -43,6 +43,7 @@ type RungSummary struct {
 	Equivalent   int     `json:"equivalent"`
 	Unclassified int     `json:"unclassified"`
 	Errors       int     `json:"errors"`
+	Capped       int     `json:"capped,omitempty"` // cells the corner has no verifier for; in no denominator
 	KillReach    float64 `json:"kill_rate_reachable"`
 	KillLive     float64 `json:"kill_rate_live"`
 	WallMS       float64 `json:"wall_ms_total"`
@@ -83,7 +84,7 @@ func summarize(run *Run, rungs []rung) []RungSummary {
 	for _, impl := range run.Config.Impls {
 		for _, r := range rungs {
 			s := aggregate(run, r, impl)
-			if s.Live+s.Equivalent+s.Errors+s.Unclassified > 0 {
+			if s.Live+s.Equivalent+s.Errors+s.Unclassified+s.Capped > 0 {
 				out = append(out, s)
 			}
 		}
@@ -122,6 +123,10 @@ func aggregate(run *Run, r rung, impl string) RungSummary {
 			s.Unclassified++
 		case outcomeError:
 			s.Errors++
+		case outcomeCapped:
+			// Not run, not timed, not in any denominator.
+			s.Capped++
+			continue
 		}
 		if c.Outcome != outcomeKilled && c.Outcome != outcomeError {
 			cleanWall += c.WallMS
@@ -189,6 +194,11 @@ func warnings(run *Run, rungs []rung) []string {
 		if s.Errors > 0 {
 			w = append(w, fmt.Sprintf("%s: %d cell(s) errored. Those are missing measurements, not passes.", s.Rung, s.Errors))
 		}
+		if s.Capped > 0 {
+			w = append(w, fmt.Sprintf(
+				"%s: %d cell(s) are capped -- the corner has no verifier this rung drives. They are in no denominator; "+
+					"the row measures only the corners that reach the rung.", s.Rung, s.Capped))
+		}
 		if s.Unreached > 0 && s.Inputs == "tracegen" {
 			w = append(w, fmt.Sprintf(
 				"%s: %d mutant(s) recorded as unreached on SAMPLED evidence. probe ran %d trace(s) where this rung ran %d; "+
@@ -245,7 +255,11 @@ func renderReport(run *Run, rungs []rung) string {
 	fmt.Fprint(&b, "  survived   the rung's own inputs DO elicit the difference and it passed anyway.\n")
 	fmt.Fprint(&b, "             A gap in the rung.\n")
 	fmt.Fprint(&b, "  unreached  live, but nothing in this rung's input source elicits the difference.\n")
-	fmt.Fprint(&b, "             A gap in the inputs. F009 is the worked example.\n")
+	fmt.Fprint(&b, "             A gap in the inputs. F009 is the worked example. For a proof rung the\n")
+	fmt.Fprint(&b, "             input source is the contract: unreached means the verifier reads none\n")
+	fmt.Fprint(&b, "             of the files the mutant edits.\n")
+	fmt.Fprint(&b, "  capped     the corner has no verifier for this rung. Not a measurement; shown\n")
+	fmt.Fprint(&b, "             per mutant and per corner, in no denominator.\n")
 	fmt.Fprint(&b, "  kill%reach killed / (killed + survived) -- the rung's oracle.\n")
 	fmt.Fprint(&b, "  kill%live  killed / every live mutant -- the rung as configured, inputs included.\n")
 
@@ -401,6 +415,8 @@ func mark(outcome string) string {
 		return "equivalent"
 	case outcomeUnclassified:
 		return "survived?"
+	case outcomeCapped:
+		return "capped"
 	default:
 		return "ERROR"
 	}

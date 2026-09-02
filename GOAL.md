@@ -169,6 +169,22 @@ whole contract.
    because the tooling exists; then Rust/Verus; then Kotlin/JBMC. A rung entry
    is done when `calibrate -rungs R4` produces a kill row for one corner and
    `mutate verify` still passes.
+   - [x] **R4, Go/Gobra.** `calibrate -rungs R4` runs `gobra verify` over the
+         mutant tree, reads its `R4 PASSED` / `R4 FAILED` line, and requires
+         the exit code to agree. ~90 s per mutant, no server launched. A
+         corner with no verifier for a rung gets a **capped** cell, which is
+         in no denominator. Coverage is scored per mutant against the
+         verification matrix (F022): a mutant confined to the trusted shim is
+         *unreached*, not *survived*.
+   - [ ] **R5, Go/Gobra.** Same shape, but the kill has to be attributed to a
+         *refinement* clause rather than to any failing obligation: join
+         Gobra's `file:line` error sites against
+         `spec/refinement/clause-sites.json`, the way `gobra r5` already does
+         for the audit. A mutant both rungs notice is credited to both, which
+         is the per-judge attribution queue item 2 needs.
+   - [ ] R4, Rust/Verus — needs the `cargo-verus` equivalent of
+         `gobra verify`'s verdict line and budget first.
+   - [ ] R4, Kotlin+Java/JBMC.
 2. **Re-run the four-corner sweep** on the 72-mutant catalogue, all rungs
    that exist, attributing each kill to **every** rung that kills it rather
    than the first to run. `evidence/CALIBRATION-four-corner.md` is the R0-R2
@@ -248,7 +264,7 @@ measure that alignment.
 
 | corner | R0 | R1 | R2 | R4 | limited by |
 |---|---|---|---|---|---|
-| Go | 56/56 | clean | pass | Gobra green; 91 functional clauses, reachability audit clean (0 of 33 unreachable), negation sweep in PR #3 | Gobra ghost-language limits; 5 HomeTimeline clauses undecidable within budget |
+| Go | 56/56 | clean | pass | Gobra green; 91 functional clauses, reachability audit clean (0 of 33 unreachable), negation sweep in PR #3. **A `calibrate` rung since 2026-09-02**, ceiling 14 of 18 mutants (F022) | Gobra ghost-language limits; 5 HomeTimeline clauses undecidable within budget; the trusted shim is 4 of 18 mutants |
 | Rust | 56/56 | clean | pass | Verus, **1 property** (F016) | `RwLock` has no vstd model |
 | Java | 56/56 | clean | pass | not attempted | JBMC string equality (F014) |
 | Kotlin | 56/56 | clean | pass | JBMC, 7 of 15 | same JBMC defect |
@@ -258,6 +274,46 @@ measure that alignment.
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 14:30 (worker session `session_01Mdy8cUZTbcq2fXuZ1BRi4X`, fires
+  12:27 and 14:18)** — **Queue item 1, first sub-step: DONE. R4 is a
+  `calibrate` rung on the Go corner.** `gobra verify` gained a verdict
+  sentence, a `-registry` so it resolves the same mutant tree the guard
+  hashed, and a `-budget` (a run that exhausts it prints `R4 UNDECIDED` and no
+  verdict, which `calibrate` records as an error cell, never a survival).
+  `rungs.go` gained the R4 entry, a per-corner `Impls` field, and a `Covers`
+  predicate. Gate, `-impls go,rust -rungs R4 -ids limit-off-by-one,next-cursor-is-first-id`:
+  ```
+  go/limit-off-by-one          R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [1m9.8s]   killed
+  go/next-cursor-is-first-id   R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [1m53.7s]  unreached
+  rust/next-cursor-is-first-id capped: no selected rung exists for corner rust
+  R4 proof   live 2  killed 1  survived 0  unreached 1  equiv 0   kill%reach 100%  kill%live 50%
+  ```
+  Canary (standing rule 2), the same materialised tree twice, one injected
+  line apart:
+  ```
+  1. untouched                        R4 PASSED: Gobra has found 0 error(s) over 5 package(s)   [1m28.4s]
+  2. + `// @ ensures false` on Tick    R4 FAILED: Gobra has found 1 error(s) over 5 package(s)   [1m24.7s]  exit status 1
+  ```
+  Clean-tree baseline for comparison: `Gobra has found 0 error(s)  [59s]`,
+  237 distinct Viper members. Catalogue unchanged and undrifted:
+  `verify PASSED: every anchor matches one site; every mutant compiles`
+  (72/72 anchors, 72/72 build clean). **F022 written:** 4 of 18 Go mutants edit only
+  `internal/httpshim`, which no obligation covers, so R4's ceiling on this
+  corner is 14 of 18 before any obligation is written — and scoring those four
+  as survivors rather than unreached would have read 50% where the oracle is
+  100%. `go build`, `go vet`, `go test ./tools/...` all pass; 6 new tests
+  cover the verdict/exit-code disagreements, the corner split and the
+  coverage predicate.
+  **Next fire: queue item 1, second sub-step — the R5 entry for the Go
+  corner.** Same shape as R4, but a kill counts for R5 only when a failing
+  obligation's `file:line` is one of the sites
+  `spec/refinement/clause-sites.json` records for an R5 clause; `gobra r5`
+  already joins those three files and is the code to reuse. Gate:
+  `calibrate -impls go -rungs R4,R5 -ids limit-off-by-one` shows the mutant
+  killed at both rungs *if and only if* its failing site is an R5 site, and a
+  mutant whose failing site is not an R5 site is killed at R4 only. Do not
+  start the four-corner re-run (queue item 2) until R5 exists — it would have
+  to be redone.
 - **2026-09-02 11:01 (interactive session)** — Fire 3 (10:12, Fable, clone-first
   prompt, session `cse_01BjLpDECEYMroHsHGBgdfkx`) also pushed nothing: 17
   minutes, no loop-log line. Its session record shows no repository source
