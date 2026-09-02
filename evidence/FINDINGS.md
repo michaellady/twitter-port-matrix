@@ -33,6 +33,7 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F021 | the audit fails where the obligations are strongest | vacuity-checking cost rises with clause strength, so the five clauses most worth auditing are the five the auditor cannot decide |
 | F022 | the proof rung's denominator is set by the trusted shim | 4 of 18 Go mutants edit code no obligation covers, so R4's ceiling is 78% before a clause is written |
 | F023 | the strongest rungs cannot see a constant | an id origin shifted by one is killed by R0 and R1, and survives R2, R4 and R5 |
+| F024 | the proof half of the matrix has no cell | one corner has a proof rung and no ordered pair has that corner at both ends, so all 24 R4/R5 cells are capped and the Go sweep fills none of them |
 
 ---
 

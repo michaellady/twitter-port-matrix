@@ -117,21 +117,42 @@ func calibrateRunnable(cfg Config, tools *toolset, m mutants.Mutant, rungs []run
 	fmt.Printf("  setup    apply %.1fs (%s copy) + warm build %.1fs -- charged to no rung\n",
 		setup.ApplyMS/1000, res.CopyMode, warm/1000)
 
-	var cells []Cell
-	for _, r := range rungs {
-		if c, ok := jr.cell(key, res.TreeHash, r.ID); ok {
-			fmt.Printf("  %-3s      %-10s %6.1fs  (resumed)\n", r.ID, c.Outcome, c.WallMS/1000)
-			cells = append(cells, c)
-			continue
-		}
-		c := runRung(cfg, tools, m, r, implName, regPath, res.TreeHash, guard)
-		jr.appendCell(c)
-		cells = append(cells, c)
-	}
+	cells := runRungs(rungs, key, res.TreeHash, jr, func(r rung) Cell {
+		return runRung(cfg, tools, m, r, implName, regPath, res.TreeHash, guard)
+	})
 
 	probe := maybeProbe(cfg, tools, m, res.TreeHash, cells, jr)
 	classify(m, cells, probe, rungs)
 	return cells, probe, &setup
+}
+
+// runRungs measures EVERY selected rung against one materialised mutant.
+//
+// PER-JUDGE ATTRIBUTION, and that is why this loop has no early exit. A mutant
+// R0 kills is still handed to R1, R2, R4 and R5, and every rung that would
+// have killed it records its own kill in its own cell. Stopping at the first
+// killing rung -- first-judge attribution -- would be cheaper and would
+// produce a table that understates every rung after the first by an amount
+// determined by nothing but the order the rungs happen to run in. The later
+// rows would read "adds nothing over the cheaper rung", which would be a
+// statement about this loop, not about those rungs.
+//
+// The invocation is injected so the loop's shape is testable without
+// materialising a tree or launching a verifier: TestEveryRungRunsAfterAKill
+// fails the moment a `break` or a kill short circuit appears here.
+func runRungs(rungs []rung, key, treeHash string, jr *journal, run func(rung) Cell) []Cell {
+	var cells []Cell
+	for _, r := range rungs {
+		if c, ok := jr.cell(key, treeHash, r.ID); ok {
+			fmt.Printf("  %-3s      %-10s %6.1fs  (resumed)\n", r.ID, c.Outcome, c.WallMS/1000)
+			cells = append(cells, c)
+			continue
+		}
+		c := run(r)
+		jr.appendCell(c)
+		cells = append(cells, c)
+	}
+	return cells
 }
 
 // runRung invokes one rung and reads its answer. The outcome recorded here is
