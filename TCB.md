@@ -12,7 +12,9 @@ this list.
 | Verus | 0.2026.04.24.f8e1704 | Deductive verifier for the Rust corner |
 | Go toolchain | 1.25.5 | Compiles `S_obs` and the whole rig |
 | JDK | 17.0.19 | Runs TLC |
-| Gobra, OpenJML, JBMC | pending | Land in Phases 1-3 |
+| Gobra | ETH Zurich build, digest-pinned | Deductive verifier for the Go corner; R4 and R5 both read its verdict |
+| JBMC | 6.11.0 (cbmc-6.11.0) | Bounded model checker for the Kotlin corner's R4. **Trusted only where it is sound**: `String.equals` and `String.getBytes(Charset)` are known-wrong on this build (F014), so the 8 obligations that depend on them are excluded from the rung's denominator rather than believed. The version is pinned because the exclusion list is a property of this build |
+| OpenJML | not attempted | The Java corner has no deductive rung |
 
 Plus, for every corner, the usual floor: compiler, runtime, OS, CPU.
 

@@ -184,7 +184,19 @@ whole contract.
          canary in both directions, so the two rows are not aliases.
    - [ ] R4, Rust/Verus — needs the `cargo-verus` equivalent of
          `gobra verify`'s verdict line and budget first.
-   - [ ] R4, Kotlin+Java/JBMC.
+   - [x] **R4, Kotlin/JBMC.** `calibrate -impls kotlin -rungs R4` runs
+         `tools/cmd/jbmc verify` over the mutant tree's compiled bytecode and
+         reads JBMC's own goal lines. Three outcomes per obligation, not two:
+         an obligation JBMC cannot decide (F014) or cannot reach (F013) is in
+         **neither** the numerator nor the denominator, the way F022 treats a
+         shim-only mutant as unreached. Denominator 7 of 15; the other 8 are
+         blocked by a recorded tool defect and counted separately in the
+         verdict sentence. The F013 vacuity audit runs on **every tree
+         judged**, which the Go corner cannot afford (F025).
+         **Java is not done and is not blocked on JBMC**: `impls/java` has no
+         obligation set at all, so there is nothing for the rung to run. A row
+         over an empty denominator is worse than the capped cell a corner with
+         no rung already gets, so no Java entry was registered.
 2. **Re-run the four-corner sweep** on the 72-mutant catalogue, all rungs
    that exist, attributing each kill to **every** rung that kills it rather
    than the first to run. `evidence/CALIBRATION-four-corner.md` is the R0-R2
@@ -250,7 +262,7 @@ report it finished.
 ## STATE — session ended here
 
 **Published:** https://github.com/michaellady/twitter-port-matrix (public)
-**Stories:** 20 of 24 done · **Findings:** 21 · **Corners:** 4, all R0 56/56
+**Stories:** 20 of 24 done · **Findings:** 24 · **Corners:** 4, all R0 56/56
 
 ### The deliverable exists
 
@@ -259,7 +271,7 @@ R0 100% @ 57s · R1 100% @ 1465s · R2 42% @ 2495s. Caveat leads the document:
 the catalogue and the corpus both derive from `S_obs`, so the 100%s partly
 measure that alignment.
 
-`evidence/FINDINGS.md` — the through-line across all 21.
+`evidence/FINDINGS.md` — the through-line across all 24.
 `evidence/TRANSFER-to-websocket-port.md` — the write-up this was built for.
 
 ### Where each corner stands
@@ -268,14 +280,88 @@ measure that alignment.
 |---|---|---|---|---|---|
 | Go | 56/56 | clean | pass | Gobra green; 91 functional clauses, reachability audit clean (0 of 33 unreachable), negation sweep in PR #3. **R4 and R5 are both `calibrate` rungs since 2026-09-02**, ceiling 14 of 18 mutants (F022) | Gobra ghost-language limits; 5 HomeTimeline clauses undecidable within budget; the trusted shim is 4 of 18 mutants |
 | Rust | 56/56 | clean | pass | Verus **21 verified, 0 errors**, still **1 property** (F016). The four drifted twins are fixed or deleted (F024); the count fell from 23 because two of them carried no `ensures` at all | `RwLock` has no vstd model; `ids::next_id_ensures` is an assumed axiom with a 0-unit count |
-| Java | 56/56 | clean | pass | not attempted | JBMC string equality (F014) |
-| Kotlin | 56/56 | clean | pass | JBMC, 7 of 15 | same JBMC defect |
-
+| Java | 56/56 | clean | pass | not attempted — and now blocked on something more mundane than F014: `impls/java` has **no obligation set**. The Kotlin corner's `Obligations.kt` has no Java twin, so there is nothing for a JBMC rung to run | JBMC string equality (F014); plus no obligations written |
+| Kotlin | 56/56 | clean | pass | JBMC, 7 of 15 decidable. **R4 is a `calibrate` rung since 2026-09-02** (`tools/cmd/jbmc verify`); the 8 blocked obligations are in neither numerator nor denominator, and the F013 vacuity audit re-runs on every tree judged. Coverage 16 of 18 mutants (2 are httpshim) | the JBMC defect sets the denominator, not the obligations (F014, F025) |
 ### Loop log
 
 Fires append here, newest first. One line per fire: UTC time, what was done,
 the verdict line, and what the next fire should do.
 
+- **2026-09-02 18:20 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`, branch
+  `claude/loop-c-jbmc-rung`)** — **Queue item 1, fourth sub-step: DONE. R4 is a
+  `calibrate` rung on the Kotlin corner, driven by JBMC.** New tool
+  `tools/cmd/jbmc` (`verify`, `list`), mirroring `tools/cmd/gobra`: `-registry`
+  so it resolves the same mutant tree the guard hashed, `-budget` whose
+  exhaustion prints `R4 UNDECIDED` and **no verdict** (an error cell, never a
+  survival). `rungs.go` gained a `Drivers map[string]driver` so ONE R4 entry
+  dispatches per corner — Gobra on go, JBMC on kotlin — rather than two rungs
+  putting the same question in two columns. Clean tree, for the record:
+  `R4 PASSED: JBMC verified 7 of 7 decidable obligation(s) (0 of 11 own
+  assertion goals FAILURE), every one refutable in this tree; 8 obligation(s)
+  blocked by a recorded JBMC 6.11.0 limit (F014), in no denominator [1m52.5s]`.
+  Gate, `-impls kotlin -rungs R4` over five mutants
+  (`evidence/runs/calibration/kotlin-r4-gate/`):
+  ```
+  kotlin/id-first-is-two              R4 PASSED: JBMC verified 7 of 7 ...   survived
+  kotlin/timeline-scan-reversed       R4 PASSED: JBMC verified 7 of 7 ...   survived
+  kotlin/created-at-frozen            R4 PASSED: JBMC verified 7 of 7 ...   survived
+  kotlin/tick-goes-backwards          R4 UNDECIDED: 1 of 7 decidable obligation(s) could not be read   ERROR
+  kotlin/unknown-json-fields-accepted R4 PASSED: JBMC verified 7 of 7 ...   unreached (httpshim)
+  R4 proof   live 4  killed 0  survived 3  unreached 1  equiv 0   kill%reach 0%  kill%live 0%
+  ```
+  **Read that row honestly: the rung killed nothing over these five, and that
+  is the result, not a defect in the harness.** The canary shows it can kill;
+  the catalogue is where it cannot. Three separate reasons, and the row
+  separates them: the timeline mutant survives because the obligations that
+  cover the timeline are the ones F014 blocks; `tick-goes-backwards` is
+  UNDECIDED because the store's own guard *throws*, which makes the assertion
+  after it unreachable and the obligation **and its negation** both verify
+  (F015 meeting F013); `id-first-is-two` survives because every id obligation
+  is relational, which is F023 reproduced on a second corner with a different
+  verifier. The httpshim mutant is `unreached`, F022's accounting one corner
+  over.
+  Canaries (standing rule 2), both directions, because an injection canary
+  cannot see vacuity at all — the injected defect is downstream of the
+  infeasible point too:
+  ```
+  A. injection: one line of Dom.parseInt64 so a bare sign parses as 0
+       R4 FAILED: JBMC refuted 2 of 7 decidable obligation(s) (2 of 11 own
+       assertion goals FAILURE): o1a_oneCharAcceptSet,
+       o1c_emptyAndBareSignRejected; 8 obligation(s) blocked ...  [1m33.1s] exit 1
+  B. vacuity: Store.appendTweet reverted to log.lastOrNull(), the F013 defect
+       decidable 7   VERIFIED 4   REFUTED 0   VACUOUS 3   UNDECIDED 0
+       R4 UNDECIDED: 3 of 7 decidable obligation(s) could not be read
+       (c2_idsDoNotIncrease guards o3a_idsStrictlyIncrease and was NOT refuted
+       (VERIFIED) ...)  [1m37.5s] exit 1, and NO verdict line
+  ```
+  Canary B is the one that matters and it works: all three obligations report
+  every own assertion goal SUCCESS, and the rung still refuses to call it a
+  proof. Logs in `evidence/runs/calibration/kotlin-r4-canary-{injection,vacuity}.log`.
+  **F025 written**, in two halves. (i) `Canaries.kt` had **no canary at all**
+  for three of the seven claimed obligations, so F014's "7 VERIFIED" was four
+  audited claims and three unexamined ones — the sweep was indexed by canary
+  rather than by claim, so the one gate built to catch F013 could not see its
+  own blind spot. `c10`/`c11`/`c12` added; all three refuted, so the number
+  stands and is now earned. (ii) The audit's **price**, measured across
+  corners: negating a bounded obligation costs what the obligation costs
+  (3-7 s), negating a deductive one is strictly harder and sometimes does not
+  terminate (F021) — so the weaker rung can afford the stronger audit, which
+  is not the ordering the ladder suggests.
+  `mutate verify` re-run: `verify PASSED: every anchor matches one site; every
+  mutant compiles` (72/72 anchors, 72/72 build clean). `go build`, `go vet`,
+  `go test ./tools/...` clean; 12 new tests covering verdict parsing, the
+  budget/UNDECIDED path, blocked-obligation accounting, the demotion of an
+  unaudited claim, the per-corner dispatch, and the exact sentences calibrate
+  reads.
+  **Next fire: the Kotlin corner's full R4 sweep**, all 18 mutants,
+  `-out evidence/runs/calibration/kotlin-proof -resume` (~2 min per cell plus a
+  22 s warm build; it journals per cell so a restart resumes). Five is a gate,
+  not a rate, and the claim this fire could not finish is the one worth
+  measuring: **whether the 7 decidable obligations kill anything at all in the
+  catalogue.** If the answer is zero, say so — that is the sharpest number this
+  corner can produce, and it prices fixing JBMC against writing more Kotlin
+  obligations. Do not start the Java corner: it needs an `Obligations.java`
+  first, which is a corner-build task, not a rung task.
 - **2026-09-02 17:45 (worker session `session_01ExaVft3sZPUuETJXKVZK1J`, branch
   `claude/loop-e-verus-twins`)** — **Queue item 5: DONE. The four drifted Verus
   twins are fixed or deleted, and the count went DOWN.**
@@ -322,7 +408,6 @@ the verdict line, and what the next fire should do.
   **Next fire: queue item 1's remaining sub-step — R4 as a `calibrate` rung on
   the Rust corner.** The verdict line and the cache-defeating `touch` are now
   both established here, which is what that sub-step said it was missing.
-
 - **2026-09-02 16:55 (worker session `session_01Mdy8cUZTbcq2fXuZ1BRi4X`, fire
   16:13)** — **Queue item 1, second sub-step: DONE. R5 is a `calibrate` rung on
   the Go corner.** `gobra r5verify` verifies one tree and attributes every

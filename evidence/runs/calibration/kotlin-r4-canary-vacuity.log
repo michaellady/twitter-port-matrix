@@ -1,0 +1,44 @@
+jbmc: bounded proof rung over the kotlin corner
+        tree    /tmp/claude-0/-home-user-twitter-port-matrix/bcd1fbd7-34e3-5ec2-b270-0c6061197557/scratchpad/canary-vacuous
+        jbmc    6.11.0 (cbmc-6.11.0)
+        kotlinc info: kotlinc-jvm 2.4.10 (JRE 21.0.10+7-Ubuntu-124.04)
+        bounds  --unwind 30 --max-nondet-string-length 3, budget 30m0s (8m0s per obligation)
+        compile src + verification in 17s
+====================================================================================================
+obligation                         verdict    own assertion goals      wall      JBMC's own line
+----------------------------------------------------------------------------------------------------
+o1a_oneCharAcceptSet               VERIFIED   1 ok, 0 failed           12.9s     VERIFICATION SUCCESSFUL
+o1b_twoCharAcceptSet               VERIFIED   1 ok, 0 failed           13.1s     VERIFICATION SUCCESSFUL
+o1c_emptyAndBareSignRejected       VERIFIED   3 ok, 0 failed           3.3s      VERIFICATION SUCCESSFUL
+o3a_idsStrictlyIncrease            VERIFIED   1 ok, 0 failed           3.6s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+o3b_createdAtNonDecreasing         VERIFIED   2 ok, 0 failed           3.6s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+o3c_lemmaOverThreeAppends          VERIFIED   2 ok, 0 failed           3.5s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+o5c_syntaxBeatsExistence           VERIFIED   1 ok, 0 failed           4.4s      VERIFICATION SUCCESSFUL
+----------------------------------------------------------------------------------------------------
+negation canaries (F013): each MUST be refuted, or the obligation it names is vacuous
+c10_nonDigitIsANumber              refuted-ok 0 ok, 1 failed           3.4s      VERIFICATION FAILED
+c11_signThenSignIsANumber          refuted-ok 0 ok, 1 failed           3.4s      VERIFICATION FAILED
+c1_bareSignIsANumber               refuted-ok 0 ok, 1 failed           3.3s      VERIFICATION FAILED
+c2_idsDoNotIncrease                VERIFIED   1 ok, 0 failed           3.5s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+c7_storeIsReachable                VERIFIED   1 ok, 0 failed           3.4s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+c3_clockCanDecrease                VERIFIED   1 ok, 0 failed           3.5s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+c12_thirdAppendDoesNotIncrease     VERIFIED   1 ok, 0 failed           3.5s      VERIFICATION FAILED  (library goals failed in twitterport.store.Store)
+c8_serviceIsReachable              refuted-ok 0 ok, 1 failed           4.2s      VERIFICATION FAILED
+c9_syntaxDoesNotBeatExistence      refuted-ok 0 ok, 1 failed           4.5s      VERIFICATION FAILED
+====================================================================================================
+decidable 7   VERIFIED 4   REFUTED 0   VACUOUS 3   UNDECIDED 0
+blocked   8   (recorded JBMC 6.11.0 limits; in neither the numerator nor the denominator)
+    JBMC's String.getBytes(Charset) is nondeterministic (F014); the UTF-8 byte-length predicates are unreachable
+        o2a_emptyIsInvalid, o2b_goodHandleIsValid, o5a_unknownBeatsSelfFollow, o5b_knownSelfFollowIsForbidden
+    JBMC exhausts memory on this instance ("SAT checker ran out of memory"); a bounded-model-checking scalability wall, not a modelling gap
+        o4a_pageRespectsLimit, o5d_rejectionBurnsNoId
+    JBMC's String.equals is unsound (`assert "abc".equals("abc")` is FAILURE, F014); every visibility and error-code comparison is undecidable
+        o4b_cursorNullMeansExhausted, o4c_pageIsNewestFirst
+  ! c2_idsDoNotIncrease guards o3a_idsStrictlyIncrease and was NOT refuted (VERIFIED); under vacuity a claim and its negation both verify, so o3a_idsStrictlyIncrease decides nothing (F013)
+  ! c7_storeIsReachable guards o3a_idsStrictlyIncrease and was NOT refuted (VERIFIED); under vacuity a claim and its negation both verify, so o3a_idsStrictlyIncrease decides nothing (F013)
+  ! c3_clockCanDecrease guards o3b_createdAtNonDecreasing and was NOT refuted (VERIFIED); under vacuity a claim and its negation both verify, so o3b_createdAtNonDecreasing decides nothing (F013)
+  ! c12_thirdAppendDoesNotIncrease guards o3c_lemmaOverThreeAppends and was NOT refuted (VERIFIED); under vacuity a claim and its negation both verify, so o3c_lemmaOverThreeAppends decides nothing (F013)
+
+R4 UNDECIDED: 3 of 7 decidable obligation(s) could not be read (c2_idsDoNotIncrease guards o3a_idsStrictlyIncrease and was NOT refuted (VERIFIED); under vacuity a claim and its negation both verify, so o3a_idsStrictlyIncrease decides nothing (F013)); nothing was decided about this tree   [1m37.5s]
+jbmc: R4 UNDECIDED: c2_idsDoNotIncrease guards o3a_idsStrictlyIncrease and was NOT refuted (VERIFIED); under vacuity a claim and its negation both verify, so o3a_idsStrictlyIncrease decides nothing (F013)
+exit=1

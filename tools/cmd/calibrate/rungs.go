@@ -49,6 +49,19 @@ type rung struct {
 
 	Args func(cfg Config, implName, regPath string) []string
 
+	// Drivers holds the per-corner overrides for Tool, Args and Covers.
+	//
+	// One rung, several verifiers: R4 is Gobra on the Go corner and JBMC on
+	// the JVM corners, and they are the SAME rung -- a bounded proof and a
+	// deductive proof both answer "can this tree still be verified against its
+	// contract", and splitting them into two rows would put the same question
+	// in two columns and make the corners incomparable. What differs is the
+	// binary, its argv and what it reads, so those three are what a corner may
+	// override; the verdict sentence (Pass/Fail) is deliberately NOT
+	// overridable, because a rung whose corners answer in different words is a
+	// rung whose column heading means two things.
+	Drivers map[string]driver
+
 	// Pass and Fail are the tool's OWN verdict sentences. The outcome is read
 	// from these, never from the exit code alone -- GOAL.md standing rule 1.
 	// The exit code is then required to agree, and a disagreement is an error
@@ -131,9 +144,22 @@ var allRungs = []rung{
 		// it discharges. Whether the clauses are refutable at all is the
 		// `gobra canary` / `gobra reach` audit (F013, F021), which is
 		// prior to this table, not part of it.
+		// On the Kotlin corner the same rung is JBMC over the compiled
+		// bytecode, and it is NOT the same instrument: it is bounded, so a
+		// PASS means "no counterexample within the unwinding bound" rather
+		// than "no counterexample". It is also the only corner whose rung has
+		// to exclude obligations from its own denominator -- JBMC 6.11.0
+		// cannot compare two strings (F014), which blocks 8 of the 15 Kotlin
+		// obligations, and an obligation the tool cannot decide must not
+		// become a kill (a spurious FAILURE) or a survival (a spurious
+		// SUCCESS). `jbmc verify` does that accounting and quotes its own
+		// counts in the verdict sentence.
 		ID: "R4", Label: "proof", Tool: "gobra", Inputs: "contract",
-		Impls:  []string{"go"},
+		Impls:  []string{"go", "kotlin"},
 		Covers: gobraReads,
+		Drivers: map[string]driver{
+			"kotlin": jbmcKotlinR4,
+		},
 		Args: func(cfg Config, implName, regPath string) []string {
 			// Gobra's own timeout lands a minute before calibrate's, so an
 			// undecidable tree is reported in Gobra's words (UNDECIDED)
@@ -231,6 +257,37 @@ func editsAny(m mutants.Mutant, prefixes []string) bool {
 	return false
 }
 
+// A driver is one corner's verifier for a rung that has more than one.
+type driver struct {
+	Tool   string
+	Args   func(cfg Config, implName, regPath string) []string
+	Covers func(m mutants.Mutant) bool
+}
+
+// toolFor, argsFor and coversFor resolve the corner's driver, falling back to
+// the rung's own fields for a corner with no override. A rung with no Drivers
+// at all behaves exactly as it did before they existed.
+func (r rung) toolFor(impl string) string {
+	if d, ok := r.Drivers[impl]; ok && d.Tool != "" {
+		return d.Tool
+	}
+	return r.Tool
+}
+
+func (r rung) argsFor(impl string) func(Config, string, string) []string {
+	if d, ok := r.Drivers[impl]; ok && d.Args != nil {
+		return d.Args
+	}
+	return r.Args
+}
+
+func (r rung) coversFor(impl string) func(mutants.Mutant) bool {
+	if d, ok := r.Drivers[impl]; ok && d.Covers != nil {
+		return d.Covers
+	}
+	return r.Covers
+}
+
 // applies reports whether this rung exists for the corner at all.
 func (r rung) applies(impl string) bool {
 	if len(r.Impls) == 0 {
@@ -296,7 +353,7 @@ type toolset struct {
 	own  bool
 }
 
-var neededTools = []string{"replay", "diffrun", "proptest", "mutate", "gobra"}
+var neededTools = []string{"replay", "diffrun", "proptest", "mutate", "gobra", "jbmc"}
 
 func buildTools(root, binDir string) (*toolset, error) {
 	ts := &toolset{bins: map[string]string{}}
@@ -396,25 +453,33 @@ func (r rung) verdict(tr *toolRun) (killed bool, err error) {
 	pass := countLinesWithPrefix(tr.Stdout, r.Pass)
 	fail := countLinesWithPrefix(tr.Stdout, r.Fail)
 
+	// The tool that actually ran, not the rung's default. A rung with several
+	// per-corner drivers would otherwise blame Gobra for something JBMC said,
+	// and the error text is the only record of which verifier was asked.
+	tool := r.Tool
+	if len(tr.Argv) > 0 {
+		tool = tr.Argv[0]
+	}
+
 	switch {
 	case pass == 1 && fail == 0:
 		if tr.ExitCode != 0 {
 			return false, fmt.Errorf("%s printed %q but exited %d; the tool contradicts itself, so this cell has no answer:\n%s",
-				r.Tool, r.Pass, tr.ExitCode, tail(tr.Stdout, 12))
+				tool, r.Pass, tr.ExitCode, tail(tr.Stdout, 12))
 		}
 		return false, nil
 	case fail == 1 && pass == 0:
 		if tr.ExitCode == 0 {
 			return false, fmt.Errorf("%s printed %q but exited 0; the tool contradicts itself, so this cell has no answer:\n%s",
-				r.Tool, r.Fail, tail(tr.Stdout, 12))
+				tool, r.Fail, tail(tr.Stdout, 12))
 		}
 		return true, nil
 	case pass == 0 && fail == 0:
 		return false, fmt.Errorf("%s produced no %s verdict (exit %d). Nothing was measured:\n%s",
-			r.Tool, r.ID, tr.ExitCode, tail(tr.Stdout, 12))
+			tool, r.ID, tr.ExitCode, tail(tr.Stdout, 12))
 	default:
 		return false, fmt.Errorf("%s produced %d pass and %d fail verdicts for %s; ambiguous:\n%s",
-			r.Tool, pass, fail, r.ID, tail(tr.Stdout, 12))
+			tool, pass, fail, r.ID, tail(tr.Stdout, 12))
 	}
 }
 

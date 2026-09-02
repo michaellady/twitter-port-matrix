@@ -34,6 +34,7 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F022 | the proof rung's denominator is set by the trusted shim | 4 of 18 Go mutants edit code no obligation covers, so R4's ceiling is 78% before a clause is written |
 | F023 | the strongest rungs cannot see a constant | an id origin shifted by one is killed by R0 and R1, and survives R2, R4 and R5 |
 | F024 | a count that goes down is the repair | two of the four drifted Verus twins carried no `ensures` at all, so deleting them took 23 verified to 21 and lost nothing |
+| F025 | three of seven VERIFIED were never audited | the canary sweep was indexed by canary, not by claim, so three obligations with no canary at all passed the one gate built to catch that — and the audit that would have caught it costs 3 s on a bounded checker and does not terminate on a deductive one |
 
 ---
 
@@ -68,6 +69,7 @@ produced without the thing that would make it mean something.**
 | F011 | mutants killed | the anchors had drifted, so nothing was injected |
 | F013 | 6 obligations VERIFIED | the code they described was unreachable |
 | F015 | 1 obligation discharged | the branch it described is dead on every real path |
+| F025 | 7 obligations VERIFIED | three of the seven had no negation canary, so nothing had ever tried to refute them |
 
 Each of these passes a plausibility check. Each is the kind of number that
 appears in a status report. And each is produced by a measurement that never
@@ -118,6 +120,29 @@ drawn, not of how good the obligations are.
 The transferable form: **every rung has a reach, and for a deductive rung the
 reach is the verification matrix.** A kill rate quoted without it is quoted
 over a denominator nobody chose deliberately.
+
+### F025 turns Pattern 2 back on the check itself
+
+Every entry in Pattern 2's table is a gate that could not see its own blind
+spot. F025 is the same shape one level up: the **negation-canary sweep** — the
+instrument built to catch F013, the deepest false green here — could not see
+its own blind spot either. It verified that every canary it had was refuted,
+and never asked which claims had no canary. Three of the Kotlin corner's seven
+VERIFIED obligations had none, so "7 VERIFIED" was four audited claims and
+three unexamined ones.
+
+The fix is not a better canary; it is changing what the loop iterates over.
+Enumerate the **claims** and ask each what audits it. A check indexed by the
+things you remembered to write can only ever confirm that you wrote them.
+
+F025 also prices the audit, which nothing here had done: negating a bounded
+obligation costs what the obligation costs (3–7 s), while negating a deductive
+one is strictly harder than the obligation and sometimes does not terminate at
+all (F021). So the vacuity audit can run on **every tree** a bounded rung
+judges and only on the **clean tree** for a deductive one — and R4 on the Go
+corner accordingly does not re-audit per mutant while R4 on the Kotlin corner
+does. The weaker rung carries the better-measured claim, which is not the
+ordering the ladder suggests.
 
 ## Pattern 3 — falsifiability has two forms and they are not interchangeable
 
