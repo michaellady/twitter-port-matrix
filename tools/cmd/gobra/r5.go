@@ -92,7 +92,10 @@ func cmdR5(args []string) error {
 			r.Evidence = "no postcondition to negate; discharged as a fold obligation, not canaried"
 		case len(s.Sites) == 0:
 			r.Status = "UNATTEMPTED"
-			r.Evidence = "blocked; no Gobra site exists — " + c.Status
+			r.Evidence = "no Gobra site exists; recorded as " + c.Status
+			if c.Blocker != "" {
+				r.Evidence += " on " + c.Blocker + " — " + ob.Blockers[c.Blocker]
+			}
 		default:
 			verified, refuted, missing := 0, 0, 0
 			var lines []string
