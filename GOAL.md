@@ -240,8 +240,10 @@ the verdict line, and what the next fire should do.
   **no checkout of the repository**; a probe session reported `repo not
   cloned; need git access or repo pre-staging`. Both fires spent their budget
   in an empty container. The routine prompt now begins with an explicit
-  `add_repo` + clone step and a hard stop if that fails. The next-fire entry
-  below is unchanged and still the entry point.
+  `add_repo` + clone step and a hard stop if that fails. Confirmed at 09:32:
+  a spawned session that calls `add_repo` first clones and pushes within
+  75 seconds. The next-fire entry below is unchanged and still the entry
+  point.
 - **2026-09-02 06:34 (interactive session, PR #3)** — R4/R5 audit complete.
   Negation sweep `91 clauses: 83 refutable, 0 VACUOUS, 8 timed out`; R5
   `26 VERIFIED, 4 UNAUDITED, 12 UNATTEMPTED`; F019–F021 written; `GOAL.md`
