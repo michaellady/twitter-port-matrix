@@ -381,3 +381,90 @@ func TestEveryR4CornerHasADriver(t *testing.T) {
 		}
 	}
 }
+
+// TestEveryProofRungCornerHasAVacuityInstrument is the gate F030 found
+// missing.
+//
+// GOAL.md: "A rung's kill verdict on a proof-backed row counts only if the
+// obligation that noticed the mutant was itself shown non-vacuous. `gobra
+// canary` / `gobra reach` is the instrument; the equivalents for Verus and
+// JBMC must exist before their rows are trusted."
+//
+// Nothing enforced that. The Rust corner shipped an R4 row whose driver had no
+// vacuity instrument of any kind -- an INJECTION canary was described in the
+// loop log with the words the rule uses, and no gate could tell the difference
+// (F013 is the finding about that substitution; F030 is it happening a second
+// time). This test is the cheap check that would have caught it, and it is
+// what a fourth corner's driver will have to pass.
+//
+// It is deliberately a SOURCE-level check. A vacuity instrument is not
+// something a rung entry can declare -- declaring it is exactly what the Rust
+// corner effectively did -- so the test goes and looks for one in the tool the
+// rung actually invokes.
+func TestEveryProofRungCornerHasAVacuityInstrument(t *testing.T) {
+	root := repoRootForRungs(t)
+
+	// The tools each proof-backed rung invokes, per corner.
+	tools := map[string]bool{}
+	for _, r := range allRungs {
+		if r.Inputs != "contract" {
+			continue
+		}
+		for _, impl := range r.Impls {
+			tools[r.toolFor(impl)] = true
+		}
+	}
+	if len(tools) == 0 {
+		t.Fatal("no contract-backed rung found; this test is looking at the wrong field")
+	}
+
+	for tool := range tools {
+		dir := filepath.Join(root, "tools", "cmd", tool)
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatalf("rung invokes %q but %s is not readable: %v", tool, dir, err)
+		}
+		found := false
+		for _, e := range entries {
+			if e.IsDir() || !strings.HasSuffix(e.Name(), ".go") || strings.HasSuffix(e.Name(), "_test.go") {
+				continue
+			}
+			b, err := os.ReadFile(filepath.Join(dir, e.Name()))
+			if err != nil {
+				t.Fatal(err)
+			}
+			// The instrument's signature: it has a NAME for the verdict it
+			// exists to produce -- the string literal, not the word. The
+			// first version of this test looked for the bare word and passed
+			// on a driver that only mentioned vacuity in a doc comment, which
+			// is the same "declaring it counts as having it" mistake the test
+			// is here to catch.
+			if strings.Contains(string(b), `"VACUOUS"`) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("tools/cmd/%s drives a proof-backed rung but has no vacuity instrument: "+
+				"no source file declares a \"VACUOUS\" verdict. An injection canary is not this -- it asks whether the gate "+
+				"notices broken code, which a vacuous obligation passes too (F013, F030). "+
+				"The corner's R4 row is not trusted until a negation canary exists here.", tool)
+		}
+	}
+}
+
+func repoRootForRungs(t *testing.T) string {
+	t.Helper()
+	dir, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 6; i++ {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir
+		}
+		dir = filepath.Dir(dir)
+	}
+	t.Skip("repository root not found")
+	return ""
+}

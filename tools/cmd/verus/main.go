@@ -35,6 +35,12 @@
 //	         R4 PASSED / R4 FAILED / R4 UNDECIDED line calibrate reads
 //	crates   list the crates the tree marks verify-enabled, which is the
 //	         Rust corner's verification matrix
+//	canary   negation-canary sweep: for every `ensures` clause on a shipped
+//	         function, ask Verus to prove the NEGATED ANTECEDENT. A clause
+//	         whose negated antecedent Verus proves is vacuous -- it verifies
+//	         because nothing reaches it -- and its contribution to an R4 kill
+//	         is not a kill (F013). Until this existed the Rust row had no
+//	         vacuity instrument and GOAL.md's rule for trusting it was unmet
 package main
 
 import (
@@ -54,6 +60,8 @@ func main() {
 		err = cmdVerify(os.Args[2:])
 	case "crates":
 		err = cmdCrates(os.Args[2:])
+	case "canary":
+		err = cmdCanary(os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)
@@ -81,6 +89,12 @@ func usage() {
   crates  list the crates carrying [package.metadata.verus] verify = true --
           the Rust corner's verification matrix, read from the tree rather
           than hardcoded
+  canary  negation-canary sweep over every "ensures" clause on a shipped
+          function: replace the clause list with the negated antecedent and
+          ask Verus to prove it. Proved means the antecedent is unreachable
+          and the obligation is VACUOUS; refuted means it is REFUTABLE and
+          the obligation is load-bearing. Self-tests itself first by splicing
+          a false precondition and requiring the answer VACUOUS
 
 Requires cargo-verus and its sibling rust_verify/z3 (CARGO_VERUS or VERUS_PATH
 override the location; otherwise cargo-verus or verus on PATH, otherwise

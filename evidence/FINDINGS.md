@@ -38,6 +38,7 @@ also the part that transfers to `verified-java-to-rust-port`.
 | F026 | the proof half of the matrix has no cell | one corner has a proof rung and no ordered pair has that corner at both ends, so all 24 R4/R5 cells are capped and the Go sweep fills none of them |
 | F027 | the Rust proof row measures the twins | 1 of 14 covered Rust mutants is killed by Verus, because four of the five verified crates put their contracts on hand-written copies |
 | F028 | the refinement row is a copy of the proof row | R4 and R5 disagree on 0 of 18 mutants; the canary separates them, the catalogue never does |
+| F030 | an injection canary stood in for the instrument the rule asks for | the Rust R4 row shipped with no vacuity instrument at all; built one, and 5 of 5 shipped clauses are refutable — but 57 of the corner's 62 clauses are on twins |
 
 ---
 

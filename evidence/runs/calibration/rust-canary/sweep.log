@@ -1,0 +1,34 @@
+Verus negation canary over /home/user/twitter-port-matrix/impls/rust
+  verify-enabled crates: clock, domain, ids, service, store
+  ensures blocks: 1 on shipped functions, 15 inside #[cfg(verus_only)] mod verus_proof
+  clauses:        5 shipped, 57 twin
+  sweeping:       5 clause(s)
+
+workspace: /tmp/verus-canary-4267715665 (a copy; the tree at /home/user/twitter-port-matrix/impls/rust is never written to)
+
+baseline (unmodified copy) --
+  R4 PASSED: verification results:: 21 verified, 0 errors over 5 of 5 verify-enabled crate(s)   [2m17.5s]
+
+self-test (does this sweep report VACUOUS when it should?) --
+  probe crates/domain/src/lib.rs:131 from@ == to@ ==> result is Err
+  with `requires false,` spliced in, every postcondition is vacuously provable,
+  so the canary MUST come back VACUOUS
+  -> VACUOUS [4s]
+     domain: verification results:: 9 verified, 0 errors -- Verus PROVED the negated antecedent, so the clause's antecedent is unsatisfiable and the obligation is discharged over nothing
+  self-test PASSED: the sweep reports VACUOUS when the obligation is unreachable
+
+sweep --
+  [ 1/ 5] REFUTABLE      1s  crates/domain/src/lib.rs:131 from@ == to@ ==> result is Err
+           domain: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 2/ 5] REFUTABLE      1s  crates/domain/src/lib.rs:132 from@ != to@ ==> result is Ok
+           domain: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 3/ 5] REFUTABLE      1s  crates/domain/src/lib.rs:133 result is Ok ==> result->Ok_0.from@ == from@
+           domain: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 4/ 5] REFUTABLE      1s  crates/domain/src/lib.rs:134 result is Ok ==> result->Ok_0.to@   == to@
+           domain: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+  [ 5/ 5] REFUTABLE      1s  crates/domain/src/lib.rs:135 result is Ok ==> result->Ok_0.from@ != result->Ok_0.to@
+           domain: verification results:: 8 verified, 1 errors -- Verus refuted the negated antecedent, so it is reachable
+
+canary sweep: 5 clause(s)   REFUTABLE 5   VACUOUS 0   ILL-FORMED 0   TIMEOUT 0
+
+every one of the 5 shipped clause(s) is refutable; the R4 row on this corner is not measuring vacuous obligations.
