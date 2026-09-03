@@ -1,0 +1,9 @@
+calibrate: 10 mutant(s) x 1 rung(s) = 10 cells
+           rungs=R4  out=/home/user/twitter-port-matrix/evidence/runs/independent-catalogue/rust-proof  resume=true
+           journal holds 0 reusable cell(s) and 0 probe(s)
+==============================================================================
+  floor rust      116 ms/launch  (3 samples, spread 93-163 ms)
+------------------------------------------------------------------------------
+
+rust/handle-bound-off-by-one 2147f4ccfc78  boundary
+  guard    5/5 checks: rust@handle-bound-off-by-one -> /tmp/calibrate-mutant-3653470402/tree (baseline rust is a different tree)
