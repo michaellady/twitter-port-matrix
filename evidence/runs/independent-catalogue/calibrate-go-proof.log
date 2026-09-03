@@ -1,0 +1,10 @@
+calibrate: 11 mutant(s) x 2 rung(s) = 22 cells
+           rungs=R4,R5  out=/home/user/twitter-port-matrix/evidence/runs/independent-catalogue/go-proof  resume=true
+           journal holds 0 reusable cell(s) and 0 probe(s)
+==============================================================================
+  floor go        451 ms/launch  (3 samples, spread 438-461 ms)
+------------------------------------------------------------------------------
+
+go/handle-bound-off-by-one   3e09c71e694e  boundary
+  guard    5/5 checks: go@handle-bound-off-by-one -> /tmp/calibrate-mutant-2961009093/tree (baseline go is a different tree)
+  setup    apply 0.0s (walk copy) + warm build 0.6s -- charged to no rung

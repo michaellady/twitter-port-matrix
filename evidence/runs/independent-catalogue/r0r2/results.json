@@ -1,0 +1,4696 @@
+{
+  "tool": "calibrate",
+  "started_at": "2026-09-02T23:42:18Z",
+  "finished_at": "2026-09-03T00:04:54Z",
+  "config": {
+    "root": "/home/user/twitter-port-matrix",
+    "manifest": "tools/cmd/mutate/mutants-independent.json",
+    "registry": "impls/registry.json",
+    "corpus": "generated/conformance.jsonl",
+    "impls": [
+      "go",
+      "rust",
+      "java",
+      "kotlin"
+    ],
+    "rungs": [
+      "R0",
+      "R1",
+      "R2"
+    ],
+    "r1_traces": 20,
+    "r1_steps": 200,
+    "r1_seed": 1,
+    "r2_rounds": 6,
+    "r2_setup": 40,
+    "r2_seed": 1,
+    "probe_mode": "any",
+    "probe_traces": 4,
+    "probe_steps": 120,
+    "floor_samples": 3,
+    "rung_timeout": "20m0s"
+  },
+  "launch_floors": {
+    "go": {
+      "impl": "go",
+      "samples": 3,
+      "launch_ms": 461.595,
+      "build_ms": 439.59799999999996,
+      "min_ms": 446.745,
+      "max_ms": 476.23
+    },
+    "java": {
+      "impl": "java",
+      "samples": 3,
+      "launch_ms": 1011.582,
+      "build_ms": 938.024,
+      "min_ms": 971.55,
+      "max_ms": 1041.524
+    },
+    "kotlin": {
+      "impl": "kotlin",
+      "samples": 3,
+      "launch_ms": 8929.472333333333,
+      "build_ms": 8831.995,
+      "min_ms": 8817.377,
+      "max_ms": 9098.313
+    },
+    "rust": {
+      "impl": "rust",
+      "samples": 3,
+      "launch_ms": 97.26766666666667,
+      "build_ms": 75.50266666666668,
+      "min_ms": 94.733,
+      "max_ms": 102.173
+    }
+  },
+  "setups": [
+    {
+      "mutant": "kotlin/text-length-in-code-points",
+      "tree_hash": "sha256:33b54ba346c8ed51cf7d73b39c8897d1c5a1659bab9a6e5fbbdc84ef0a2d30ac",
+      "apply_ms": 7.38,
+      "warm_build_ms": 8847.874,
+      "copy_mode": "walk"
+    },
+    {
+      "mutant": "kotlin/jvm-string-identity-compare",
+      "tree_hash": "sha256:8e16a18eec60e63152b0d226a73f52c7bd1bab3a9227f3895ef9caed50051c79",
+      "apply_ms": 6.818,
+      "warm_build_ms": 8391.875,
+      "copy_mode": "walk"
+    }
+  ],
+  "cells": [
+    {
+      "mutant": "go/handle-bound-off-by-one",
+      "impl": "go",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:3e09c71e694e6ed4ea36b018cc43b685c3ac9cb40eb6c0b294e292f4cfe930c7",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 574.424,
+      "launches": 1,
+      "tool_ms": 112.82899999999995,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "go@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-4290013453/tree",
+        "tree_hash": "sha256:3e09c71e694e6ed4ea36b018cc43b685c3ac9cb40eb6c0b294e292f4cfe930c7",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "go/handle-bound-off-by-one",
+      "impl": "go",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:3e09c71e694e6ed4ea36b018cc43b685c3ac9cb40eb6c0b294e292f4cfe930c7",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 11122.333,
+      "launches": 20,
+      "tool_ms": 1890.432999999999,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "go@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-4290013453/tree",
+        "tree_hash": "sha256:3e09c71e694e6ed4ea36b018cc43b685c3ac9cb40eb6c0b294e292f4cfe930c7",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "go/handle-bound-off-by-one",
+      "impl": "go",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:3e09c71e694e6ed4ea36b018cc43b685c3ac9cb40eb6c0b294e292f4cfe930c7",
+      "rung": "R2",
+      "outcome": "unreached",
+      "wall_ms": 27411.505,
+      "launches": 54,
+      "tool_ms": 2485.375,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "go@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-4290013453/tree",
+        "tree_hash": "sha256:3e09c71e694e6ed4ea36b018cc43b685c3ac9cb40eb6c0b294e292f4cfe930c7",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "go/limit-bound-off-by-one",
+      "impl": "go",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:52bdd833e50f7ed9db36f8a9dddb0dd5a0dae9080c381a0429b279c2d57405e7",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 498.457,
+      "launches": 1,
+      "tool_ms": 36.861999999999966,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "go@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-126842147/tree",
+        "tree_hash": "sha256:52bdd833e50f7ed9db36f8a9dddb0dd5a0dae9080c381a0429b279c2d57405e7",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "go/limit-bound-off-by-one",
+      "impl": "go",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:52bdd833e50f7ed9db36f8a9dddb0dd5a0dae9080c381a0429b279c2d57405e7",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 10620.006,
+      "launches": 20,
+      "tool_ms": 1388.105999999998,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "go@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-126842147/tree",
+        "tree_hash": "sha256:52bdd833e50f7ed9db36f8a9dddb0dd5a0dae9080c381a0429b279c2d57405e7",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "go/limit-bound-off-by-one",
+      "impl": "go",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:52bdd833e50f7ed9db36f8a9dddb0dd5a0dae9080c381a0429b279c2d57405e7",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 28351.678,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "go@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-126842147/tree",
+        "tree_hash": "sha256:52bdd833e50f7ed9db36f8a9dddb0dd5a0dae9080c381a0429b279c2d57405e7",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/text-rejects-space",
+      "impl": "go",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:a2172ad7a49f68473e3e235c48acde2446d1890d353d23eee5b14bf87b8d81cd",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 521.435,
+      "verdict_line": "R0 FAILED: 13 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-101478365/tree",
+        "tree_hash": "sha256:a2172ad7a49f68473e3e235c48acde2446d1890d353d23eee5b14bf87b8d81cd",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/text-rejects-space",
+      "impl": "go",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:a2172ad7a49f68473e3e235c48acde2446d1890d353d23eee5b14bf87b8d81cd",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 5110.323,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-101478365/tree",
+        "tree_hash": "sha256:a2172ad7a49f68473e3e235c48acde2446d1890d353d23eee5b14bf87b8d81cd",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/text-rejects-space",
+      "impl": "go",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:a2172ad7a49f68473e3e235c48acde2446d1890d353d23eee5b14bf87b8d81cd",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 29480.247,
+      "launches": 54,
+      "tool_ms": 4554.116999999998,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "go@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-101478365/tree",
+        "tree_hash": "sha256:a2172ad7a49f68473e3e235c48acde2446d1890d353d23eee5b14bf87b8d81cd",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "go/timeline-drops-oldest",
+      "impl": "go",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:d8327769ff034d68d9da2a64c7927698fad16922734669dd46e6fee3dd9922cf",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 502.864,
+      "verdict_line": "R0 FAILED: 6 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-2891973695/tree",
+        "tree_hash": "sha256:d8327769ff034d68d9da2a64c7927698fad16922734669dd46e6fee3dd9922cf",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/timeline-drops-oldest",
+      "impl": "go",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:d8327769ff034d68d9da2a64c7927698fad16922734669dd46e6fee3dd9922cf",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 13882.457,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-2891973695/tree",
+        "tree_hash": "sha256:d8327769ff034d68d9da2a64c7927698fad16922734669dd46e6fee3dd9922cf",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/timeline-drops-oldest",
+      "impl": "go",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:d8327769ff034d68d9da2a64c7927698fad16922734669dd46e6fee3dd9922cf",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 30064.567,
+      "launches": 54,
+      "tool_ms": 5138.436999999998,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "go@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-2891973695/tree",
+        "tree_hash": "sha256:d8327769ff034d68d9da2a64c7927698fad16922734669dd46e6fee3dd9922cf",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "go/visibility-args-swapped",
+      "impl": "go",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:8c8a1c1f7f2afad8f46f5b47738dd3e982de84356dc8efb198b8b6a44d3b5a66",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 502.703,
+      "verdict_line": "R0 FAILED: 6 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-919928835/tree",
+        "tree_hash": "sha256:8c8a1c1f7f2afad8f46f5b47738dd3e982de84356dc8efb198b8b6a44d3b5a66",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/visibility-args-swapped",
+      "impl": "go",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:8c8a1c1f7f2afad8f46f5b47738dd3e982de84356dc8efb198b8b6a44d3b5a66",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 17676.237,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-919928835/tree",
+        "tree_hash": "sha256:8c8a1c1f7f2afad8f46f5b47738dd3e982de84356dc8efb198b8b6a44d3b5a66",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/visibility-args-swapped",
+      "impl": "go",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:8c8a1c1f7f2afad8f46f5b47738dd3e982de84356dc8efb198b8b6a44d3b5a66",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 30644.213,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "go@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-919928835/tree",
+        "tree_hash": "sha256:8c8a1c1f7f2afad8f46f5b47738dd3e982de84356dc8efb198b8b6a44d3b5a66",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/visibility-negation-dropped",
+      "impl": "go",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:52a77143c8cf39b36eb07fa1bfdbb0dfb1b3aca2e82abf3e366d5e7752a9c862",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 513.008,
+      "verdict_line": "R0 FAILED: 7 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-4127814432/tree",
+        "tree_hash": "sha256:52a77143c8cf39b36eb07fa1bfdbb0dfb1b3aca2e82abf3e366d5e7752a9c862",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/visibility-negation-dropped",
+      "impl": "go",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:52a77143c8cf39b36eb07fa1bfdbb0dfb1b3aca2e82abf3e366d5e7752a9c862",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 11772.852,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-4127814432/tree",
+        "tree_hash": "sha256:52a77143c8cf39b36eb07fa1bfdbb0dfb1b3aca2e82abf3e366d5e7752a9c862",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/visibility-negation-dropped",
+      "impl": "go",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:52a77143c8cf39b36eb07fa1bfdbb0dfb1b3aca2e82abf3e366d5e7752a9c862",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 29084.799,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "go@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-4127814432/tree",
+        "tree_hash": "sha256:52a77143c8cf39b36eb07fa1bfdbb0dfb1b3aca2e82abf3e366d5e7752a9c862",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/wrong-error-branch-cursor",
+      "impl": "go",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:83c994722b1b58283dc538df04faa97ccfcd8e05b3ced2e29a1a249f4f613b04",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 480.042,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-969116859/tree",
+        "tree_hash": "sha256:83c994722b1b58283dc538df04faa97ccfcd8e05b3ced2e29a1a249f4f613b04",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/wrong-error-branch-cursor",
+      "impl": "go",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:83c994722b1b58283dc538df04faa97ccfcd8e05b3ced2e29a1a249f4f613b04",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 15906.302,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-969116859/tree",
+        "tree_hash": "sha256:83c994722b1b58283dc538df04faa97ccfcd8e05b3ced2e29a1a249f4f613b04",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/wrong-error-branch-cursor",
+      "impl": "go",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:83c994722b1b58283dc538df04faa97ccfcd8e05b3ced2e29a1a249f4f613b04",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 30148.073,
+      "launches": 54,
+      "tool_ms": 5221.942999999999,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "go@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-969116859/tree",
+        "tree_hash": "sha256:83c994722b1b58283dc538df04faa97ccfcd8e05b3ced2e29a1a249f4f613b04",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "go/handle-case-folded",
+      "impl": "go",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:f511130ef5977961909d9181044a571e541ef83e10db8205e14c945adb2ff802",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 560.868,
+      "verdict_line": "R0 FAILED: 3 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-4147917590/tree",
+        "tree_hash": "sha256:f511130ef5977961909d9181044a571e541ef83e10db8205e14c945adb2ff802",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/handle-case-folded",
+      "impl": "go",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:f511130ef5977961909d9181044a571e541ef83e10db8205e14c945adb2ff802",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 6248.276,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-4147917590/tree",
+        "tree_hash": "sha256:f511130ef5977961909d9181044a571e541ef83e10db8205e14c945adb2ff802",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/handle-case-folded",
+      "impl": "go",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:f511130ef5977961909d9181044a571e541ef83e10db8205e14c945adb2ff802",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 29802.341,
+      "launches": 54,
+      "tool_ms": 4876.210999999999,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "go@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-4147917590/tree",
+        "tree_hash": "sha256:f511130ef5977961909d9181044a571e541ef83e10db8205e14c945adb2ff802",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "go/next-cursor-off-by-one",
+      "impl": "go",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:2f5e4e25336ca4579f77f66a82fb8fdb102f309b9129459ab25e3646a859ef2f",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 480.541,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2319838794/tree",
+        "tree_hash": "sha256:2f5e4e25336ca4579f77f66a82fb8fdb102f309b9129459ab25e3646a859ef2f",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/next-cursor-off-by-one",
+      "impl": "go",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:2f5e4e25336ca4579f77f66a82fb8fdb102f309b9129459ab25e3646a859ef2f",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 44545.683,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2319838794/tree",
+        "tree_hash": "sha256:2f5e4e25336ca4579f77f66a82fb8fdb102f309b9129459ab25e3646a859ef2f",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/next-cursor-off-by-one",
+      "impl": "go",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:2f5e4e25336ca4579f77f66a82fb8fdb102f309b9129459ab25e3646a859ef2f",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 30713.936,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "go@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2319838794/tree",
+        "tree_hash": "sha256:2f5e4e25336ca4579f77f66a82fb8fdb102f309b9129459ab25e3646a859ef2f",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/text-length-in-code-points",
+      "impl": "go",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:7f26697d1bbfec0be5992eb9a4c5bf9c89ff3bf71595921cda1784a4926a0d6e",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 610.697,
+      "launches": 1,
+      "tool_ms": 149.10199999999998,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "go@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-1774014484/tree",
+        "tree_hash": "sha256:7f26697d1bbfec0be5992eb9a4c5bf9c89ff3bf71595921cda1784a4926a0d6e",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "go/text-length-in-code-points",
+      "impl": "go",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:7f26697d1bbfec0be5992eb9a4c5bf9c89ff3bf71595921cda1784a4926a0d6e",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 11870.51,
+      "launches": 20,
+      "tool_ms": 2638.6099999999988,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "go@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-1774014484/tree",
+        "tree_hash": "sha256:7f26697d1bbfec0be5992eb9a4c5bf9c89ff3bf71595921cda1784a4926a0d6e",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "go/text-length-in-code-points",
+      "impl": "go",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:7f26697d1bbfec0be5992eb9a4c5bf9c89ff3bf71595921cda1784a4926a0d6e",
+      "rung": "R2",
+      "outcome": "unreached",
+      "wall_ms": 30019.485,
+      "launches": 54,
+      "tool_ms": 5093.355,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "go@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-1774014484/tree",
+        "tree_hash": "sha256:7f26697d1bbfec0be5992eb9a4c5bf9c89ff3bf71595921cda1784a4926a0d6e",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "go/go-slice-len-aliasing",
+      "impl": "go",
+      "id": "go-slice-len-aliasing",
+      "family": "language-idiom",
+      "tree_hash": "sha256:4dd34b51acb616f217ad59c9ddcc31e270352ca9022e8670976ce2c29ba7a8d2",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 506.98,
+      "verdict_line": "R0 FAILED: 8 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "go@go-slice-len-aliasing",
+        "dir": "/tmp/calibrate-mutant-2817171249/tree",
+        "tree_hash": "sha256:4dd34b51acb616f217ad59c9ddcc31e270352ca9022e8670976ce2c29ba7a8d2",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/go-slice-len-aliasing",
+      "impl": "go",
+      "id": "go-slice-len-aliasing",
+      "family": "language-idiom",
+      "tree_hash": "sha256:4dd34b51acb616f217ad59c9ddcc31e270352ca9022e8670976ce2c29ba7a8d2",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 10256.267,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "go@go-slice-len-aliasing",
+        "dir": "/tmp/calibrate-mutant-2817171249/tree",
+        "tree_hash": "sha256:4dd34b51acb616f217ad59c9ddcc31e270352ca9022e8670976ce2c29ba7a8d2",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "go/go-slice-len-aliasing",
+      "impl": "go",
+      "id": "go-slice-len-aliasing",
+      "family": "language-idiom",
+      "tree_hash": "sha256:4dd34b51acb616f217ad59c9ddcc31e270352ca9022e8670976ce2c29ba7a8d2",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 29672.391,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "go@go-slice-len-aliasing",
+        "dir": "/tmp/calibrate-mutant-2817171249/tree",
+        "tree_hash": "sha256:4dd34b51acb616f217ad59c9ddcc31e270352ca9022e8670976ce2c29ba7a8d2",
+        "source_hash": "sha256:1340d365e061bd23e83e3c150a3b5f169b74c461b01f1a8ae243e7619d34c4ae",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/go",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/handle-bound-off-by-one",
+      "impl": "rust",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:2147f4ccfc7807ac235f07f45b7493b9b33f1991ede7bfd251642a4dda1ad5c2",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 152.194,
+      "launches": 1,
+      "tool_ms": 54.92633333333332,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "rust@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-4206891471/tree",
+        "tree_hash": "sha256:2147f4ccfc7807ac235f07f45b7493b9b33f1991ede7bfd251642a4dda1ad5c2",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "rust/handle-bound-off-by-one",
+      "impl": "rust",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:2147f4ccfc7807ac235f07f45b7493b9b33f1991ede7bfd251642a4dda1ad5c2",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 3317.684,
+      "launches": 20,
+      "tool_ms": 1372.3306666666667,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "rust@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-4206891471/tree",
+        "tree_hash": "sha256:2147f4ccfc7807ac235f07f45b7493b9b33f1991ede7bfd251642a4dda1ad5c2",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "rust/handle-bound-off-by-one",
+      "impl": "rust",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:2147f4ccfc7807ac235f07f45b7493b9b33f1991ede7bfd251642a4dda1ad5c2",
+      "rung": "R2",
+      "outcome": "unreached",
+      "wall_ms": 7514.374,
+      "launches": 54,
+      "tool_ms": 2261.919999999999,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "rust@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-4206891471/tree",
+        "tree_hash": "sha256:2147f4ccfc7807ac235f07f45b7493b9b33f1991ede7bfd251642a4dda1ad5c2",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "rust/limit-bound-off-by-one",
+      "impl": "rust",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:6b47d580da71a4e875e868e23e2185a2e92dfe16d75c546aa2d343207cecc8bf",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 149.247,
+      "launches": 1,
+      "tool_ms": 51.979333333333344,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "rust@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-4140773739/tree",
+        "tree_hash": "sha256:6b47d580da71a4e875e868e23e2185a2e92dfe16d75c546aa2d343207cecc8bf",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "rust/limit-bound-off-by-one",
+      "impl": "rust",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:6b47d580da71a4e875e868e23e2185a2e92dfe16d75c546aa2d343207cecc8bf",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 3590.92,
+      "launches": 20,
+      "tool_ms": 1645.5666666666666,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "rust@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-4140773739/tree",
+        "tree_hash": "sha256:6b47d580da71a4e875e868e23e2185a2e92dfe16d75c546aa2d343207cecc8bf",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "rust/limit-bound-off-by-one",
+      "impl": "rust",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:6b47d580da71a4e875e868e23e2185a2e92dfe16d75c546aa2d343207cecc8bf",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 7652.099,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "rust@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-4140773739/tree",
+        "tree_hash": "sha256:6b47d580da71a4e875e868e23e2185a2e92dfe16d75c546aa2d343207cecc8bf",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/text-rejects-space",
+      "impl": "rust",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:94d87503f23cdc7d169fbcfce14decaed183578fbb18721a2bca9b9068f2c60c",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 142.009,
+      "verdict_line": "R0 FAILED: 13 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "rust@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-4128569191/tree",
+        "tree_hash": "sha256:94d87503f23cdc7d169fbcfce14decaed183578fbb18721a2bca9b9068f2c60c",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/text-rejects-space",
+      "impl": "rust",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:94d87503f23cdc7d169fbcfce14decaed183578fbb18721a2bca9b9068f2c60c",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 1364.242,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "rust@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-4128569191/tree",
+        "tree_hash": "sha256:94d87503f23cdc7d169fbcfce14decaed183578fbb18721a2bca9b9068f2c60c",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/text-rejects-space",
+      "impl": "rust",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:94d87503f23cdc7d169fbcfce14decaed183578fbb18721a2bca9b9068f2c60c",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 7492.532,
+      "launches": 54,
+      "tool_ms": 2240.0779999999995,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "rust@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-4128569191/tree",
+        "tree_hash": "sha256:94d87503f23cdc7d169fbcfce14decaed183578fbb18721a2bca9b9068f2c60c",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "rust/timeline-drops-oldest",
+      "impl": "rust",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:71a1f8862f1ba301cfe6306877f2b53fdfb64e43a90a3364e77b0584dbc2c7bf",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 157.048,
+      "verdict_line": "R0 FAILED: 6 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "rust@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-114724726/tree",
+        "tree_hash": "sha256:71a1f8862f1ba301cfe6306877f2b53fdfb64e43a90a3364e77b0584dbc2c7bf",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/timeline-drops-oldest",
+      "impl": "rust",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:71a1f8862f1ba301cfe6306877f2b53fdfb64e43a90a3364e77b0584dbc2c7bf",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 3443.429,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "rust@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-114724726/tree",
+        "tree_hash": "sha256:71a1f8862f1ba301cfe6306877f2b53fdfb64e43a90a3364e77b0584dbc2c7bf",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/timeline-drops-oldest",
+      "impl": "rust",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:71a1f8862f1ba301cfe6306877f2b53fdfb64e43a90a3364e77b0584dbc2c7bf",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 7632.823,
+      "launches": 54,
+      "tool_ms": 2380.3689999999997,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "rust@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-114724726/tree",
+        "tree_hash": "sha256:71a1f8862f1ba301cfe6306877f2b53fdfb64e43a90a3364e77b0584dbc2c7bf",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "rust/visibility-args-swapped",
+      "impl": "rust",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:3ed75ace2f5db9ea1626251a362954c23c3c94320a6d563af047bb60aa649ab9",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 174.048,
+      "verdict_line": "R0 FAILED: 6 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "rust@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-1495419434/tree",
+        "tree_hash": "sha256:3ed75ace2f5db9ea1626251a362954c23c3c94320a6d563af047bb60aa649ab9",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/visibility-args-swapped",
+      "impl": "rust",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:3ed75ace2f5db9ea1626251a362954c23c3c94320a6d563af047bb60aa649ab9",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 4741.149,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "rust@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-1495419434/tree",
+        "tree_hash": "sha256:3ed75ace2f5db9ea1626251a362954c23c3c94320a6d563af047bb60aa649ab9",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/visibility-args-swapped",
+      "impl": "rust",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:3ed75ace2f5db9ea1626251a362954c23c3c94320a6d563af047bb60aa649ab9",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 7530.26,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "rust@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-1495419434/tree",
+        "tree_hash": "sha256:3ed75ace2f5db9ea1626251a362954c23c3c94320a6d563af047bb60aa649ab9",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/visibility-negation-dropped",
+      "impl": "rust",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:521b2aaab22e5031df9365d0b336d898588eb159ed032bbca6a52c234eadcf79",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 140.099,
+      "verdict_line": "R0 FAILED: 7 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "rust@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-253456676/tree",
+        "tree_hash": "sha256:521b2aaab22e5031df9365d0b336d898588eb159ed032bbca6a52c234eadcf79",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/visibility-negation-dropped",
+      "impl": "rust",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:521b2aaab22e5031df9365d0b336d898588eb159ed032bbca6a52c234eadcf79",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 2950.787,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "rust@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-253456676/tree",
+        "tree_hash": "sha256:521b2aaab22e5031df9365d0b336d898588eb159ed032bbca6a52c234eadcf79",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/visibility-negation-dropped",
+      "impl": "rust",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:521b2aaab22e5031df9365d0b336d898588eb159ed032bbca6a52c234eadcf79",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 7310.921,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "rust@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-253456676/tree",
+        "tree_hash": "sha256:521b2aaab22e5031df9365d0b336d898588eb159ed032bbca6a52c234eadcf79",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/wrong-error-branch-cursor",
+      "impl": "rust",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:076c06fc55cc16a0421298c21ac9a1e81da9c6959f549cfb2305d49ee6bdcb21",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 142.737,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "rust@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-3576663895/tree",
+        "tree_hash": "sha256:076c06fc55cc16a0421298c21ac9a1e81da9c6959f549cfb2305d49ee6bdcb21",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/wrong-error-branch-cursor",
+      "impl": "rust",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:076c06fc55cc16a0421298c21ac9a1e81da9c6959f549cfb2305d49ee6bdcb21",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 4016.242,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "rust@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-3576663895/tree",
+        "tree_hash": "sha256:076c06fc55cc16a0421298c21ac9a1e81da9c6959f549cfb2305d49ee6bdcb21",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/wrong-error-branch-cursor",
+      "impl": "rust",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:076c06fc55cc16a0421298c21ac9a1e81da9c6959f549cfb2305d49ee6bdcb21",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 7512.37,
+      "launches": 54,
+      "tool_ms": 2259.9159999999993,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "rust@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-3576663895/tree",
+        "tree_hash": "sha256:076c06fc55cc16a0421298c21ac9a1e81da9c6959f549cfb2305d49ee6bdcb21",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "rust/handle-case-folded",
+      "impl": "rust",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:8c4aa5918e1acefbe6225824a6a365df52564aa9cfd05d9e0cc0ec23999bcd02",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 141.628,
+      "verdict_line": "R0 FAILED: 3 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "rust@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-326854654/tree",
+        "tree_hash": "sha256:8c4aa5918e1acefbe6225824a6a365df52564aa9cfd05d9e0cc0ec23999bcd02",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/handle-case-folded",
+      "impl": "rust",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:8c4aa5918e1acefbe6225824a6a365df52564aa9cfd05d9e0cc0ec23999bcd02",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 1683.635,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "rust@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-326854654/tree",
+        "tree_hash": "sha256:8c4aa5918e1acefbe6225824a6a365df52564aa9cfd05d9e0cc0ec23999bcd02",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/handle-case-folded",
+      "impl": "rust",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:8c4aa5918e1acefbe6225824a6a365df52564aa9cfd05d9e0cc0ec23999bcd02",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 7541.006,
+      "launches": 54,
+      "tool_ms": 2288.5519999999997,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "rust@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-326854654/tree",
+        "tree_hash": "sha256:8c4aa5918e1acefbe6225824a6a365df52564aa9cfd05d9e0cc0ec23999bcd02",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "rust/next-cursor-off-by-one",
+      "impl": "rust",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:39b0f8476b49a592e2e1d1f0294bf80221d913339c3afcbdb876b226e9c00b95",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 144.46,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "rust@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-1036999993/tree",
+        "tree_hash": "sha256:39b0f8476b49a592e2e1d1f0294bf80221d913339c3afcbdb876b226e9c00b95",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/next-cursor-off-by-one",
+      "impl": "rust",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:39b0f8476b49a592e2e1d1f0294bf80221d913339c3afcbdb876b226e9c00b95",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 11163.83,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "rust@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-1036999993/tree",
+        "tree_hash": "sha256:39b0f8476b49a592e2e1d1f0294bf80221d913339c3afcbdb876b226e9c00b95",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/next-cursor-off-by-one",
+      "impl": "rust",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:39b0f8476b49a592e2e1d1f0294bf80221d913339c3afcbdb876b226e9c00b95",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 7550.898,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "rust@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-1036999993/tree",
+        "tree_hash": "sha256:39b0f8476b49a592e2e1d1f0294bf80221d913339c3afcbdb876b226e9c00b95",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "rust/text-length-in-code-points",
+      "impl": "rust",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:1070972c9f8398e68f06cbbffbc23a13ebfcd6790b49de296f5369e3be893b12",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 148.322,
+      "launches": 1,
+      "tool_ms": 51.05433333333333,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "rust@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-1925061273/tree",
+        "tree_hash": "sha256:1070972c9f8398e68f06cbbffbc23a13ebfcd6790b49de296f5369e3be893b12",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "rust/text-length-in-code-points",
+      "impl": "rust",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:1070972c9f8398e68f06cbbffbc23a13ebfcd6790b49de296f5369e3be893b12",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 3248.681,
+      "launches": 20,
+      "tool_ms": 1303.3276666666666,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "rust@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-1925061273/tree",
+        "tree_hash": "sha256:1070972c9f8398e68f06cbbffbc23a13ebfcd6790b49de296f5369e3be893b12",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "rust/text-length-in-code-points",
+      "impl": "rust",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:1070972c9f8398e68f06cbbffbc23a13ebfcd6790b49de296f5369e3be893b12",
+      "rung": "R2",
+      "outcome": "unreached",
+      "wall_ms": 7494.977,
+      "launches": 54,
+      "tool_ms": 2242.5229999999992,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "rust@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-1925061273/tree",
+        "tree_hash": "sha256:1070972c9f8398e68f06cbbffbc23a13ebfcd6790b49de296f5369e3be893b12",
+        "source_hash": "sha256:92ceb9512666738216959f6bfde6205f967b35b1682537a9e336a8facc5c8e1c",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/rust",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "java/handle-bound-off-by-one",
+      "impl": "java",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:2c8de4f72a08ca19e61967d881c1f4c78d133c151d909fd7a8c2fc73673860b9",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 1032.719,
+      "launches": 1,
+      "tool_ms": 21.137000000000057,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "java@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-134509067/tree",
+        "tree_hash": "sha256:2c8de4f72a08ca19e61967d881c1f4c78d133c151d909fd7a8c2fc73673860b9",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "java/handle-bound-off-by-one",
+      "impl": "java",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:2c8de4f72a08ca19e61967d881c1f4c78d133c151d909fd7a8c2fc73673860b9",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 21848.654,
+      "launches": 20,
+      "tool_ms": 1617.0139999999992,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "java@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-134509067/tree",
+        "tree_hash": "sha256:2c8de4f72a08ca19e61967d881c1f4c78d133c151d909fd7a8c2fc73673860b9",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "java/handle-bound-off-by-one",
+      "impl": "java",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:2c8de4f72a08ca19e61967d881c1f4c78d133c151d909fd7a8c2fc73673860b9",
+      "rung": "R2",
+      "outcome": "unreached",
+      "wall_ms": 58717.432,
+      "launches": 54,
+      "tool_ms": 4092.004000000001,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "java@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-134509067/tree",
+        "tree_hash": "sha256:2c8de4f72a08ca19e61967d881c1f4c78d133c151d909fd7a8c2fc73673860b9",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "java/limit-bound-off-by-one",
+      "impl": "java",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:f78de0d0968f1b1f4b1a4d629337a2ab47e95ed779b81a3045237a906a90e20e",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 1095.464,
+      "launches": 1,
+      "tool_ms": 83.88199999999995,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "java@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2071358370/tree",
+        "tree_hash": "sha256:f78de0d0968f1b1f4b1a4d629337a2ab47e95ed779b81a3045237a906a90e20e",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "java/limit-bound-off-by-one",
+      "impl": "java",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:f78de0d0968f1b1f4b1a4d629337a2ab47e95ed779b81a3045237a906a90e20e",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 22030.647,
+      "launches": 20,
+      "tool_ms": 1799.0070000000014,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "java@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2071358370/tree",
+        "tree_hash": "sha256:f78de0d0968f1b1f4b1a4d629337a2ab47e95ed779b81a3045237a906a90e20e",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "java/limit-bound-off-by-one",
+      "impl": "java",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:f78de0d0968f1b1f4b1a4d629337a2ab47e95ed779b81a3045237a906a90e20e",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 57650.106,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "java@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2071358370/tree",
+        "tree_hash": "sha256:f78de0d0968f1b1f4b1a4d629337a2ab47e95ed779b81a3045237a906a90e20e",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/text-rejects-space",
+      "impl": "java",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:100e8c96b4bb4f8f953a6207a2c70834e64805ac1bec8798ff7702feb650df89",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 1081.658,
+      "verdict_line": "R0 FAILED: 13 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "java@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-4157011635/tree",
+        "tree_hash": "sha256:100e8c96b4bb4f8f953a6207a2c70834e64805ac1bec8798ff7702feb650df89",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/text-rejects-space",
+      "impl": "java",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:100e8c96b4bb4f8f953a6207a2c70834e64805ac1bec8798ff7702feb650df89",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 11015.514,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "java@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-4157011635/tree",
+        "tree_hash": "sha256:100e8c96b4bb4f8f953a6207a2c70834e64805ac1bec8798ff7702feb650df89",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/text-rejects-space",
+      "impl": "java",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:100e8c96b4bb4f8f953a6207a2c70834e64805ac1bec8798ff7702feb650df89",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 56893.407,
+      "launches": 54,
+      "tool_ms": 2267.9789999999994,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "java@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-4157011635/tree",
+        "tree_hash": "sha256:100e8c96b4bb4f8f953a6207a2c70834e64805ac1bec8798ff7702feb650df89",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "java/timeline-drops-oldest",
+      "impl": "java",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:324a0cc71a631215b5d677b984f474059aeb6c13659a0908c516bb4bbbe82915",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 1050.491,
+      "verdict_line": "R0 FAILED: 6 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "java@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-3046438928/tree",
+        "tree_hash": "sha256:324a0cc71a631215b5d677b984f474059aeb6c13659a0908c516bb4bbbe82915",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/timeline-drops-oldest",
+      "impl": "java",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:324a0cc71a631215b5d677b984f474059aeb6c13659a0908c516bb4bbbe82915",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 27406.666,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "java@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-3046438928/tree",
+        "tree_hash": "sha256:324a0cc71a631215b5d677b984f474059aeb6c13659a0908c516bb4bbbe82915",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/timeline-drops-oldest",
+      "impl": "java",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:324a0cc71a631215b5d677b984f474059aeb6c13659a0908c516bb4bbbe82915",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 57778.251,
+      "launches": 54,
+      "tool_ms": 3152.8229999999967,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "java@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-3046438928/tree",
+        "tree_hash": "sha256:324a0cc71a631215b5d677b984f474059aeb6c13659a0908c516bb4bbbe82915",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "java/visibility-args-swapped",
+      "impl": "java",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:4f33299df13d6a7ccd841e6bc0e296db625b95024cb4998a12d129c449a83f13",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 1075.005,
+      "verdict_line": "R0 FAILED: 6 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "java@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-636539754/tree",
+        "tree_hash": "sha256:4f33299df13d6a7ccd841e6bc0e296db625b95024cb4998a12d129c449a83f13",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/visibility-args-swapped",
+      "impl": "java",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:4f33299df13d6a7ccd841e6bc0e296db625b95024cb4998a12d129c449a83f13",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 36520.911,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "java@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-636539754/tree",
+        "tree_hash": "sha256:4f33299df13d6a7ccd841e6bc0e296db625b95024cb4998a12d129c449a83f13",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/visibility-args-swapped",
+      "impl": "java",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:4f33299df13d6a7ccd841e6bc0e296db625b95024cb4998a12d129c449a83f13",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 57174.496,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "java@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-636539754/tree",
+        "tree_hash": "sha256:4f33299df13d6a7ccd841e6bc0e296db625b95024cb4998a12d129c449a83f13",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/visibility-negation-dropped",
+      "impl": "java",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:6b288dfcba0f280141a968c7dea074892b89dbfb8abd0eaef04271138cd48d1d",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 1050.121,
+      "verdict_line": "R0 FAILED: 7 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "java@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-2386177575/tree",
+        "tree_hash": "sha256:6b288dfcba0f280141a968c7dea074892b89dbfb8abd0eaef04271138cd48d1d",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/visibility-negation-dropped",
+      "impl": "java",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:6b288dfcba0f280141a968c7dea074892b89dbfb8abd0eaef04271138cd48d1d",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 22545.523,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "java@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-2386177575/tree",
+        "tree_hash": "sha256:6b288dfcba0f280141a968c7dea074892b89dbfb8abd0eaef04271138cd48d1d",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/visibility-negation-dropped",
+      "impl": "java",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:6b288dfcba0f280141a968c7dea074892b89dbfb8abd0eaef04271138cd48d1d",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 57699.929,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "java@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-2386177575/tree",
+        "tree_hash": "sha256:6b288dfcba0f280141a968c7dea074892b89dbfb8abd0eaef04271138cd48d1d",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/wrong-error-branch-cursor",
+      "impl": "java",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:cce858565cc0dcbd3d696ea521e4c378ccb49850cfa922aebaac692256a549c6",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 1023.161,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "java@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-3699253199/tree",
+        "tree_hash": "sha256:cce858565cc0dcbd3d696ea521e4c378ccb49850cfa922aebaac692256a549c6",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/wrong-error-branch-cursor",
+      "impl": "java",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:cce858565cc0dcbd3d696ea521e4c378ccb49850cfa922aebaac692256a549c6",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 31134.023,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "java@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-3699253199/tree",
+        "tree_hash": "sha256:cce858565cc0dcbd3d696ea521e4c378ccb49850cfa922aebaac692256a549c6",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/wrong-error-branch-cursor",
+      "impl": "java",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:cce858565cc0dcbd3d696ea521e4c378ccb49850cfa922aebaac692256a549c6",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 57949.092,
+      "launches": 54,
+      "tool_ms": 3323.663999999997,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "java@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-3699253199/tree",
+        "tree_hash": "sha256:cce858565cc0dcbd3d696ea521e4c378ccb49850cfa922aebaac692256a549c6",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "java/handle-case-folded",
+      "impl": "java",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:ada5d14b8e4bf48f31f5e66a4a43610ade2332f21425af4d9771837705a7076b",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 1066.784,
+      "verdict_line": "R0 FAILED: 3 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "java@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-60248520/tree",
+        "tree_hash": "sha256:ada5d14b8e4bf48f31f5e66a4a43610ade2332f21425af4d9771837705a7076b",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/handle-case-folded",
+      "impl": "java",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:ada5d14b8e4bf48f31f5e66a4a43610ade2332f21425af4d9771837705a7076b",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 11426.306,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "java@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-60248520/tree",
+        "tree_hash": "sha256:ada5d14b8e4bf48f31f5e66a4a43610ade2332f21425af4d9771837705a7076b",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/handle-case-folded",
+      "impl": "java",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:ada5d14b8e4bf48f31f5e66a4a43610ade2332f21425af4d9771837705a7076b",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 57441.564,
+      "launches": 54,
+      "tool_ms": 2816.1359999999986,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "java@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-60248520/tree",
+        "tree_hash": "sha256:ada5d14b8e4bf48f31f5e66a4a43610ade2332f21425af4d9771837705a7076b",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "java/next-cursor-off-by-one",
+      "impl": "java",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:a2c57812464657143c8af6009453392cfd1c7fcf8f2902d16e0de9e7a4d42852",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 1079.659,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "java@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2738224257/tree",
+        "tree_hash": "sha256:a2c57812464657143c8af6009453392cfd1c7fcf8f2902d16e0de9e7a4d42852",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/next-cursor-off-by-one",
+      "impl": "java",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:a2c57812464657143c8af6009453392cfd1c7fcf8f2902d16e0de9e7a4d42852",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 85073.58,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "java@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2738224257/tree",
+        "tree_hash": "sha256:a2c57812464657143c8af6009453392cfd1c7fcf8f2902d16e0de9e7a4d42852",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/next-cursor-off-by-one",
+      "impl": "java",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:a2c57812464657143c8af6009453392cfd1c7fcf8f2902d16e0de9e7a4d42852",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 57911.718,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "java@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2738224257/tree",
+        "tree_hash": "sha256:a2c57812464657143c8af6009453392cfd1c7fcf8f2902d16e0de9e7a4d42852",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/text-length-in-code-points",
+      "impl": "java",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:db623dddd25ec5d90a6f026544e44adb18699ed24a9262ce4c482a3c34a795ac",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 1005.59,
+      "launches": 1,
+      "tool_ms": -5.991999999999962,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "java@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-735117484/tree",
+        "tree_hash": "sha256:db623dddd25ec5d90a6f026544e44adb18699ed24a9262ce4c482a3c34a795ac",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "java/text-length-in-code-points",
+      "impl": "java",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:db623dddd25ec5d90a6f026544e44adb18699ed24a9262ce4c482a3c34a795ac",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 21776.529,
+      "launches": 20,
+      "tool_ms": 1544.8889999999992,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "java@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-735117484/tree",
+        "tree_hash": "sha256:db623dddd25ec5d90a6f026544e44adb18699ed24a9262ce4c482a3c34a795ac",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "java/text-length-in-code-points",
+      "impl": "java",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:db623dddd25ec5d90a6f026544e44adb18699ed24a9262ce4c482a3c34a795ac",
+      "rung": "R2",
+      "outcome": "unreached",
+      "wall_ms": 52366.535,
+      "launches": 54,
+      "tool_ms": -2258.8929999999964,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "java@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-735117484/tree",
+        "tree_hash": "sha256:db623dddd25ec5d90a6f026544e44adb18699ed24a9262ce4c482a3c34a795ac",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "java/jvm-string-identity-compare",
+      "impl": "java",
+      "id": "jvm-string-identity-compare",
+      "family": "language-idiom",
+      "tree_hash": "sha256:aeeb7a774627cae8c9972be57cc053d2578ca5e841a01cef20a23c3e0a6d04a2",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 877.217,
+      "verdict_line": "R0 FAILED: 3 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "java@jvm-string-identity-compare",
+        "dir": "/tmp/calibrate-mutant-3427479927/tree",
+        "tree_hash": "sha256:aeeb7a774627cae8c9972be57cc053d2578ca5e841a01cef20a23c3e0a6d04a2",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/jvm-string-identity-compare",
+      "impl": "java",
+      "id": "jvm-string-identity-compare",
+      "family": "language-idiom",
+      "tree_hash": "sha256:aeeb7a774627cae8c9972be57cc053d2578ca5e841a01cef20a23c3e0a6d04a2",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 22317.639,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "java@jvm-string-identity-compare",
+        "dir": "/tmp/calibrate-mutant-3427479927/tree",
+        "tree_hash": "sha256:aeeb7a774627cae8c9972be57cc053d2578ca5e841a01cef20a23c3e0a6d04a2",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "java/jvm-string-identity-compare",
+      "impl": "java",
+      "id": "jvm-string-identity-compare",
+      "family": "language-idiom",
+      "tree_hash": "sha256:aeeb7a774627cae8c9972be57cc053d2578ca5e841a01cef20a23c3e0a6d04a2",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 81901.966,
+      "launches": 54,
+      "tool_ms": 27276.538,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "java@jvm-string-identity-compare",
+        "dir": "/tmp/calibrate-mutant-3537264119/tree",
+        "tree_hash": "sha256:aeeb7a774627cae8c9972be57cc053d2578ca5e841a01cef20a23c3e0a6d04a2",
+        "source_hash": "sha256:0b113dd5f0eaab7624ec13e0970d206915365ca7a00c4d1dac510bc1a98083d5",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/java",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "kotlin/handle-bound-off-by-one",
+      "impl": "kotlin",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:ea0aa5fc41745fe492178f6af1740a83ff30933441041371d2bf8a60d6e1a55b",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 12615.677,
+      "launches": 1,
+      "tool_ms": 3686.2046666666665,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "kotlin@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2376642821/tree",
+        "tree_hash": "sha256:ea0aa5fc41745fe492178f6af1740a83ff30933441041371d2bf8a60d6e1a55b",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "kotlin/handle-bound-off-by-one",
+      "impl": "kotlin",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:ea0aa5fc41745fe492178f6af1740a83ff30933441041371d2bf8a60d6e1a55b",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 229090.428,
+      "launches": 20,
+      "tool_ms": 50500.98133333336,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "kotlin@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2376642821/tree",
+        "tree_hash": "sha256:ea0aa5fc41745fe492178f6af1740a83ff30933441041371d2bf8a60d6e1a55b",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "kotlin/handle-bound-off-by-one",
+      "impl": "kotlin",
+      "id": "handle-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:ea0aa5fc41745fe492178f6af1740a83ff30933441041371d2bf8a60d6e1a55b",
+      "rung": "R2",
+      "outcome": "unreached",
+      "wall_ms": 610398.074,
+      "launches": 54,
+      "tool_ms": 128206.56800000003,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "kotlin@handle-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2376642821/tree",
+        "tree_hash": "sha256:ea0aa5fc41745fe492178f6af1740a83ff30933441041371d2bf8a60d6e1a55b",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "kotlin/limit-bound-off-by-one",
+      "impl": "kotlin",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:7d05bc16d1bec59dd95c1b5b6d942caaad8fdad395610c93553fadf5b7ba9dda",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 10622.477,
+      "launches": 1,
+      "tool_ms": 1693.0046666666676,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "kotlin@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-329780856/tree",
+        "tree_hash": "sha256:7d05bc16d1bec59dd95c1b5b6d942caaad8fdad395610c93553fadf5b7ba9dda",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "kotlin/limit-bound-off-by-one",
+      "impl": "kotlin",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:7d05bc16d1bec59dd95c1b5b6d942caaad8fdad395610c93553fadf5b7ba9dda",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 226241.342,
+      "launches": 20,
+      "tool_ms": 47651.89533333335,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "kotlin@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-329780856/tree",
+        "tree_hash": "sha256:7d05bc16d1bec59dd95c1b5b6d942caaad8fdad395610c93553fadf5b7ba9dda",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "kotlin/limit-bound-off-by-one",
+      "impl": "kotlin",
+      "id": "limit-bound-off-by-one",
+      "family": "boundary",
+      "tree_hash": "sha256:7d05bc16d1bec59dd95c1b5b6d942caaad8fdad395610c93553fadf5b7ba9dda",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 452868.168,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "kotlin@limit-bound-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2229973487/tree",
+        "tree_hash": "sha256:7d05bc16d1bec59dd95c1b5b6d942caaad8fdad395610c93553fadf5b7ba9dda",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/text-rejects-space",
+      "impl": "kotlin",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:12f6ced22d34370ccb36f2aff91fac66a508c9bc6f2ca83038f9f6009b41bcd4",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 8159.091,
+      "verdict_line": "R0 FAILED: 13 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "kotlin@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-1264015271/tree",
+        "tree_hash": "sha256:12f6ced22d34370ccb36f2aff91fac66a508c9bc6f2ca83038f9f6009b41bcd4",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/text-rejects-space",
+      "impl": "kotlin",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:12f6ced22d34370ccb36f2aff91fac66a508c9bc6f2ca83038f9f6009b41bcd4",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 86086.727,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "kotlin@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-1264015271/tree",
+        "tree_hash": "sha256:12f6ced22d34370ccb36f2aff91fac66a508c9bc6f2ca83038f9f6009b41bcd4",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/text-rejects-space",
+      "impl": "kotlin",
+      "id": "text-rejects-space",
+      "family": "boundary",
+      "tree_hash": "sha256:12f6ced22d34370ccb36f2aff91fac66a508c9bc6f2ca83038f9f6009b41bcd4",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 453695.737,
+      "launches": 54,
+      "tool_ms": -28495.76899999997,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "kotlin@text-rejects-space",
+        "dir": "/tmp/calibrate-mutant-1264015271/tree",
+        "tree_hash": "sha256:12f6ced22d34370ccb36f2aff91fac66a508c9bc6f2ca83038f9f6009b41bcd4",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "kotlin/timeline-drops-oldest",
+      "impl": "kotlin",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:519754dd5b5151cbbd5e8ce1ea04bf0e1c1cab7b7ec75ee084ee6105a4916999",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 8602.09,
+      "verdict_line": "R0 FAILED: 6 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "kotlin@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-2797265268/tree",
+        "tree_hash": "sha256:519754dd5b5151cbbd5e8ce1ea04bf0e1c1cab7b7ec75ee084ee6105a4916999",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/timeline-drops-oldest",
+      "impl": "kotlin",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:519754dd5b5151cbbd5e8ce1ea04bf0e1c1cab7b7ec75ee084ee6105a4916999",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 218184.984,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "kotlin@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-2797265268/tree",
+        "tree_hash": "sha256:519754dd5b5151cbbd5e8ce1ea04bf0e1c1cab7b7ec75ee084ee6105a4916999",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/timeline-drops-oldest",
+      "impl": "kotlin",
+      "id": "timeline-drops-oldest",
+      "family": "collection-bound",
+      "tree_hash": "sha256:519754dd5b5151cbbd5e8ce1ea04bf0e1c1cab7b7ec75ee084ee6105a4916999",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 451441.402,
+      "launches": 54,
+      "tool_ms": -30750.103999999992,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "kotlin@timeline-drops-oldest",
+        "dir": "/tmp/calibrate-mutant-2797265268/tree",
+        "tree_hash": "sha256:519754dd5b5151cbbd5e8ce1ea04bf0e1c1cab7b7ec75ee084ee6105a4916999",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "kotlin/visibility-args-swapped",
+      "impl": "kotlin",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:a79fea23336eef5f53929c3fbdd4a19a4b5dd2f6efb0535801b62ca4a2ec0e86",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 8172.059,
+      "verdict_line": "R0 FAILED: 6 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "kotlin@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-3581095834/tree",
+        "tree_hash": "sha256:a79fea23336eef5f53929c3fbdd4a19a4b5dd2f6efb0535801b62ca4a2ec0e86",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/visibility-args-swapped",
+      "impl": "kotlin",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:a79fea23336eef5f53929c3fbdd4a19a4b5dd2f6efb0535801b62ca4a2ec0e86",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 287406.715,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "kotlin@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-3581095834/tree",
+        "tree_hash": "sha256:a79fea23336eef5f53929c3fbdd4a19a4b5dd2f6efb0535801b62ca4a2ec0e86",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/visibility-args-swapped",
+      "impl": "kotlin",
+      "id": "visibility-args-swapped",
+      "family": "swapped-arguments",
+      "tree_hash": "sha256:a79fea23336eef5f53929c3fbdd4a19a4b5dd2f6efb0535801b62ca4a2ec0e86",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 459714.886,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "kotlin@visibility-args-swapped",
+        "dir": "/tmp/calibrate-mutant-3581095834/tree",
+        "tree_hash": "sha256:a79fea23336eef5f53929c3fbdd4a19a4b5dd2f6efb0535801b62ca4a2ec0e86",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/visibility-negation-dropped",
+      "impl": "kotlin",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:53e96ee8c8b302af45e155875051af0fe44ff0cdac131f862b436760dbd126ab",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 8606.044,
+      "verdict_line": "R0 FAILED: 7 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "kotlin@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-1896659553/tree",
+        "tree_hash": "sha256:53e96ee8c8b302af45e155875051af0fe44ff0cdac131f862b436760dbd126ab",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/visibility-negation-dropped",
+      "impl": "kotlin",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:53e96ee8c8b302af45e155875051af0fe44ff0cdac131f862b436760dbd126ab",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 184503.202,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "kotlin@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-1896659553/tree",
+        "tree_hash": "sha256:53e96ee8c8b302af45e155875051af0fe44ff0cdac131f862b436760dbd126ab",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/visibility-negation-dropped",
+      "impl": "kotlin",
+      "id": "visibility-negation-dropped",
+      "family": "dropped-negation",
+      "tree_hash": "sha256:53e96ee8c8b302af45e155875051af0fe44ff0cdac131f862b436760dbd126ab",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 446716.744,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "kotlin@visibility-negation-dropped",
+        "dir": "/tmp/calibrate-mutant-3050871917/tree",
+        "tree_hash": "sha256:53e96ee8c8b302af45e155875051af0fe44ff0cdac131f862b436760dbd126ab",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/wrong-error-branch-cursor",
+      "impl": "kotlin",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:97012a801a82b8878512c7ae16273a884ca511fc1fd9e0b5c8181ad8bd6f3739",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 8221.386,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "kotlin@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-1071153977/tree",
+        "tree_hash": "sha256:97012a801a82b8878512c7ae16273a884ca511fc1fd9e0b5c8181ad8bd6f3739",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/wrong-error-branch-cursor",
+      "impl": "kotlin",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:97012a801a82b8878512c7ae16273a884ca511fc1fd9e0b5c8181ad8bd6f3739",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 251397.211,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "kotlin@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-1071153977/tree",
+        "tree_hash": "sha256:97012a801a82b8878512c7ae16273a884ca511fc1fd9e0b5c8181ad8bd6f3739",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/wrong-error-branch-cursor",
+      "impl": "kotlin",
+      "id": "wrong-error-branch-cursor",
+      "family": "wrong-error-branch",
+      "tree_hash": "sha256:97012a801a82b8878512c7ae16273a884ca511fc1fd9e0b5c8181ad8bd6f3739",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 452773.227,
+      "launches": 54,
+      "tool_ms": -29418.27899999998,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "kotlin@wrong-error-branch-cursor",
+        "dir": "/tmp/calibrate-mutant-1071153977/tree",
+        "tree_hash": "sha256:97012a801a82b8878512c7ae16273a884ca511fc1fd9e0b5c8181ad8bd6f3739",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "kotlin/handle-case-folded",
+      "impl": "kotlin",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:2145bdf016fd1a71ac278ba73a83e08955a836c9aed6beb2a4650586c752960c",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 8731.105,
+      "verdict_line": "R0 FAILED: 3 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "kotlin@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-2536245287/tree",
+        "tree_hash": "sha256:2145bdf016fd1a71ac278ba73a83e08955a836c9aed6beb2a4650586c752960c",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/handle-case-folded",
+      "impl": "kotlin",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:2145bdf016fd1a71ac278ba73a83e08955a836c9aed6beb2a4650586c752960c",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 97486.461,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "kotlin@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-2536245287/tree",
+        "tree_hash": "sha256:2145bdf016fd1a71ac278ba73a83e08955a836c9aed6beb2a4650586c752960c",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/handle-case-folded",
+      "impl": "kotlin",
+      "id": "handle-case-folded",
+      "family": "normalisation",
+      "tree_hash": "sha256:2145bdf016fd1a71ac278ba73a83e08955a836c9aed6beb2a4650586c752960c",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 460790.741,
+      "launches": 54,
+      "tool_ms": -21400.765000000014,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "kotlin@handle-case-folded",
+        "dir": "/tmp/calibrate-mutant-2536245287/tree",
+        "tree_hash": "sha256:2145bdf016fd1a71ac278ba73a83e08955a836c9aed6beb2a4650586c752960c",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    },
+    {
+      "mutant": "kotlin/next-cursor-off-by-one",
+      "impl": "kotlin",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:d25b729075bced4221b494f20c841635a62d1d61f915113ce4874c93886158b0",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 8757.177,
+      "verdict_line": "R0 FAILED: 1 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "kotlin@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2194222287/tree",
+        "tree_hash": "sha256:d25b729075bced4221b494f20c841635a62d1d61f915113ce4874c93886158b0",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/next-cursor-off-by-one",
+      "impl": "kotlin",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:d25b729075bced4221b494f20c841635a62d1d61f915113ce4874c93886158b0",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 674454.994,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "kotlin@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2194222287/tree",
+        "tree_hash": "sha256:d25b729075bced4221b494f20c841635a62d1d61f915113ce4874c93886158b0",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/next-cursor-off-by-one",
+      "impl": "kotlin",
+      "id": "next-cursor-off-by-one",
+      "family": "pagination",
+      "tree_hash": "sha256:d25b729075bced4221b494f20c841635a62d1d61f915113ce4874c93886158b0",
+      "rung": "R2",
+      "outcome": "killed",
+      "wall_ms": 454100.822,
+      "verdict_line": "R2 FAILED",
+      "guard": {
+        "impl_name": "kotlin@next-cursor-off-by-one",
+        "dir": "/tmp/calibrate-mutant-2194222287/tree",
+        "tree_hash": "sha256:d25b729075bced4221b494f20c841635a62d1d61f915113ce4874c93886158b0",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/text-length-in-code-points",
+      "impl": "kotlin",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:33b54ba346c8ed51cf7d73b39c8897d1c5a1659bab9a6e5fbbdc84ef0a2d30ac",
+      "rung": "R0",
+      "outcome": "unreached",
+      "wall_ms": 8617.542,
+      "launches": 1,
+      "tool_ms": -311.9303333333337,
+      "tool_measured": true,
+      "verdict_line": "R0 PASSED: every step matches S_obs byte-for-byte",
+      "guard": {
+        "impl_name": "kotlin@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-25367018/tree",
+        "tree_hash": "sha256:33b54ba346c8ed51cf7d73b39c8897d1c5a1659bab9a6e5fbbdc84ef0a2d30ac",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (corpus) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "kotlin/text-length-in-code-points",
+      "impl": "kotlin",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:33b54ba346c8ed51cf7d73b39c8897d1c5a1659bab9a6e5fbbdc84ef0a2d30ac",
+      "rung": "R1",
+      "outcome": "unreached",
+      "wall_ms": 168310.64,
+      "launches": 20,
+      "tool_ms": -10278.806666666642,
+      "tool_measured": true,
+      "verdict_line": "R1 PASSED: 4000 requests per implementation, zero unexplained mismatches",
+      "guard": {
+        "impl_name": "kotlin@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-3516943934/tree",
+        "tree_hash": "sha256:33b54ba346c8ed51cf7d73b39c8897d1c5a1659bab9a6e5fbbdc84ef0a2d30ac",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "kotlin/text-length-in-code-points",
+      "impl": "kotlin",
+      "id": "text-length-in-code-points",
+      "family": "encoding",
+      "tree_hash": "sha256:33b54ba346c8ed51cf7d73b39c8897d1c5a1659bab9a6e5fbbdc84ef0a2d30ac",
+      "rung": "R2",
+      "outcome": "unreached",
+      "wall_ms": 454312.054,
+      "launches": 54,
+      "tool_ms": -27879.45199999999,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "kotlin@text-length-in-code-points",
+        "dir": "/tmp/calibrate-mutant-3516943934/tree",
+        "tree_hash": "sha256:33b54ba346c8ed51cf7d73b39c8897d1c5a1659bab9a6e5fbbdc84ef0a2d30ac",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live, but nothing in this rung's input source (tracegen) elicits the difference; reached only by witness"
+    },
+    {
+      "mutant": "kotlin/jvm-string-identity-compare",
+      "impl": "kotlin",
+      "id": "jvm-string-identity-compare",
+      "family": "language-idiom",
+      "tree_hash": "sha256:8e16a18eec60e63152b0d226a73f52c7bd1bab3a9227f3895ef9caed50051c79",
+      "rung": "R0",
+      "outcome": "killed",
+      "wall_ms": 8673.699,
+      "verdict_line": "R0 FAILED: 3 step(s) disagree with S_obs",
+      "guard": {
+        "impl_name": "kotlin@jvm-string-identity-compare",
+        "dir": "/tmp/calibrate-mutant-976204505/tree",
+        "tree_hash": "sha256:8e16a18eec60e63152b0d226a73f52c7bd1bab3a9227f3895ef9caed50051c79",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/jvm-string-identity-compare",
+      "impl": "kotlin",
+      "id": "jvm-string-identity-compare",
+      "family": "language-idiom",
+      "tree_hash": "sha256:8e16a18eec60e63152b0d226a73f52c7bd1bab3a9227f3895ef9caed50051c79",
+      "rung": "R1",
+      "outcome": "killed",
+      "wall_ms": 216620.243,
+      "verdict_line": "R1 FAILED: at least one implementation diverges from S_obs",
+      "guard": {
+        "impl_name": "kotlin@jvm-string-identity-compare",
+        "dir": "/tmp/calibrate-mutant-976204505/tree",
+        "tree_hash": "sha256:8e16a18eec60e63152b0d226a73f52c7bd1bab3a9227f3895ef9caed50051c79",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      }
+    },
+    {
+      "mutant": "kotlin/jvm-string-identity-compare",
+      "impl": "kotlin",
+      "id": "jvm-string-identity-compare",
+      "family": "language-idiom",
+      "tree_hash": "sha256:8e16a18eec60e63152b0d226a73f52c7bd1bab3a9227f3895ef9caed50051c79",
+      "rung": "R2",
+      "outcome": "survived",
+      "wall_ms": 454945.329,
+      "launches": 54,
+      "tool_ms": -27246.176999999967,
+      "tool_measured": true,
+      "verdict_line": "R2 PASSED: every relation holds on every generated state",
+      "guard": {
+        "impl_name": "kotlin@jvm-string-identity-compare",
+        "dir": "/tmp/calibrate-mutant-976204505/tree",
+        "tree_hash": "sha256:8e16a18eec60e63152b0d226a73f52c7bd1bab3a9227f3895ef9caed50051c79",
+        "source_hash": "sha256:97ac6f6fcf387de6983e18d7d96d58ff2485c670d2917cb19230b185b03fd244",
+        "baseline_dir": "/home/user/twitter-port-matrix/impls/kotlin",
+        "checks_passed": 5
+      },
+      "detail": "live and reached by this rung's inputs (witness, corpus, seed=1, seed=2, seed=3, seed=4), yet the rung passed: a gap in the rung, not in the inputs"
+    }
+  ],
+  "probes": [
+    {
+      "mutant": "go/handle-bound-off-by-one",
+      "tree_hash": "sha256:3e09c71e694e6ed4ea36b018cc43b685c3ac9cb40eb6c0b294e292f4cfe930c7",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 1626.168,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "go/limit-bound-off-by-one",
+      "tree_hash": "sha256:52bdd833e50f7ed9db36f8a9dddb0dd5a0dae9080c381a0429b279c2d57405e7",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 1853.247,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "go/text-rejects-space",
+      "tree_hash": "sha256:a2172ad7a49f68473e3e235c48acde2446d1890d353d23eee5b14bf87b8d81cd",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 19,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 33,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 4,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 3,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 80,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 1416.169
+    },
+    {
+      "mutant": "go/timeline-drops-oldest",
+      "tree_hash": "sha256:d8327769ff034d68d9da2a64c7927698fad16922734669dd46e6fee3dd9922cf",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 3,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 20,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 14,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 5,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 38,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 1557.234
+    },
+    {
+      "mutant": "go/wrong-error-branch-cursor",
+      "tree_hash": "sha256:83c994722b1b58283dc538df04faa97ccfcd8e05b3ced2e29a1a249f4f613b04",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 48,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 39,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 9,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 48,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 1710.254
+    },
+    {
+      "mutant": "go/handle-case-folded",
+      "tree_hash": "sha256:f511130ef5977961909d9181044a571e541ef83e10db8205e14c945adb2ff802",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 4,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 13,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 39,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 75,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 1648.829
+    },
+    {
+      "mutant": "go/text-length-in-code-points",
+      "tree_hash": "sha256:7f26697d1bbfec0be5992eb9a4c5bf9c89ff3bf71595921cda1784a4926a0d6e",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 1900.003,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "rust/handle-bound-off-by-one",
+      "tree_hash": "sha256:2147f4ccfc7807ac235f07f45b7493b9b33f1991ede7bfd251642a4dda1ad5c2",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 28011.205,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "rust/limit-bound-off-by-one",
+      "tree_hash": "sha256:6b47d580da71a4e875e868e23e2185a2e92dfe16d75c546aa2d343207cecc8bf",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 26971.718,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "rust/text-rejects-space",
+      "tree_hash": "sha256:94d87503f23cdc7d169fbcfce14decaed183578fbb18721a2bca9b9068f2c60c",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 19,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 33,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 4,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 3,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 80,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 27674.595
+    },
+    {
+      "mutant": "rust/timeline-drops-oldest",
+      "tree_hash": "sha256:71a1f8862f1ba301cfe6306877f2b53fdfb64e43a90a3364e77b0584dbc2c7bf",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 3,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 20,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 14,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 5,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 38,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 29473.227
+    },
+    {
+      "mutant": "rust/wrong-error-branch-cursor",
+      "tree_hash": "sha256:076c06fc55cc16a0421298c21ac9a1e81da9c6959f549cfb2305d49ee6bdcb21",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 48,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 39,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 9,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 48,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 26718.565
+    },
+    {
+      "mutant": "rust/handle-case-folded",
+      "tree_hash": "sha256:8c4aa5918e1acefbe6225824a6a365df52564aa9cfd05d9e0cc0ec23999bcd02",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 4,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 13,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 39,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 75,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 26735.556
+    },
+    {
+      "mutant": "rust/text-length-in-code-points",
+      "tree_hash": "sha256:1070972c9f8398e68f06cbbffbc23a13ebfcd6790b49de296f5369e3be893b12",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 27170.235,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "java/handle-bound-off-by-one",
+      "tree_hash": "sha256:2c8de4f72a08ca19e61967d881c1f4c78d133c151d909fd7a8c2fc73673860b9",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 3396.804,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "java/limit-bound-off-by-one",
+      "tree_hash": "sha256:f78de0d0968f1b1f4b1a4d629337a2ab47e95ed779b81a3045237a906a90e20e",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 3365.155,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "java/text-rejects-space",
+      "tree_hash": "sha256:100e8c96b4bb4f8f953a6207a2c70834e64805ac1bec8798ff7702feb650df89",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 19,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 33,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 4,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 3,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 80,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 3124.893
+    },
+    {
+      "mutant": "java/timeline-drops-oldest",
+      "tree_hash": "sha256:324a0cc71a631215b5d677b984f474059aeb6c13659a0908c516bb4bbbe82915",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 3,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 20,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 14,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 5,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 38,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 3311.275
+    },
+    {
+      "mutant": "java/wrong-error-branch-cursor",
+      "tree_hash": "sha256:cce858565cc0dcbd3d696ea521e4c378ccb49850cfa922aebaac692256a549c6",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 48,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 39,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 9,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 48,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 3254.345
+    },
+    {
+      "mutant": "java/handle-case-folded",
+      "tree_hash": "sha256:ada5d14b8e4bf48f31f5e66a4a43610ade2332f21425af4d9771837705a7076b",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 4,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 13,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 39,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 75,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 3040.613
+    },
+    {
+      "mutant": "java/text-length-in-code-points",
+      "tree_hash": "sha256:db623dddd25ec5d90a6f026544e44adb18699ed24a9262ce4c482a3c34a795ac",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 2923.208,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "java/jvm-string-identity-compare",
+      "tree_hash": "sha256:aeeb7a774627cae8c9972be57cc053d2578ca5e841a01cef20a23c3e0a6d04a2",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 2,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 30,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 14,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 5,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 38,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 4689.605
+    },
+    {
+      "mutant": "kotlin/handle-bound-off-by-one",
+      "tree_hash": "sha256:ea0aa5fc41745fe492178f6af1740a83ff30933441041371d2bf8a60d6e1a55b",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 23260.958,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "kotlin/limit-bound-off-by-one",
+      "tree_hash": "sha256:7d05bc16d1bec59dd95c1b5b6d942caaad8fdad395610c93553fadf5b7ba9dda",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 17401.303,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "kotlin/text-rejects-space",
+      "tree_hash": "sha256:12f6ced22d34370ccb36f2aff91fac66a508c9bc6f2ca83038f9f6009b41bcd4",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 19,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 33,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 4,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 3,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 80,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 17845.578
+    },
+    {
+      "mutant": "kotlin/timeline-drops-oldest",
+      "tree_hash": "sha256:519754dd5b5151cbbd5e8ce1ea04bf0e1c1cab7b7ec75ee084ee6105a4916999",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 3,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 20,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 14,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 5,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 38,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 17808.826
+    },
+    {
+      "mutant": "kotlin/wrong-error-branch-cursor",
+      "tree_hash": "sha256:97012a801a82b8878512c7ae16273a884ca511fc1fd9e0b5c8181ad8bd6f3739",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 48,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 39,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 9,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 48,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 18591.441
+    },
+    {
+      "mutant": "kotlin/handle-case-folded",
+      "tree_hash": "sha256:2145bdf016fd1a71ac278ba73a83e08955a836c9aed6beb2a4650586c752960c",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 0,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 4,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 13,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 39,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 75,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 18234.564
+    },
+    {
+      "mutant": "kotlin/text-length-in-code-points",
+      "tree_hash": "sha256:33b54ba346c8ed51cf7d73b39c8897d1c5a1659bab9a6e5fbbdc84ef0a2d30ac",
+      "live": true,
+      "reached_by": [
+        "witness"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 1,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": false,
+          "at_index": 0,
+          "compared": 56
+        },
+        {
+          "name": "seed=1",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=2",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=3",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        },
+        {
+          "name": "seed=4",
+          "differs": false,
+          "at_index": 0,
+          "compared": 120
+        }
+      ],
+      "wall_ms": 17902.49,
+      "note": "reached only by its declared witness: neither the corpus nor any probe trace produces a request that tells it apart, so no rung driven by those inputs can kill it"
+    },
+    {
+      "mutant": "kotlin/jvm-string-identity-compare",
+      "tree_hash": "sha256:8e16a18eec60e63152b0d226a73f52c7bd1bab3a9227f3895ef9caed50051c79",
+      "live": true,
+      "reached_by": [
+        "witness",
+        "corpus",
+        "seed=1",
+        "seed=2",
+        "seed=3",
+        "seed=4"
+      ],
+      "traces": [
+        {
+          "name": "witness",
+          "differs": true,
+          "at_index": 2,
+          "compared": 0
+        },
+        {
+          "name": "corpus",
+          "differs": true,
+          "at_index": 30,
+          "compared": 0
+        },
+        {
+          "name": "seed=1",
+          "differs": true,
+          "at_index": 11,
+          "compared": 0
+        },
+        {
+          "name": "seed=2",
+          "differs": true,
+          "at_index": 14,
+          "compared": 0
+        },
+        {
+          "name": "seed=3",
+          "differs": true,
+          "at_index": 5,
+          "compared": 0
+        },
+        {
+          "name": "seed=4",
+          "differs": true,
+          "at_index": 38,
+          "compared": 0
+        }
+      ],
+      "wall_ms": 18166.409
+    }
+  ],
+  "summary": [
+    {
+      "rung": "R0",
+      "label": "corpus",
+      "inputs": "corpus",
+      "cells": 43,
+      "live": 43,
+      "killed": 31,
+      "survived": 0,
+      "unreached": 12,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 31,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 12,
+          "reason": "live, but nothing in this rung's input source (corpus) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.7209302325581395,
+      "wall_ms_total": 118460.02699999997,
+      "wall_ms_mean_killed": 2623.7811935483874,
+      "wall_ms_mean_clean": 3093.5674999999997,
+      "tool_ms_mean_clean": 468.58825,
+      "tool_samples": 12,
+      "launches_per_clean_run": 1
+    },
+    {
+      "rung": "R1",
+      "label": "diff-fuzz",
+      "inputs": "tracegen",
+      "cells": 43,
+      "live": 43,
+      "killed": 31,
+      "survived": 0,
+      "unreached": 12,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 31,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 12,
+          "reason": "live, but nothing in this rung's input source (tracegen) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.7209302325581395,
+      "wall_ms_total": 3151410.7839999995,
+      "wall_ms_mean_killed": 78011.04548387097,
+      "wall_ms_mean_clean": 61089.03116666666,
+      "tool_ms_mean_clean": 8589.446166666672,
+      "tool_samples": 12,
+      "launches_per_clean_run": 20
+    },
+    {
+      "rung": "R2",
+      "label": "property",
+      "inputs": "tracegen",
+      "cells": 43,
+      "live": 43,
+      "killed": 17,
+      "survived": 18,
+      "unreached": 8,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 35,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 8,
+          "reason": "live, but nothing in this rung's input source (tracegen) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 0.4857142857142857,
+      "kill_rate_live": 0.3953488372093023,
+      "wall_ms_total": 6205867.175000001,
+      "wall_ms_mean_killed": 130726.35670588234,
+      "wall_ms_mean_clean": 153212.27349999998,
+      "tool_ms_mean_clean": 1720.3488076923118,
+      "tool_samples": 26,
+      "launches_per_clean_run": 54
+    },
+    {
+      "rung": "R0",
+      "label": "corpus",
+      "inputs": "corpus",
+      "impl": "go",
+      "cells": 11,
+      "live": 11,
+      "killed": 8,
+      "survived": 0,
+      "unreached": 3,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 8,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 3,
+          "reason": "live, but nothing in this rung's input source (corpus) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.7272727272727273,
+      "wall_ms_total": 5752.019,
+      "wall_ms_mean_killed": 508.55512500000003,
+      "wall_ms_mean_clean": 561.1926666666667,
+      "tool_ms_mean_clean": 99.59766666666663,
+      "tool_samples": 3,
+      "launches_per_clean_run": 1
+    },
+    {
+      "rung": "R1",
+      "label": "diff-fuzz",
+      "inputs": "tracegen",
+      "impl": "go",
+      "cells": 11,
+      "live": 11,
+      "killed": 8,
+      "survived": 0,
+      "unreached": 3,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 8,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 3,
+          "reason": "live, but nothing in this rung's input source (tracegen) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.7272727272727273,
+      "wall_ms_total": 159011.24599999998,
+      "wall_ms_mean_killed": 15674.799625,
+      "wall_ms_mean_clean": 11204.283000000001,
+      "tool_ms_mean_clean": 1972.3829999999987,
+      "tool_samples": 3,
+      "launches_per_clean_run": 20
+    },
+    {
+      "rung": "R2",
+      "label": "property",
+      "inputs": "tracegen",
+      "impl": "go",
+      "cells": 11,
+      "live": 11,
+      "killed": 5,
+      "survived": 4,
+      "unreached": 2,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 9,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 2,
+          "reason": "live, but nothing in this rung's input source (tracegen) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 0.5555555555555556,
+      "kill_rate_live": 0.45454545454545453,
+      "wall_ms_total": 325393.235,
+      "wall_ms_mean_killed": 29693.4034,
+      "wall_ms_mean_clean": 29487.702999999998,
+      "tool_ms_mean_clean": 4561.572999999999,
+      "tool_samples": 6,
+      "launches_per_clean_run": 54
+    },
+    {
+      "rung": "R0",
+      "label": "corpus",
+      "inputs": "corpus",
+      "impl": "rust",
+      "cells": 10,
+      "live": 10,
+      "killed": 7,
+      "survived": 0,
+      "unreached": 3,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 7,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 3,
+          "reason": "live, but nothing in this rung's input source (corpus) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.7,
+      "wall_ms_total": 1491.792,
+      "wall_ms_mean_killed": 148.8612857142857,
+      "wall_ms_mean_clean": 149.92100000000002,
+      "tool_ms_mean_clean": 52.65333333333333,
+      "tool_samples": 3,
+      "launches_per_clean_run": 1
+    },
+    {
+      "rung": "R1",
+      "label": "diff-fuzz",
+      "inputs": "tracegen",
+      "impl": "rust",
+      "cells": 10,
+      "live": 10,
+      "killed": 7,
+      "survived": 0,
+      "unreached": 3,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 7,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 3,
+          "reason": "live, but nothing in this rung's input source (tracegen) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.7,
+      "wall_ms_total": 39520.598999999995,
+      "wall_ms_mean_killed": 4194.759142857142,
+      "wall_ms_mean_clean": 3385.7616666666668,
+      "tool_ms_mean_clean": 1440.4083333333335,
+      "tool_samples": 3,
+      "launches_per_clean_run": 20
+    },
+    {
+      "rung": "R2",
+      "label": "property",
+      "inputs": "tracegen",
+      "impl": "rust",
+      "cells": 10,
+      "live": 10,
+      "killed": 4,
+      "survived": 4,
+      "unreached": 2,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 8,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 2,
+          "reason": "live, but nothing in this rung's input source (tracegen) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 0.5,
+      "kill_rate_live": 0.4,
+      "wall_ms_total": 75232.26000000001,
+      "wall_ms_mean_killed": 7511.0445,
+      "wall_ms_mean_clean": 7531.346999999999,
+      "tool_ms_mean_clean": 2278.8929999999996,
+      "tool_samples": 6,
+      "launches_per_clean_run": 54
+    },
+    {
+      "rung": "R0",
+      "label": "corpus",
+      "inputs": "corpus",
+      "impl": "java",
+      "cells": 11,
+      "live": 11,
+      "killed": 8,
+      "survived": 0,
+      "unreached": 3,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 8,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 3,
+          "reason": "live, but nothing in this rung's input source (corpus) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.7272727272727273,
+      "wall_ms_total": 11437.869,
+      "wall_ms_mean_killed": 1038.012,
+      "wall_ms_mean_clean": 1044.5910000000001,
+      "tool_ms_mean_clean": 33.009000000000015,
+      "tool_samples": 3,
+      "launches_per_clean_run": 1
+    },
+    {
+      "rung": "R1",
+      "label": "diff-fuzz",
+      "inputs": "tracegen",
+      "impl": "java",
+      "cells": 11,
+      "live": 11,
+      "killed": 8,
+      "survived": 0,
+      "unreached": 3,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 8,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 3,
+          "reason": "live, but nothing in this rung's input source (tracegen) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.7272727272727273,
+      "wall_ms_total": 313095.99199999997,
+      "wall_ms_mean_killed": 30930.020249999998,
+      "wall_ms_mean_clean": 21885.27666666667,
+      "tool_ms_mean_clean": 1653.6366666666665,
+      "tool_samples": 3,
+      "launches_per_clean_run": 20
+    },
+    {
+      "rung": "R2",
+      "label": "property",
+      "inputs": "tracegen",
+      "impl": "java",
+      "cells": 11,
+      "live": 11,
+      "killed": 4,
+      "survived": 5,
+      "unreached": 2,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 9,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 2,
+          "reason": "live, but nothing in this rung's input source (tracegen) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 0.4444444444444444,
+      "kill_rate_live": 0.36363636363636365,
+      "wall_ms_total": 653484.496,
+      "wall_ms_mean_killed": 57609.062249999995,
+      "wall_ms_mean_clean": 60435.46385714285,
+      "tool_ms_mean_clean": 5810.035857142857,
+      "tool_samples": 7,
+      "launches_per_clean_run": 54
+    },
+    {
+      "rung": "R0",
+      "label": "corpus",
+      "inputs": "corpus",
+      "impl": "kotlin",
+      "cells": 11,
+      "live": 11,
+      "killed": 8,
+      "survived": 0,
+      "unreached": 3,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 8,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 3,
+          "reason": "live, but nothing in this rung's input source (corpus) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.7272727272727273,
+      "wall_ms_total": 99778.34700000001,
+      "wall_ms_mean_killed": 8490.331374999998,
+      "wall_ms_mean_clean": 10618.565333333334,
+      "tool_ms_mean_clean": 1689.093,
+      "tool_samples": 3,
+      "launches_per_clean_run": 1
+    },
+    {
+      "rung": "R1",
+      "label": "diff-fuzz",
+      "inputs": "tracegen",
+      "impl": "kotlin",
+      "cells": 11,
+      "live": 11,
+      "killed": 8,
+      "survived": 0,
+      "unreached": 3,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 8,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 3,
+          "reason": "live, but nothing in this rung's input source (tracegen) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 1,
+      "kill_rate_live": 0.7272727272727273,
+      "wall_ms_total": 2639782.947,
+      "wall_ms_mean_killed": 252017.567125,
+      "wall_ms_mean_clean": 207880.80333333334,
+      "tool_ms_mean_clean": 29291.35666666669,
+      "tool_samples": 3,
+      "launches_per_clean_run": 20
+    },
+    {
+      "rung": "R2",
+      "label": "property",
+      "inputs": "tracegen",
+      "impl": "kotlin",
+      "cells": 11,
+      "live": 11,
+      "killed": 4,
+      "survived": 5,
+      "unreached": 2,
+      "equivalent": 0,
+      "unclassified": 0,
+      "errors": 0,
+      "reached": 9,
+      "excluded": [
+        {
+          "outcome": "unreached",
+          "count": 2,
+          "reason": "live, but nothing in this rung's input source (tracegen) elicits the difference -- an input gap, not a rung weakness (F009)"
+        }
+      ],
+      "kill_rate_reachable": 0.4444444444444444,
+      "kill_rate_live": 0.36363636363636365,
+      "wall_ms_total": 5151757.184,
+      "wall_ms_mean_killed": 453350.15499999997,
+      "wall_ms_mean_clean": 476908.0805714285,
+      "tool_ms_mean_clean": -5283.425428571412,
+      "tool_samples": 7,
+      "launches_per_clean_run": 54
+    }
+  ],
+  "warnings": [
+    "R1: 12 mutant(s) recorded as unreached on SAMPLED evidence. probe ran 4 trace(s) where this rung ran 20; unreached-by-tracegen is weaker evidence than unreached-by-corpus, which is exact.",
+    "R2: 8 mutant(s) recorded as unreached on SAMPLED evidence. probe ran 4 trace(s) where this rung ran 20; unreached-by-tracegen is weaker evidence than unreached-by-corpus, which is exact.",
+    "R2 on kotlin: the process floor (54 launches x measured floor) accounts for the whole clean wall time -- the corrected figure is -5.3s, at or below zero. This rung's seconds on this corner are process startup, not rung work, so comparing its wall time against another corner's compares the two languages' launch costs. Compare launch counts instead."
+  ]
+}
